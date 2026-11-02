@@ -30,9 +30,18 @@ input,textarea,select{font-size:16px!important}
 .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal-grid .wd{font-size:11px;color:var(--sub);text-align:center}
 .cal-grid button{aspect-ratio:1/1;border:0;border-radius:10px;background:transparent;font-size:14px;position:relative;color:var(--text)}
-.cal-grid button.has{background:var(--soft);color:var(--accentText);font-weight:700}
-.cal-grid button.has::after{content:"";position:absolute;left:50%;bottom:5px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--accent)}
-.cal-grid button.today{box-shadow:inset 0 0 0 2px var(--accent)}
+.cal-grid button.has{background:var(--accent);color:var(--onAccent);font-weight:700}
+.cal-grid button.today{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent)}
+.cal-grid button.pick{outline:3px solid var(--rec);outline-offset:1px}
+.cal-legend{display:flex;gap:14px;align-items:center;font-size:12px;color:var(--sub)}
+.cal-legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:4px}
+/* 押したときの手応え */
+button.tapped,.chip.tapped{filter:brightness(.85)}
+.link.tapped{background:var(--soft);border-radius:6px}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:30;background:var(--text);color:var(--card);border-radius:24px;padding:10px 18px;font-size:14px;display:flex;gap:14px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.18);max-width:calc(100% - 32px)}
+.toast button{border:0;background:transparent;color:var(--card);font-weight:700;text-decoration:underline;font-size:14px;padding:4px}
+.todo{transition:opacity .2s ease,transform .2s ease}
+.todo.gone{opacity:0;transform:translateX(24px)}
 .cal-grid button:disabled{color:var(--line)}
 
 </style>
@@ -290,7 +299,8 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
     <div class="cal">
       <div class="cal-head"><button class="icon-btn" id="cal-prev" type="button" aria-label="前の月">‹</button><b id="cal-label"></b><button class="icon-btn" id="cal-next" type="button" aria-label="次の月">›</button></div>
       <div class="cal-grid" id="cal-grid"></div>
-      <div class="small" id="cal-note">印のある日に記録があります。押すと、その日の記録が下に出ます。</div>
+      <div class="cal-legend"><span><i style="background:var(--accent)"></i>記録あり</span><span><i style="box-shadow:inset 0 0 0 2px var(--accent)"></i>今日</span></div>
+      <div class="small" id="cal-note">紺の日に記録があります。押すと、その日の記録が下に出ます。</div>
       <button class="btn ghost" id="cal-write" type="button" hidden></button>
     </div>
   </details>
@@ -333,11 +343,11 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
   </div>
 </section>
 
-<!-- やること -->
+<!-- TODO -->
 <section id="v-todo" class="view" hidden>
-  <div class="head"><h1>やること</h1></div>
+  <div class="head"><h1>TODO</h1></div>
   <div class="group">
-    <label class="label" for="todo-in">やることを追加</label>
+    <label class="label" for="todo-in">TODOを追加</label>
     <div class="todo-add"><input id="todo-in" class="date-input" type="text" placeholder="例：鶴目くんと面談の日を決める" enterkeyhint="done"><button class="btn" id="todo-add" type="button">追加</button></div>
     <div class="small">JOURNALに書いた「やる」こと、IDEAの次の一歩、本の1つの行動は、保存すると自動でここに入ります。いらないものは消してください。</div>
     <button class="btn ghost" id="todo-scan" type="button">最近2週間の記録から拾う</button>
@@ -465,7 +475,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
 <nav class="tabs" aria-label="画面切り替え">
   <button type="button" data-view="today" aria-current="page"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>今日を書く</button>
   <button type="button" data-view="review"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>振り返り</button>
-  <button type="button" data-view="todo"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12l3 3 5-6"/></svg>やること</button>
+  <button type="button" data-view="todo"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12l3 3 5-6"/></svg>TODO</button>
   <button type="button" data-view="prefs"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>設定</button>
 </nav>
 
@@ -493,11 +503,13 @@ const clone = (x) => x === undefined || x === null ? x : JSON.parse(JSON.stringi
 const CK = "jc:", NOCACHE = {summaries: 1, settings: 1, push: 1};
 function cget(k){ try { return JSON.parse(localStorage.getItem(CK + k)); } catch(e){ return null; } }
 function cset(k, v){ try { const s = JSON.stringify(v); if (s.length < 1500000) localStorage.setItem(CK + k, s); } catch(e){} }
-function cclear(coll){ try { Object.keys(localStorage).forEach((k) => { if (k.indexOf(CK) === 0 && k.indexOf('"coll":"' + coll + '"') >= 0) localStorage.removeItem(k); }); } catch(e){} }
+const CGEN = {};
+function cclear(coll){ CGEN[coll] = (CGEN[coll] || 0) + 1; try { Object.keys(localStorage).forEach((k) => { if (k.indexOf(CK) === 0 && k.indexOf('"coll":"' + coll + '"') >= 0) localStorage.removeItem(k); }); } catch(e){} }
 async function cachedQuery(p){
   if (NOCACHE[p.coll]) return call("db", p);
-  const k = JSON.stringify(p), hit = cget(k);
-  const fresh = call("db", p).then((r) => { cset(k, r); return r; });
+  const k = JSON.stringify(p), hit = cget(k), gen = CGEN[p.coll] || 0;
+  // 読んでいる途中で書き込みがあったら、古い結果は覚えない
+  const fresh = call("db", p).then((r) => { if ((CGEN[p.coll] || 0) === gen) cset(k, r); return r; });
   if (hit){ fresh.catch(() => {}); return hit; }
   return fresh;
 }
@@ -518,7 +530,7 @@ const db = {
     const i = path.indexOf("/"), coll = path.slice(0, i), id = path.slice(i + 1);
     const ref = {
       id: id,
-      get: async () => { const r = await call("db", {op: "get", coll: coll, id: id}); return snap(id, r.data); },
+      get: async (o) => { const p = {op: "get", coll: coll, id: id}; const r = o && o.cache ? await cachedQuery(p) : await call("db", p); return snap(id, r.data); },
       set: (data) => { cclear(coll); return call("db", {op: "set", coll: coll, id: id, data: clone(data)}); },
       update: (data) => { cclear(coll); return call("db", {op: "update", coll: coll, id: id, data: clone(data)}); },
       delete: () => { cclear(coll); return call("db", {op: "delete", coll: coll, id: id}); },
@@ -812,7 +824,7 @@ let db = null, sample = null, downloads = null;
 const daysCol = () => db.collection("days");
 
 async function loadLastYear(){
-  const snap = await db.doc("days/" + lastYearOf()).get();
+  const snap = await db.doc("days/" + lastYearOf()).get({cache: true});
   const body = $("ly-body");
   $("ly-insight").hidden = true; $("ly-raw").hidden = true;
   if (!snap.exists){
@@ -948,7 +960,7 @@ function paintCal(){
   for (let i = 0; i < first; i++) h += "<div></div>";
   for (let d = 1; d <= last; d++){
     const ds = y + "-" + pad(m + 1) + "-" + pad(d), has = calDays && calDays.has(ds);
-    h += '<button type="button" data-cal="' + ds + '" class="' + (has ? "has " : "") + (ds === REAL_TODAY ? "today" : "") + '"' + (ds > REAL_TODAY ? " disabled" : "") + ' aria-label="' + (m + 1) + "月" + d + "日" + (has ? "、記録あり" : "") + '">' + d + "</button>";
+    h += '<button type="button" data-cal="' + ds + '" class="' + (has ? "has " : "") + (ds === REAL_TODAY ? "today " : "") + (ds === calPick ? "pick" : "") + '"' + (ds > REAL_TODAY ? " disabled" : "") + ' aria-label="' + (m + 1) + "月" + d + "日" + (has ? "、記録あり" : "") + '">' + d + "</button>";
   }
   $("cal-grid").innerHTML = h;
 }
@@ -957,7 +969,7 @@ $("cal-prev").addEventListener("click", () => { calMonth = new Date(calMonth.get
 $("cal-next").addEventListener("click", () => { calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1); paintCal(); });
 $("cal-grid").addEventListener("click", (ev) => {
   const b = ev.target.closest("[data-cal]"); if (!b || b.disabled) return;
-  calPick = b.dataset.cal;
+  calPick = b.dataset.cal; paintCal();
   const [y, m, d] = calPick.split("-").map(Number);
   rvDate = new Date(y, m - 1, d); renderReview();
   const has = calDays && calDays.has(calPick);
@@ -1427,7 +1439,7 @@ async function saveIdea(raw){
     const r = await sample.json("次のメモは、ふと思いついたアイデアです。本人があとで見返して動けるように整理してください。title（短い名前）、core（中身を1〜2文。本人の言葉をなるべく残す）、next（次の一歩を1文）。書かれていない内容は足さないこと。\\n返答はJSONのみ: {\"title\":\"\",\"core\":\"\",\"next\":\"\"}\\n\\nメモ:\\n" + raw.slice(0, 8000), {cache: false, modelTier: "quick"});
     await ref.update({title: String(r.title || ""), core: String(r.core || raw), next: String(r.next || "")});
     if (r.next) await addTodo(r.next, "IDEA", "i-" + id, TODAY);
-    st.textContent = "IDEAを残しました：" + (r.title || "") + (r.next ? "（次の一歩をやることに入れました）" : "");
+    st.textContent = "IDEAを残しました：" + (r.title || "") + (r.next ? "（次の一歩をTODOに入れました）" : "");
   } catch(e){}
 }
 
@@ -1441,11 +1453,11 @@ async function saveBook(raw){
   st.textContent = "本の記録を残しました";
   if (!sample) return;
   try {
-    const r = await sample.json("次のメモは、本を読んだあとの記録です。書名、著者、内容（本に書いてあったこと）、学び（本人が感じたこと）、1つの行動（この本から明日やること1つ）に分けてください。著者が分からなければ空。書かれていない内容は足さないこと。数字は算用数字。\n返答はJSONのみ: {\"title\":\"\",\"author\":\"\",\"note\":\"\",\"takeaway\":\"\",\"action\":\"\"}\n\nメモ:\n" + raw.slice(0, 12000), {cache: false, modelTier: "quick"});
+    const r = await sample.json("次のメモは、本を読んだあとの記録です。書名、著者、内容（本に書いてあったこと）、学び（本人が感じたこと）、1つの行動（この本から明日TODO1つ）に分けてください。著者が分からなければ空。書かれていない内容は足さないこと。数字は算用数字。\n返答はJSONのみ: {\"title\":\"\",\"author\":\"\",\"note\":\"\",\"takeaway\":\"\",\"action\":\"\"}\n\nメモ:\n" + raw.slice(0, 12000), {cache: false, modelTier: "quick"});
     await ref.update({title: String(r.title || ""), author: String(r.author || ""), note: String(r.note || ""), takeaway: String(r.takeaway || raw), action: String(r.action || "")});
     booksCache = null;
     if (r.action) await addTodo(r.action, "本", "b-" + id, TODAY);
-    st.textContent = "本の記録を残しました：" + (r.title || "") + (r.action ? "（1つの行動をやることに入れました）" : "");
+    st.textContent = "本の記録を残しました：" + (r.title || "") + (r.action ? "（1つの行動をTODOに入れました）" : "");
   } catch(e){}
 }
 
@@ -1463,7 +1475,7 @@ function renderPane(){
   if (rvPane === "years") renderReview(); else if (rvPane === "ideas") renderIdeas(); else if (rvPane === "books") renderBooks();
   else if (rvPane === "sum") renderSums(); else renderHayato();
 }
-const todoBtn = (text, from) => text ? '<button type="button" class="link" data-todo-add="' + esc(text) + '" data-from="' + from + '">やることに入れる</button>' : '';
+const todoBtn = (text, from) => text ? '<button type="button" class="link" data-todo-add="' + esc(text) + '" data-from="' + from + '">TODOに入れる</button>' : '';
 async function renderIdeas(){
   const el = $("rv-ideas");
   const paint = (rows) => { el.innerHTML = rows.length ? rows.map((x) => '<div class="item idea"><div class="row-between"><span class="ttl">' + esc(x.title || "（名前なし）") + '</span><span class="small">' + md2(x.date) + (x.src === "diary" ? "　JOURNALから" : "") + '</span></div>'
@@ -1613,17 +1625,19 @@ $("rv-sum").addEventListener("click", async (ev) => {
   renderSums();
 });
 
-/* ---------- やること ---------- */
+/* ---------- TODO ---------- */
 let todoCache = null;
 function todoHtml(x){
   return '<div class="todo' + (x.done ? ' done' : '') + '"><input type="checkbox" data-todo-check="' + esc(x.id) + '"' + (x.done ? ' checked' : '') + ' aria-label="終わった">'
     + '<div><div class="tx">' + esc(x.text) + '</div>' + (x.from && x.from !== "手入力" ? '<div class="src">' + esc(x.from) + (x.date ? '（' + mdJ(x.date) + '）' : '') + 'から</div>' : '') + '</div>'
     + '<button type="button" class="link" data-todo-del="' + esc(x.id) + '" aria-label="消す">消す</button></div>';
 }
+function renderTodoPaint(){ if (todoCache) todoPaint(todoCache); }
+let todoPaint = () => {};
 async function renderTodo(){
-  const paint = (rows) => {
+  const paint = todoPaint = (rows) => {
     const open = rows.filter((x) => !x.done), done = rows.filter((x) => x.done);
-    $("todo-open").innerHTML = open.length ? open.map(todoHtml).join("") : '<div class="item"><p class="empty">やることはありません。</p></div>';
+    $("todo-open").innerHTML = open.length ? open.map(todoHtml).join("") : '<div class="item"><p class="empty">TODOはありません。</p></div>';
     $("todo-done-wrap").hidden = done.length === 0;
     $("todo-done-label").textContent = "終わったこと（" + done.length + "）";
     $("todo-done").innerHTML = done.map(todoHtml).join("");
@@ -1665,24 +1679,38 @@ $("todo-scan").addEventListener("click", async () => {
     for (const x of is){ const v = x.data(); if (v.next && await addTodo(v.next, "IDEA", "i-" + x.id, v.date)) n++; }
     const bs = (await db.collection("books").where("date", ">=", from).limit(50).get()).docs;
     for (const x of bs){ const v = x.data(); if (v.action && await addTodo(v.action, "本", "b-" + x.id, v.date)) n++; }
-    st.textContent = n ? n + "件をやることに入れました。" : "新しく入れるものはありませんでした。";
+    st.textContent = n ? n + "件をTODOに入れました。" : "新しく入れるものはありませんでした。";
     renderTodo();
   } catch(e){ st.textContent = e && e.code === "rate_limited" ? "少し時間をおいてから押してください。" : "拾えませんでした。もう一度押してください。"; }
   finally { btn.disabled = false; }
 });
 $("todo-add").addEventListener("click", async () => {
-  const el = $("todo-in"); if (await addTodo(el.value, "手入力")){ el.value = ""; renderTodo(); }
+  const el = $("todo-in"), text = el.value.trim(); if (!text) { el.focus(); return; }
+  const btn = $("todo-add"); btn.disabled = true; btn.textContent = "追加しています";
+  // 先に一覧へ出す
+  const tmp = {id: "tmp" + Date.now(), text: text, from: "手入力", done: false, at: new Date().toISOString()};
+  todoCache = [tmp].concat(todoCache || []); el.value = ""; renderTodoPaint();
+  toast("TODOに追加しました");
+  try { await addTodo(text, "手入力"); } catch(e){ toast("追加できませんでした。もう一度押してください"); }
+  btn.disabled = false; btn.textContent = "追加"; renderTodo();
 });
 $("todo-in").addEventListener("keydown", (ev) => { if (ev.key === "Enter" && !ev.isComposing){ ev.preventDefault(); $("todo-add").click(); } });
 document.addEventListener("click", async (ev) => {
   const a = ev.target.closest("[data-todo-add]");
-  if (a){ a.disabled = true; if (await addTodo(a.dataset.todoAdd, a.dataset.from)) a.textContent = "やることに入れました"; return; }
+  if (a){ a.disabled = true; a.textContent = "TODOに入れています"; if (await addTodo(a.dataset.todoAdd, a.dataset.from)){ a.textContent = "TODOに入れました"; toast("TODOに入れました"); } else a.textContent = "TODOに入っています"; return; }
   const d = ev.target.closest("[data-todo-del]");
-  if (d){ try { await db.doc("todos/" + d.dataset.todoDel).update({deleted: true}); } catch(e){} todoCache = (todoCache || []).filter((x) => x.id !== d.dataset.todoDel); renderTodo(); }
+  if (d){
+    const id = d.dataset.todoDel, row = d.closest(".todo"), item = (todoCache || []).find((x) => x.id === id);
+    if (row) row.classList.add("gone");
+    setTimeout(() => { todoCache = (todoCache || []).filter((x) => x.id !== id); renderTodoPaint(); }, 200);
+    toast("消しました", async () => { if (item){ todoCache = [item].concat(todoCache || []); renderTodoPaint(); } try { await db.doc("todos/" + id).update({deleted: false}); } catch(e){} renderTodo(); });
+    try { await db.doc("todos/" + id).update({deleted: true}); } catch(e){}
+  }
 });
 document.addEventListener("change", async (ev) => {
   const c = ev.target.closest("[data-todo-check]"); if (!c) return;
   const id = c.dataset.todoCheck, done = c.checked;
+  toast(done ? "終わったことにしました" : "TODOに戻しました");
   (todoCache || []).forEach((x) => { if (x.id === id) x.done = done; });
   renderTodo();
   try { await db.doc("todos/" + id).update({done: done, doneAt: done ? new Date().toISOString() : null}); } catch(e){}
@@ -1807,6 +1835,18 @@ $("p-font").closest("details").addEventListener("toggle", (ev) => {
   if (ev.target.open && !fontsLoaded){ fontsLoaded = true; Object.keys(ALLF).forEach(ensureFont); }
 });
 
+/* ---------- 押した手応え ---------- */
+document.addEventListener("touchstart", () => {}, {passive: true});
+document.addEventListener("pointerdown", (ev) => { const b = ev.target.closest("button,.chip,label.btn"); if (!b) return; b.classList.add("tapped"); setTimeout(() => b.classList.remove("tapped"), 260); });
+let toastTimer = null;
+function toast(msg, undo){
+  let t = document.querySelector(".toast"); if (t) t.remove();
+  t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status");
+  const s = document.createElement("span"); s.textContent = msg; t.appendChild(s);
+  if (undo){ const u = document.createElement("button"); u.type = "button"; u.textContent = "元に戻す"; u.addEventListener("click", () => { t.remove(); undo(); }); t.appendChild(u); }
+  document.body.appendChild(t); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.remove(), undo ? 4000 : 1800);
+}
+
 /* ---------- iPhoneへのお知らせ ---------- */
 async function renderPush(){
   const P2 = window.JOURNAL_PUSH, st = $("n-state");
@@ -1852,6 +1892,13 @@ renderToday();
   loadOlder().catch(() => {});
   // 写真の一覧が届いたら、写真へのリンク付きで描き直す
   loadPages().then(() => { loadLastYear().catch(() => {}); loadOlder().catch(() => {}); }).catch(() => {});
+  // 振り返りやTODOを開いたときにすぐ出るよう、先に読んでおく
+  setTimeout(() => {
+    const pre = [daysCol().where("md", "==", MD).orderBy("year", "desc").limit(50), daysCol().orderBy("date", "desc").limit(14),
+      db.collection("ideas").orderBy("at", "desc").limit(200), db.collection("books").orderBy("at", "desc").limit(300),
+      daysCol().where("hasHayato", "==", true).orderBy("date", "desc").limit(300), db.collection("todos").orderBy("at", "desc").limit(300)];
+    pre.forEach((x) => x.get().catch(() => {}));
+  }, 1500);
   // 終わった週と月のまとめを、まだなければ作る（少し待ってから）
   setTimeout(() => { ensureSummaries(); }, 4000);
   if (location.hash === "#sum"){ document.querySelector('nav.tabs button[data-view="review"]').click(); document.querySelector('[data-rv="sum"]').click(); }
