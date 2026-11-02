@@ -1,0 +1,1790 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>JOURNAL</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="JOURNAL">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#E9F0F7">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;-webkit-text-size-adjust:100%}
+img{max-width:100%}
+[hidden]{display:none!important}
+*{-webkit-tap-highlight-color:transparent}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap">
+<style>
+/* 一列の日記帳。上に過去の自分、下に今日を書く。色と文字は設定から変数で差し替える */
+:root{
+  --bg:#E9F0F7; --card:#FFFFFF; --soft:#F2F6FA; --text:#1B2430; --sub:#596475; --line:#D3DEEA; --bar:#F2F6FA;
+  --accent:hsl(220,46%,27%); --accentText:hsl(220,46%,27%); --onAccent:#FFFFFF; --rec:#C0392B;
+  --r:14px; --pill:30px; --fs:15px;
+  --font:'Noto Sans JP',-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;
+  --titleWeight:700;
+  color-scheme:light;
+}
+html,body{background:var(--bg);color:var(--text)}
+body{font-family:var(--font);font-size:var(--fs);line-height:1.6;-webkit-text-size-adjust:100%}
+*{box-sizing:border-box}
+button,input,textarea,select{font:inherit;color:inherit}
+button,label,summary,.chip,.dot{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--accentText);outline-offset:2px}
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px calc(96px + env(safe-area-inset-bottom,0px))}
+.view{display:flex;flex-direction:column;gap:22px}
+.head{display:flex;flex-direction:column;gap:2px;padding:0 4px}
+.eyebrow{font-size:14px;font-weight:500;color:var(--sub)}
+h1{margin:0;font-size:34px;line-height:1.2;font-weight:var(--titleWeight);text-wrap:balance}
+h2{margin:0;font-size:15px;font-weight:700}
+.card{background:var(--card);border-radius:var(--r);padding:16px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.row-between{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.accent{color:var(--accentText)}
+.small{font-size:12px;color:var(--sub)}
+.label{padding-left:4px;font-size:13px;font-weight:500;color:var(--sub)}
+.group{display:flex;flex-direction:column;gap:8px}
+.body{margin:0;line-height:1.85;white-space:pre-wrap;overflow-wrap:anywhere}
+.box{background:var(--soft);border-radius:calc(var(--r) - 4px);padding:10px 14px;display:flex;flex-direction:column;gap:2px}
+.box b{font-size:12px;color:var(--accentText)}
+.box span{line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+.empty{color:var(--sub);line-height:1.8;margin:0}
+.seg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:4px;background:var(--card);border-radius:var(--r)}
+.seg button{height:44px;border:0;border-radius:max(4px,calc(var(--r) - 4px));background:transparent;font-size:17px;font-variant-numeric:tabular-nums}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--onAccent);font-weight:700}
+.scale{display:flex;justify-content:space-between;padding:0 6px;font-size:11px;color:var(--sub)}
+textarea{width:100%;min-height:190px;resize:vertical;border:0;border-radius:var(--r);background:var(--card);padding:16px 18px;line-height:1.8}
+textarea::placeholder{color:var(--sub)}
+.btn{min-height:54px;border:0;border-radius:var(--pill);background:var(--accent);color:var(--onAccent);font-weight:700;font-size:16px;padding:0 20px}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.ghost{background:transparent;color:var(--accentText);border:1.5px solid var(--accentText)}
+.link{align-self:flex-start;min-height:44px;padding:0;border:0;background:transparent;color:var(--accentText);font-weight:500;font-size:14px}
+.status{min-height:18px;font-size:12px;color:var(--sub);text-align:center}
+.entries{display:flex;flex-direction:column}
+.entry{display:grid;grid-template-columns:52px minmax(0,1fr);gap:10px;padding:12px 0;border-top:1px solid var(--line)}
+.entry:first-child{border-top:0;padding-top:0}
+.entry time{font-size:13px;color:var(--sub);font-variant-numeric:tabular-nums;padding-top:2px}
+.list{background:var(--card);border-radius:var(--r);overflow:hidden}
+.item{display:flex;flex-direction:column;gap:6px;padding:14px 18px;border-top:1px solid var(--line);min-width:0}
+.item:first-child{border-top:0}
+.item .year{font-weight:700}
+.item details summary{list-style:none;cursor:pointer;color:var(--accentText);font-size:14px;font-weight:500;min-height:36px;display:flex;align-items:center}
+.item details summary::-webkit-details-marker{display:none}
+.item details[open] summary{margin-bottom:6px}
+.datebar{display:flex;align-items:center;justify-content:space-between;background:var(--card);border-radius:var(--r);padding:2px 4px}
+.icon-btn{width:48px;height:48px;border:0;background:transparent;color:var(--accentText);display:flex;align-items:center;justify-content:center}
+.datebar .mid{display:flex;flex-direction:column;align-items:center}
+.datebar .mid b{font-size:17px}
+.datebar .mid button{border:0;background:transparent;color:var(--accentText);font-size:12px;min-height:28px}
+.recent{width:100%;text-align:left;border:0;background:transparent;display:grid;grid-template-columns:76px minmax(0,1fr);gap:10px;padding:12px 18px;border-top:1px solid var(--line);min-height:48px}
+.recent:first-child{border-top:0}
+.recent .d{font-weight:700;font-variant-numeric:tabular-nums}
+.recent .s{color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 設定 */
+.prefs{background:var(--card);border-radius:var(--r);overflow:hidden}
+.pref{padding:14px 16px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:12px}
+.pref:first-child{border-top:0}
+.pref .t{font-size:16px}
+.pref .v{font-size:14px;color:var(--sub);text-align:right}
+.dots{display:flex;flex-wrap:wrap;gap:10px}
+.dot{width:40px;height:40px;border-radius:50%;border:0;box-shadow:0 0 0 1px var(--line)}
+.dot[aria-pressed="true"]{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--text)}
+.shades{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.shades .dot{width:auto;height:40px;border-radius:max(4px,calc(var(--r) - 4px))}
+.chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.chips.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.chip{min-height:44px;padding:0 6px;border-radius:max(4px,calc(var(--r) - 4px));border:1px solid var(--line);background:transparent;font-size:14px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--onAccent);font-weight:700}
+.prow{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:52px;padding:0 16px;border-top:1px solid var(--line)}
+.prow:first-child{border-top:0}
+.dict{display:flex;flex-direction:column;gap:8px}
+.dict-row{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) 44px;gap:6px;align-items:center}
+.dict-row input{min-width:0;height:44px;border:1px solid var(--line);border-radius:max(4px,calc(var(--r) - 6px));background:var(--bg);padding:0 10px}
+.dict-row .x{width:44px;height:44px;border:0;background:transparent;color:var(--sub);font-size:18px}
+.moods{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.moods button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:56px;padding:6px 2px;border:1.5px solid var(--line);border-radius:var(--r);background:var(--card)}
+.moods button b{font-size:20px;line-height:1.1;font-variant-numeric:tabular-nums}
+.moods button small{font-size:11px;color:var(--sub);white-space:nowrap}
+.moods button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+.moods button[aria-pressed="true"] small{color:var(--onAccent)}
+.pref.fold{display:block}
+.fold > :not(summary){margin-top:12px}
+.lenbar{width:100%;accent-color:var(--accent);min-height:32px}
+.lenprev{background:var(--soft);border-radius:max(4px,calc(var(--r) - 4px));padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.todo-add{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.todo-add .btn{width:auto;padding:0 18px;min-height:44px}
+.todo{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:start;padding:12px 18px;border-top:1px solid var(--line)}
+.todo:first-child{border-top:0}
+.todo input{width:22px;height:22px;margin:2px 0 0;accent-color:var(--accent)}
+.todo .src{font-size:12px;color:var(--sub)}
+.todo.done .tx{color:var(--sub);text-decoration:line-through}
+.sum h3{margin:0;font-size:16px}
+.mini-actions{display:flex;gap:16px;flex-wrap:wrap}
+.rawfold{border:1px solid var(--line);border-radius:max(4px,calc(var(--r) - 4px));padding:0 14px}
+details.rawfold>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:44px;color:var(--accentText);font-size:14px;font-weight:500}
+details.rawfold>summary::-webkit-details-marker{display:none}
+details.rawfold>summary::after{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin:0 4px 4px;flex:0 0 auto}
+details.rawfold[open]>summary::after{transform:rotate(-135deg);margin-bottom:-4px}
+.rawfold>.entries,.rawfold>.entries-wrap,.rawfold>.group,.rawfold>.lenprev{margin-bottom:14px}
+.fold summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:28px}
+.fold summary::-webkit-details-marker{display:none}
+.fold summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--sub);border-bottom:2px solid var(--sub);transform:rotate(45deg);margin-left:4px;flex:0 0 auto}
+.fold[open] summary::after{transform:rotate(-135deg)}
+.fold summary .v{margin-left:auto}
+.fold:not([open]){padding-bottom:14px}
+.date-input{height:46px;border:1px solid var(--line);border-radius:max(4px,calc(var(--r) - 6px));background:var(--card);padding:0 12px;min-width:0;width:100%}
+.range{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center}
+.hand-add{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.eblock{display:flex;flex-direction:column;gap:4px;padding:10px 0;border-top:1px solid var(--line)}
+.eblock:first-child{border-top:0;padding-top:0}
+.eblock .link{min-height:36px}
+.hsrc img{width:100%;height:auto;margin-top:6px;border-radius:calc(var(--r) - 6px);border:1px solid var(--line);background:#fff}
+#migrate-status{white-space:pre-line}
+.mode{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:2px;padding:3px;background:var(--line);border-radius:max(6px,calc(var(--r) - 4px))}
+.mode button{min-height:40px;border:0;border-radius:max(4px,calc(var(--r) - 6px));background:transparent;font-size:14px;color:var(--sub)}
+.mode button[aria-pressed="true"]{background:var(--card);color:var(--text);font-weight:700}
+.idea .ttl{font-weight:700}
+.hand-imgs{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.hand-imgs img{width:100%;max-width:100%;height:auto;border-radius:calc(var(--r) - 6px);border:1px solid var(--line);background:#fff}
+.notice{background:var(--card);border-radius:var(--r);padding:14px 18px;line-height:1.7}
+.login{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+.login-box{width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px}
+.login-box h1{margin:0;font-size:28px;letter-spacing:.08em}
+.ntime{display:flex;align-items:center;gap:8px}
+.ntime select{min-height:40px;border:1px solid var(--line);border-radius:max(4px,calc(var(--r) - 6px));background:var(--card);color:var(--text);font:inherit;padding:0 10px}
+/* 下のタブ */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--bar);border-top:1px solid var(--line);padding:6px max(0px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(0px,env(safe-area-inset-left,0px))}
+nav.tabs button{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:50px;justify-content:center;font-size:11px;color:var(--sub)}
+nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
+@media (prefers-reduced-motion:no-preference){.seg button,.chip,.dot{transition:background .15s,box-shadow .15s}}
+</style>
+
+</head>
+<body>
+<div id="login" class="login" hidden>
+  <div class="login-box">
+    <h1>JOURNAL</h1>
+    <p class="small" id="login-note">合言葉を入れてください。初めてのときは、ここで決めた言葉がそのまま合言葉になります。</p>
+    <input type="password" id="login-pass" class="date-input" placeholder="合言葉" autocomplete="current-password">
+    <button class="btn" id="login-go" type="button">開く</button>
+    <div class="status" id="login-status" role="status"></div>
+  </div>
+</div>
+<div class="wrap">
+
+<div id="banner" class="notice" hidden></div>
+
+<!-- 今日を書く -->
+<section id="v-today" class="view">
+  <div class="head">
+    <div class="eyebrow" id="t-eyebrow"></div>
+    <div class="row-between" style="align-items:center">
+      <h1 id="t-date"></h1>
+      <button class="link" id="w-change" type="button" style="align-self:center">別の日の分を書く</button>
+    </div>
+  </div>
+  <div class="notice" id="w-panel" hidden>
+    <div class="group">
+      <label class="label" for="w-date" style="padding:0">書く日を選ぶ</label>
+      <input type="date" id="w-date" class="date-input">
+      <div class="row-between"><span class="small" id="w-note"></span><button class="link" id="w-back" type="button">今日に戻る</button></div>
+    </div>
+  </div>
+
+
+  <details class="notice fold" id="missing" hidden>
+    <summary><span>書いていない日があります</span><span class="v small" id="missing-count"></span></summary>
+    <div class="small">この2週間で記録がない日です。押すと、その日の分を書けます。</div>
+    <div class="chips three" id="missing-list"></div>
+  </details>
+
+  <article class="card" id="ly-card">
+    <div class="row-between"><h2 class="accent" id="ly-title">1年前の今日</h2><span class="small" id="ly-date"></span></div>
+    <div class="body" id="ly-body"><span class="empty">読み込んでいます</span></div>
+    <div class="box" id="ly-insight" hidden><b>気づき</b><span></span></div>
+    <details class="rawfold" id="ly-raw" hidden><summary id="ly-raw-label">原文を読む</summary><div class="entries-wrap"></div></details>
+    <details id="ly-hand" hidden><summary class="link">この日の手書きのページを見る</summary><div class="hand-imgs"></div></details>
+  </article>
+
+  <div class="group">
+    <div class="label" id="mood-label">今日の調子</div>
+    <div class="moods" id="mood" role="group" aria-labelledby="mood-label"></div>
+  </div>
+
+  <div class="group">
+    <div class="mode" role="group" aria-label="書く種類">
+      <button type="button" data-mode="diary" aria-pressed="true">JOURNAL</button>
+      <button type="button" data-mode="idea" aria-pressed="false">IDEA</button>
+      <button type="button" data-mode="book" aria-pressed="false">BOOK</button>
+    </div>
+    <label class="label" for="entry" id="entry-label">今日のこと</label>
+    <textarea id="entry" placeholder="思いついた順でかまいません"></textarea>
+    <button class="btn" id="save" type="button">記録する</button>
+    <div class="status" id="save-status" role="status"></div>
+    <div class="hand-add" id="hand-add" hidden>
+      <label class="btn ghost" for="hand-file" style="display:flex;align-items:center;justify-content:center;gap:8px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 16l-5-5-8 8"/></svg>
+        手書きのページを追加
+      </label>
+      <input type="file" id="hand-file" accept="image/*" hidden>
+      <div class="small" style="text-align:center">GoodNotesのページの画面写真などを選ぶと、AIが文字にしてこの日の記録に入れます</div>
+      <div class="status" id="hand-add-status" role="status"></div>
+    </div>
+  </div>
+
+  <article class="card" id="today-card" hidden>
+    <div class="row-between"><h2>今日の記録</h2><span class="small" id="today-count"></span></div>
+    <div class="entries" id="today-entries"></div>
+  </article>
+
+  <article class="card" id="ai-card" hidden>
+    <div class="row-between"><h2 class="accent">今日の整理</h2><span class="small">AIがまとめます</span></div>
+    <p class="body" id="ai-summary"></p>
+    <div class="box" id="ai-good"><b>よかったこと</b><span></span></div>
+    <div class="box" id="ai-challenge"><b>課題</b><span></span></div>
+    <div class="box" id="ai-insight"><b>気づき</b><span></span></div>
+    <div class="box" id="ai-hayato"><b>隼人のこと</b><span></span></div>
+    <button class="link" id="ai-redo" type="button">整理し直す</button>
+    <div class="status" id="ai-status" role="status"></div>
+  </article>
+
+  <div class="group" id="older-group" hidden>
+    <div class="label">もっと前の今日</div>
+    <div class="list" id="older-list"></div>
+  </div>
+</section>
+
+<!-- 振り返り -->
+<section id="v-review" class="view" hidden>
+  <div class="head"><h1>振り返り</h1></div>
+  <div class="mode" role="group" aria-label="振り返りの種類" id="rv-mode">
+    <button type="button" data-rv="years" aria-pressed="true">毎年</button>
+    <button type="button" data-rv="sum" aria-pressed="false">まとめ</button>
+    <button type="button" data-rv="ideas" aria-pressed="false">IDEA</button>
+    <button type="button" data-rv="books" aria-pressed="false">本</button>
+    <button type="button" data-rv="hayato" aria-pressed="false">隼人</button>
+  </div>
+  <div id="rv-years-pane" class="view">
+  <div class="datebar">
+    <button class="icon-btn" id="rv-prev" type="button" aria-label="前の日"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <div class="mid"><b id="rv-label"></b><button type="button" id="rv-today">今日に戻る</button></div>
+    <button class="icon-btn" id="rv-next" type="button" aria-label="次の日"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>
+  </div>
+  <article class="card" id="rv-hand" hidden>
+    <div class="row-between"><h2>この日の手書き</h2><span class="small">iPadの7年日記より</span></div>
+    <div class="hand-imgs"></div>
+  </article>
+  <div class="list" id="rv-years"></div>
+  <div class="group">
+    <div class="label">最近の記録</div>
+    <div class="list" id="rv-recent"></div>
+  </div>
+  </div>
+  <div id="rv-sum-pane" class="view" hidden>
+    <div class="mode" role="group" aria-label="まとめの種類" id="sum-kind">
+      <button type="button" data-k="w" aria-pressed="true">週のまとめ</button>
+      <button type="button" data-k="m" aria-pressed="false">月のまとめ</button>
+    </div>
+    <p class="small" style="margin:0;padding:0 4px" id="sum-note">週は月曜から日曜まで、月は1日から末日まで。終わった週と月は、アプリを開いたときにAIが自動でまとめます。</p>
+    <button class="btn ghost" id="sum-now" type="button">今の週の途中までをまとめる</button>
+    <div class="status" id="sum-status" role="status"></div>
+    <div class="list" id="rv-sum"></div>
+  </div>
+  <div id="rv-books-pane" class="view" hidden>
+    <p class="small" style="margin:0;padding:0 4px">BOOKに切り替えて書いたものが、本ごとに並びます。</p>
+    <div class="list" id="rv-books"></div>
+  </div>
+  <div id="rv-ideas-pane" class="view" hidden>
+    <p class="small" style="margin:0;padding:0 4px">IDEAに切り替えて書いたものと、JOURNALの中からAIが拾ったものが並びます。</p>
+    <div class="list" id="rv-ideas"></div>
+  </div>
+  <div id="rv-hayato-pane" class="view" hidden>
+    <p class="small" style="margin:0;padding:0 4px">日記の中から、隼人のことをAIが拾って日付順に並べます。</p>
+    <div class="list" id="rv-hayato"></div>
+  </div>
+</section>
+
+<!-- やること -->
+<section id="v-todo" class="view" hidden>
+  <div class="head"><h1>やること</h1></div>
+  <div class="group">
+    <label class="label" for="todo-in">やることを足す</label>
+    <div class="todo-add"><input id="todo-in" class="date-input" type="text" placeholder="例：鶴目くんと面談の日を決める" enterkeyhint="done"><button class="btn" id="todo-add" type="button">足す</button></div>
+    <div class="small">JOURNALに書いた「やる」こと、IDEAの次の一歩、本の1つの行動は、保存すると自動でここに入ります。いらないものは消してください。</div>
+    <button class="btn ghost" id="todo-scan" type="button">最近2週間の記録から拾う</button>
+    <div class="status" id="todo-scan-status" role="status"></div>
+  </div>
+  <div class="list" id="todo-open"></div>
+  <details class="rawfold" id="todo-done-wrap" hidden><summary id="todo-done-label">終わったこと</summary><div class="list" id="todo-done"></div></details>
+</section>
+
+<!-- 設定 -->
+<section id="v-prefs" class="view" hidden>
+  <div class="head"><h1>設定</h1></div>
+
+  <div class="group">
+    <div class="label">見た目</div>
+    <div class="prefs">
+      <details class="pref fold"><summary><span class="t">背景</span><span class="v" id="p-bg-v"></span></summary><div class="dots" id="p-bg"></div></details>
+      <details class="pref fold"><summary><span class="t">色</span><span class="v" id="p-color-v"></span></summary><div class="dots" id="p-color"></div>
+        <div class="small">色の濃さ</div><div class="shades" id="p-shade"></div><div class="scale" style="padding:0"><span>薄い</span><span>濃い</span></div></details>
+      <details class="pref fold"><summary><span class="t">フォント</span><span class="v" id="p-font-v"></span></summary><div id="p-font" class="group"></div></details>
+      <details class="pref fold"><summary><span class="t">角の丸み</span><span class="v" id="p-shape-v"></span></summary><div class="chips three" id="p-shape"></div></details>
+      <details class="pref fold"><summary><span class="t">文字の大きさ</span><span class="v" id="p-size-v"></span></summary><div class="chips three" id="p-size"></div></details>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="label">記録とAI</div>
+    <div class="prefs">
+      <div class="pref"><div class="row-between"><span class="t">保存したらAIが自動で整理</span><span class="v" id="p-auto-v"></span></div><div class="chips" id="p-auto"></div></div>
+      <div class="pref"><div class="row-between"><span class="t">まとめの長さ</span><span class="v" id="p-len-v"></span></div>
+        <input type="range" class="lenbar" id="p-len" min="0" max="6" step="1" aria-label="まとめの長さ">
+        <div class="scale" style="padding:0"><span>自動</span><span>100</span><span>150</span><span>200</span><span>250</span><span>300</span><span>400</span></div>
+        <details class="rawfold"><summary>見本を見る</summary><div class="lenprev"><div class="small" id="p-len-note">見本を読み込んでいます</div><p class="body" id="p-len-sample"></p></div></details></div>
+      <div class="pref"><div class="row-between"><span class="t">用語辞書</span><span class="v">言い間違いを自動で直す</span></div>
+        <div class="dict" id="p-dict"></div>
+        <button class="link" id="p-dict-add" type="button">直す言葉を足す</button>
+        <div class="small">例：「ぜんかつ」→「前活」。保存とAIの整理の前に置き換えます</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="label">iPhoneへのお知らせ</div>
+    <div class="prefs">
+      <div class="pref">
+        <div class="row-between"><span class="t">このiPhoneで受け取る</span><span class="v" id="n-state"></span></div>
+        <div class="small" id="n-note">ホーム画面に追加したアプリから開いて押してください。</div>
+        <div class="mini-actions"><button class="btn ghost" id="n-on" type="button">お知らせを受け取る</button></div>
+        <button class="link" id="n-test" type="button" hidden>テストのお知らせを送る</button>
+        <div class="status" id="n-status" role="status" style="text-align:left"></div>
+      </div>
+      <div class="pref"><div class="row-between"><span class="t">朝の「1年前の今日」</span><span class="ntime"><select id="n-morning" aria-label="朝のお知らせの時刻"></select><span class="chips" id="n-morning-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></span></div></div>
+      <div class="pref"><div class="row-between"><span class="t">夜、書いていない日に</span><span class="ntime"><select id="n-night" aria-label="夜のお知らせの時刻"></select><span class="chips" id="n-night-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></span></div></div>
+      <div class="pref"><div class="row-between"><span class="t">週のまとめ（月曜の朝）</span><span class="chips" id="n-week-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></div></div>
+      <div class="pref"><div class="row-between"><span class="t">月のまとめ（1日の朝）</span><span class="chips" id="n-month-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></div></div>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="label">LINEへのお知らせ</div>
+    <div class="prefs">
+      <div class="prow"><span>週のまとめ</span><span class="small">毎週月曜</span></div>
+      <div class="prow"><span>月のまとめ</span><span class="small">毎月1日</span></div>
+      <div class="pref"><div class="small">まとめができると、「JOURNAL」スプレッドシートの「まとめ」に1行入り、そこからLINEの「7年ジャーナル」に届きます。</div></div>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="label">以前の記録</div>
+    <div class="prefs">
+  <div class="pref" id="migrate" hidden>
+    <div class="row-between"><span class="t">これまでの記録をまとめて取り込む</span></div>
+    <p class="small" style="margin:0">音声ジャーナル（スプレッドシート）の記録と、iPadの手書き220ページを、このアプリにまとめて移します。手書きはAIが文字にするので時間がかかります（30分〜1時間ほど）。アプリを開いている間だけ進み、閉じても次に開いたとき続きから再開できます。</p>
+    <button class="btn" id="migrate-go" type="button">取り込みを始める</button>
+    <div class="status" id="migrate-status" role="status" style="text-align:left"></div>
+  </div>
+
+      <div class="pref">
+        <div class="row-between"><span class="t">音声ショートカットの記録とつなぐ</span></div>
+        <div class="small">iPhoneのショートカットで話した記録（「JOURNAL」スプレッドシートのLOG）を、このアプリに取り込みます。一度押して許可すると、次からはアプリを開くたびに新しい分が自動で入ります。同じ日が二重になることはありません。</div>
+        <button class="btn ghost" id="p-import" type="button">今すぐ取り込む</button>
+        <div class="status" id="p-import-status" role="status" style="text-align:left"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="label">手書きの日記</div>
+    <div class="prefs">
+      <div class="pref">
+        <div class="row-between"><span class="t">手書きを文字にする</span><span class="v" id="p-hand-v"></span></div>
+        <div class="small">iPadの7年日記のページをAIが読み取り、各年の記録に文字として加えます。元の画像は控えとして保管しておきます。1ページに数十秒かかるので、途中で止めても続きから再開できます。</div>
+        <div class="row-between"><span class="small">手書きのページの画像も表示する</span><span class="chips" id="p-showhand" style="grid-template-columns:repeat(2,minmax(0,88px))"></span></div>
+        <div class="small">日付をしぼる（空のままなら全部）</div>
+        <div class="range">
+          <input type="date" id="p-hand-from" class="date-input" aria-label="この日から">
+          <span class="small">〜</span>
+          <input type="date" id="p-hand-to" class="date-input" aria-label="この日まで">
+        </div>
+        <div class="small">年は関係なく、月日だけで選びます</div>
+        <button class="btn ghost" id="p-hand" type="button">文字にする</button>
+        <div class="status" id="p-hand-status" role="status" style="text-align:left"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="label">記録</div>
+    <div class="prefs">
+      <div class="prow"><span>保存先</span><span class="small" id="p-store"></span></div>
+      <div class="pref">
+        <div class="row-between"><span class="t">スプレッドシートに控えを取る</span></div>
+        <div class="small">書いたものは保存のたびに、「JOURNAL」スプレッドシートの「控え」にも1行ずつ残ります。下のボタンで、これまでの記録もまとめて控えに書き出せます。</div>
+        <button class="btn ghost" id="p-backup-all" type="button">これまでの記録を控えに書き出す</button>
+        <div class="status" id="p-backup-status" role="status" style="text-align:left"></div>
+      </div>
+      <div class="prow"><span>すべての記録を書き出す</span><button class="link" id="p-export" type="button" style="align-self:center">書き出す</button></div>
+    </div>
+    <div class="status" id="p-status" role="status"></div>
+  </div>
+</section>
+
+</div>
+
+<nav class="tabs" aria-label="画面切り替え">
+  <button type="button" data-view="today" aria-current="page"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>今日を書く</button>
+  <button type="button" data-view="review"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>振り返り</button>
+  <button type="button" data-view="todo"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12l3 3 5-6"/></svg>やること</button>
+  <button type="button" data-view="prefs"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>設定</button>
+</nav>
+
+<script src="config.js"></script>
+<script>
+/* ===== 保存先とAIの受け渡し（Apps Script） =====
+   もとはClaudeの中で動いていた部分を、同じ呼び方のままApps Scriptにつなぎ替える */
+(function(){
+"use strict";
+const GAS = self.JOURNAL_GAS;
+const store = { get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }, set(k, v){ try { localStorage.setItem(k, v); } catch(e){} } };
+let KEY = store.get("journal.key");
+async function call(action, payload){
+  const res = await fetch(GAS, {method: "POST", body: JSON.stringify(Object.assign({action: action, key: KEY}, payload || {}))});
+  const j = await res.json();
+  if (j && j.error){
+    if (j.error === "auth"){ showLogin(); }
+    const e = new Error(j.error); e.code = j.error === "rate_limited" ? "rate_limited" : j.error; throw e;
+  }
+  return j;
+}
+window.JOURNAL_CALL = call;
+const clone = (x) => x === undefined || x === null ? x : JSON.parse(JSON.stringify(x));
+const snap = (id, data) => ({id: id, exists: !!data, data: () => clone(data) || undefined});
+function q(coll, where, ob, dir, lim){
+  return {
+    where: (f, op, v) => q(coll, where.concat([[f, op, v]]), ob, dir, lim),
+    orderBy: (f, d) => q(coll, where, f, d || "asc", lim),
+    limit: (n) => q(coll, where, ob, dir, n),
+    get: async () => { const r = await call("db", {op: "query", coll: coll, where: where, orderBy: ob, dir: dir, limit: lim}); const docs = (r.docs || []).map((x) => snap(x.id, x.data)); return {docs: docs, empty: !docs.length, size: docs.length}; },
+    add: async (data) => { const r = await call("db", {op: "add", coll: coll, data: data}); return {id: r.id}; },
+    doc: (id) => db.doc(coll + "/" + id)
+  };
+}
+const db = {
+  doc(path){
+    const i = path.indexOf("/"), coll = path.slice(0, i), id = path.slice(i + 1);
+    const ref = {
+      id: id,
+      get: async () => { const r = await call("db", {op: "get", coll: coll, id: id}); return snap(id, r.data); },
+      set: (data) => call("db", {op: "set", coll: coll, id: id, data: clone(data)}),
+      update: (data) => call("db", {op: "update", coll: coll, id: id, data: clone(data)}),
+      delete: () => call("db", {op: "delete", coll: coll, id: id}),
+      onSnapshot(cb, err){ let alive = true; ref.get().then((s) => { if (alive) cb(s); }, (e) => { if (err) err(e); }); return () => { alive = false; }; }
+    };
+    return ref;
+  },
+  collection(coll){ return q(coll, [], null, null, 0); }
+};
+const blobToB64 = (b) => new Promise((ok, ng) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = ng; r.readAsDataURL(b); });
+async function sample(input, opts){
+  opts = opts || {};
+  let images;
+  if (opts.images){ const list = Array.isArray(opts.images) ? opts.images : [opts.images]; images = []; for (const b of list) images.push({mime: b.type || "image/jpeg", data: await blobToB64(b)}); }
+  const r = await call("ai", {prompt: typeof input === "string" ? input : null, messages: typeof input === "string" ? null : input, tier: opts.modelTier === "quick" ? "quick" : "main", images: images});
+  if (opts.onText) try { opts.onText({text: r.text, delta: r.text}); } catch(e){}
+  return {text: r.text, truncated: !!r.truncated};
+}
+sample.json = async (input, opts) => {
+  const r = await sample(input, opts), t = r.text || "", a = t.indexOf("{"), b = t.lastIndexOf("}");
+  try { return JSON.parse(t.slice(a, b + 1)); } catch(e){ const er = new Error("bad_json"); er.code = "bad_json"; throw er; }
+};
+sample.limits = async () => ({images: true});
+const mcp = {
+  callTool: async (server, tool, input) => {
+    if (tool === "append_values"){ await call("sheet_append", {range: input.range, values: input.values}); return {payload: {}}; }
+    if (tool === "get_values"){ const r = await call("sheet_get", {range: input.range}); return {payload: {values: r.values}}; }
+    const e = new Error("unknown tool"); e.code = "tool_error"; throw e;
+  }
+};
+const assets = { upload: async (file) => { const r = await call("upload", {name: file.name || ("page-" + Date.now() + ".jpg"), mime: file.type || "image/jpeg", data: await blobToB64(file)}); return {id: r.id, url: "photo:" + r.id}; } };
+const downloads = { save: async (o) => { const blob = o.data instanceof Blob ? o.data : new Blob([o.data], {type: "text/csv"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = o.filename; document.body.appendChild(a); a.click(); a.remove(); } };
+const permissions = { state: async () => "granted", request: async () => ({}) };
+const caps = {db: db, sample: sample, mcp: mcp, assets: assets, downloads: downloads, permissions: permissions};
+let ready, setReady;
+ready = new Promise((ok) => { setReady = ok; });
+window.claude = { use: (name) => ready.then(() => caps[name] || null) };
+
+// 写真（ドライブ）は見えたときに読む
+const photoCache = {};
+async function photoUrl(id){
+  if (!photoCache[id]) photoCache[id] = call("photo", {id: id}).then((r) => "data:" + r.mime + ";base64," + r.data);
+  return photoCache[id];
+}
+window.imgSrc = (url) => url && url.indexOf("photo:") === 0 ? 'data-photo="' + url.slice(6).replace(/[^\w-]/g, "") + '" loading="lazy"' : 'src="' + String(url || "").replace(/"/g, "&quot;") + '" loading="lazy"';
+const io = "IntersectionObserver" in window ? new IntersectionObserver((list) => { list.forEach((en) => { if (!en.isIntersecting) return; const img = en.target; io.unobserve(img); photoUrl(img.dataset.photo).then((u) => { img.src = u; }).catch(() => {}); }); }) : null;
+new MutationObserver(() => { document.querySelectorAll("img[data-photo]:not([data-seen])").forEach((img) => { img.dataset.seen = "1"; if (io) io.observe(img); }); }).observe(document.documentElement, {childList: true, subtree: true});
+const _fetch = window.fetch.bind(window);
+window.fetch = async (u, o) => {
+  if (typeof u === "string" && u.indexOf("photo:") === 0){ const d = await photoUrl(u.slice(6)); return _fetch(d); }
+  return _fetch(u, o);
+};
+
+// 合言葉
+function showLogin(){ const el = document.getElementById("login"); if (el) el.hidden = false; }
+async function login(){
+  const st = document.getElementById("login-status"), pass = document.getElementById("login-pass").value;
+  st.textContent = "確かめています";
+  try {
+    const res = await _fetch(GAS, {method: "POST", body: JSON.stringify({action: "login", pass: pass})});
+    const j = await res.json();
+    if (!j.ok){ st.textContent = j.msg || "開けませんでした"; return; }
+    KEY = j.key; store.set("journal.key", KEY);
+    location.reload();
+  } catch(e){ st.textContent = "つながりませんでした。通信を確かめてください。"; }
+}
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("login-go").addEventListener("click", login);
+  document.getElementById("login-pass").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) login(); });
+  if (!KEY){ showLogin(); return; }
+  setReady();
+});
+
+// iPhoneへのお知らせ
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+const b64ToBytes = (s) => { s = s.replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "="; const bin = atob(s); return Uint8Array.from(bin, (c) => c.charCodeAt(0)); };
+window.JOURNAL_PUSH = {
+  supported: () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window,
+  standalone: () => window.navigator.standalone === true || matchMedia("(display-mode: standalone)").matches,
+  state: async () => { if (!JOURNAL_PUSH.supported()) return "unsupported"; const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); return sub && Notification.permission === "granted" ? "on" : Notification.permission === "denied" ? "denied" : "off"; },
+  enable: async () => {
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") return "denied";
+    const reg = await navigator.serviceWorker.ready;
+    const v = await call("vapid");
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: b64ToBytes(v.publicKey)});
+    await call("subscribe", {sub: sub.toJSON()});
+    return "on";
+  },
+  test: () => call("test_push")
+};
+})();
+</script>
+<script>
+(function(){
+"use strict";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const WD = ["日","月","火","水","木","金","土"];
+const pad = (n) => String(n).padStart(2, "0");
+const ymd = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+const mdOf = (d) => pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+const jp = (s) => { const [y, m, d] = s.split("-").map(Number); const w = WD[new Date(y, m - 1, d).getDay()]; return y + "年" + m + "月" + d + "日（" + w + "）"; };
+const hm = () => { const d = new Date(); return pad(d.getHours()) + ":" + pad(d.getMinutes()); };
+const ls = { get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } }, set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} } };
+
+/* ---------- 見た目の選択肢 ---------- */
+const BGS = {
+  white:{label:"白",bg:"#F2F2F7",card:"#FFFFFF",soft:"#F4F4F8",text:"#1C1C1E",sub:"#6C6C70",line:"#D8D8DC",bar:"#F9F9FB",dark:false},
+  kinari:{label:"生成り",bg:"#F4F0E7",card:"#FFFDF8",soft:"#F7F3EA",text:"#2A2723",sub:"#6B655B",line:"#E0D9CB",bar:"#F8F5EE",dark:false},
+  gray:{label:"薄い灰",bg:"#E8E8E6",card:"#F7F7F5",soft:"#EFEFED",text:"#222222",sub:"#5F5F5C",line:"#D2D2CF",bar:"#EFEFED",dark:false},
+  sky:{label:"薄い青",bg:"#E9F0F7",card:"#FFFFFF",soft:"#F2F6FA",text:"#1B2430",sub:"#596475",line:"#D3DEEA",bar:"#F2F6FA",dark:false},
+  mint:{label:"薄い緑",bg:"#EAF1EC",card:"#FFFFFF",soft:"#F2F7F3",text:"#1D2A22",sub:"#5A6A60",line:"#D4E1D8",bar:"#F2F7F3",dark:false},
+  peach:{label:"薄い桃",bg:"#F7EDEA",card:"#FFFFFF",soft:"#FAF4F2",text:"#2E2422",sub:"#6E5F5B",line:"#E8D8D3",bar:"#FAF4F2",dark:false},
+  navy:{label:"紺",bg:"#0F1A2E",card:"#1A2742",soft:"#22314F",text:"#EEF1F6",sub:"#A3AEC2",line:"#2A3856",bar:"#0C1526",dark:true},
+  dark:{label:"黒",bg:"#000000",card:"#1C1C1E",soft:"#26262A",text:"#F2F2F7",sub:"#A1A1A6",line:"#38383A",bar:"#121214",dark:true}
+};
+const COLORS = {
+  sora:{label:"空色",h:207,s:70}, aqua:{label:"水色",h:192,s:80}, asagi:{label:"浅葱",h:184,s:90}, blue:{label:"青",h:214,s:88},
+  ruri:{label:"瑠璃",h:218,s:69}, gunjo:{label:"群青",h:230,s:52}, ai:{label:"藍",h:224,s:45}, kon:{label:"紺",h:220,s:46}
+};
+const LIGHT_L = [56,46,36,27,19], DARK_L = [88,80,72,64,56];
+const FONTS = [
+  {group:"ゴシック（Notoに近いもの）", items:{
+    noto:{label:"Noto Sans JP",css:"'Noto Sans JP'",g:"Noto+Sans+JP:wght@400;500;700",tw:700},
+    notoB:{label:"Noto Sans JP 太字",css:"'Noto Sans JP'",g:"Noto+Sans+JP:wght@400;500;900",tw:900},
+    hira:{label:"ヒラギノ角ゴ",css:"-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP'",g:null,tw:700},
+    zenkaku:{label:"Zen Kaku Gothic",css:"'Zen Kaku Gothic New'",g:"Zen+Kaku+Gothic+New:wght@400;700",tw:700},
+    plex:{label:"IBM Plex Sans JP",css:"'IBM Plex Sans JP'",g:"IBM+Plex+Sans+JP:wght@400;700",tw:700},
+    mplus1:{label:"M PLUS 1p",css:"'M PLUS 1p'",g:"M+PLUS+1p:wght@400;700",tw:700},
+    mplus2:{label:"M PLUS 2",css:"'M PLUS 2'",g:"M+PLUS+2:wght@400;700",tw:700},
+    murecho:{label:"Murecho",css:"'Murecho'",g:"Murecho:wght@400;700",tw:700},
+    sawarabi:{label:"さわらびゴシック",css:"'Sawarabi Gothic'",g:"Sawarabi+Gothic",tw:400},
+    biz:{label:"BIZ UDPゴシック",css:"'BIZ UDPGothic'",g:"BIZ+UDPGothic:wght@400;700",tw:700}
+  }},
+  {group:"丸ゴシック", items:{
+    zenmaru:{label:"Zen Maru Gothic",css:"'Zen Maru Gothic'",g:"Zen+Maru+Gothic:wght@400;700",tw:700},
+    rounded:{label:"M PLUS Rounded",css:"'M PLUS Rounded 1c'",g:"M+PLUS+Rounded+1c:wght@400;700",tw:700},
+    kiwi:{label:"Kiwi Maru",css:"'Kiwi Maru'",g:"Kiwi+Maru:wght@400;500",tw:500}
+  }},
+  {group:"明朝", items:{
+    notoserif:{label:"Noto Serif JP",css:"'Noto Serif JP'",g:"Noto+Serif+JP:wght@400;700",tw:700},
+    shippori:{label:"しっぽり明朝",css:"'Shippori Mincho'",g:"Shippori+Mincho:wght@400;700",tw:700},
+    zenold:{label:"Zen Old Mincho",css:"'Zen Old Mincho'",g:"Zen+Old+Mincho:wght@400;700",tw:700}
+  }},
+  {group:"手書き風", items:{
+    klee:{label:"Klee One",css:"'Klee One'",g:"Klee+One:wght@400;600",tw:600},
+    kurenaido:{label:"Zen Kurenaido",css:"'Zen Kurenaido'",g:"Zen+Kurenaido",tw:400}
+  }}
+];
+const ALLF = {}; FONTS.forEach((g) => Object.assign(ALLF, g.items));
+const SHAPES = {sharp:{label:"角ばる",r:4,pill:6}, mid:{label:"標準",r:14,pill:30}, round:{label:"まるい",r:24,pill:30}};
+const SIZES = {s:{label:"小さめ",fs:14}, m:{label:"標準",fs:15}, l:{label:"大きめ",fs:17}};
+const LEN_STEPS = ["auto","100","150","200","250","300","400"];
+const DEFAULTS = {nMorning:6, nNight:21, nMorningOn:true, nNightOn:true, nWeekOn:true, nMonthOn:true, bg:"sky", color:"kon", shade:3, font:"noto", shape:"mid", size:"m", len:"auto", lenV:2, auto:true, showHand:false};
+function fixPrefs(p){
+  const o = Object.assign({}, DEFAULTS, p || {});
+  if (o.lenV !== 2){ o.len = "auto"; o.lenV = 2; }
+  o.len = ({short:"100", mid:"200", long:"300"})[o.len] || String(o.len);
+  if (LEN_STEPS.indexOf(o.len) < 0) o.len = "auto";
+  return o;
+}
+const lenLabel = (k) => k === "auto" ? "自動（原文の4分の1）" : k + "字";
+// まとめの長さ。自動は原文の4分の1を目安に、100字から300字の間
+function lenText(raw){
+  if (prefs.len !== "auto") return prefs.len + "字ほど";
+  const n = Math.min(300, Math.max(100, Math.round(raw.length / 4 / 10) * 10));
+  return n + "字ほど";
+}
+
+let prefs = fixPrefs(ls.get("journal.prefs"));
+let dict = ls.get("journal.dict") || [];
+
+const loadedFonts = new Set();
+function ensureFont(key){
+  const f = ALLF[key]; if (!f || !f.g || loadedFonts.has(f.g)) return;
+  loadedFonts.add(f.g);
+  const l = document.createElement("link"); l.rel = "stylesheet";
+  l.href = "https://fonts.googleapis.com/css2?family=" + f.g + "&display=swap";
+  document.head.appendChild(l);
+}
+function tone(c, i, dark){ return "hsl(" + c.h + "," + c.s + "%," + (dark ? DARK_L[i] : LIGHT_L[i]) + "%)"; }
+function applyTheme(){
+  const t = BGS[prefs.bg] || BGS.sky, c = COLORS[prefs.color] || COLORS.kon, f = ALLF[prefs.font] || ALLF.noto;
+  const sh = SHAPES[prefs.shape] || SHAPES.mid, sz = SIZES[prefs.size] || SIZES.m, i = prefs.shade;
+  ensureFont(prefs.font);
+  const r = document.documentElement.style;
+  const set = (k, v) => r.setProperty(k, v);
+  ["bg","card","soft","text","sub","line","bar"].forEach((k) => set("--" + k, t[k]));
+  const a = tone(c, i, t.dark);
+  set("--accent", a);
+  set("--onAccent", t.dark ? "#0B0B0C" : (LIGHT_L[i] >= 46 ? "#0B0B0C" : "#FFFFFF"));
+  set("--accentText", t.dark ? a : "hsl(" + c.h + "," + c.s + "%," + Math.min(LIGHT_L[i], 32) + "%)");
+  set("--r", sh.r + "px"); set("--pill", sh.pill + "px"); set("--fs", sz.fs + "px");
+  set("--font", f.css + ",-apple-system,'Hiragino Sans',sans-serif"); set("--titleWeight", String(f.tw));
+  r.colorScheme = t.dark ? "dark" : "light";
+}
+applyTheme();
+
+/* ---------- 日付 ---------- */
+const now = new Date();
+const REAL_TODAY = ymd(now), REAL_MD = mdOf(now);
+let TODAY = REAL_TODAY, MD = REAL_MD, YEAR = now.getFullYear();   // 書いている日（ふだんは今日）
+const lastYearOf = () => (YEAR - 1) + "-" + MD;
+function paintWriteDate(){
+  const [y, m, d] = TODAY.split("-").map(Number);
+  const isToday = TODAY === REAL_TODAY;
+  $("t-eyebrow").textContent = y + "年 " + WD[new Date(y, m - 1, d).getDay()] + "曜日" + (isToday ? "" : "　（この日の分を書いています）");
+  $("t-date").textContent = m + "月" + d + "日";
+  $("ly-title").textContent = isToday ? "1年前の今日" : "1年前のこの日";
+  $("ly-date").textContent = jp(lastYearOf());
+  $("mood-label").textContent = isToday ? "今日の調子" : "この日の調子";
+  $("entry-label").textContent = isToday ? "今日のこと" : "この日のこと";
+  $("w-change").hidden = !$("w-panel").hidden;
+  $("w-note").textContent = isToday ? "過去の日付を選ぶと、その日の分として記録されます" : m + "月" + d + "日の分として記録されます";
+}
+paintWriteDate();
+
+/* ---------- 調子 ---------- */
+let mood = null;
+function renderMood(){
+  const L = ["しんどい","いまいち","ふつう","よい","最高"];
+  $("mood").innerHTML = [1,2,3,4,5].map((n) => '<button type="button" data-m="' + n + '" aria-pressed="' + (mood === n) + '" aria-label="調子 ' + n + '、' + L[n - 1] + '"><b>' + n + '</b></button>').join("");
+}
+renderMood();
+
+/* ---------- 下書き（この端末だけ） ---------- */
+const entryEl = $("entry");
+entryEl.value = ls.get("journal.draft") || "";
+entryEl.addEventListener("input", () => ls.set("journal.draft", entryEl.value));
+
+/* ---------- 用語辞書 ---------- */
+function applyDict(s){
+  let out = s;
+  dict.forEach((p) => { if (p && p.from) out = out.split(p.from).join(p.to || ""); });
+  return out;
+}
+
+/* ---------- 表示 ---------- */
+let todayDoc = null;
+function renderToday(){
+  const d = todayDoc;
+  const entries = (d && d.entries) || [];
+  $("today-card").hidden = entries.length === 0;
+  $("today-count").textContent = entries.length ? entries.length + "件" : "";
+  $("today-entries").innerHTML = !d ? "" : hasVoice(d) ? rawFold(d, false) : entriesHtml(d);
+  if (d && typeof d.mood === "number" && mood === null){ mood = d.mood; renderMood(); }
+  const ai = d && d.ai;
+  $("ai-card").hidden = entries.length === 0;
+  if (ai){
+    $("ai-summary").textContent = hasVoice(d) ? (ai.summary || "") : "";
+    $("ai-summary").hidden = !hasVoice(d);
+    fillBox("ai-good", ai.good); fillBox("ai-challenge", ai.challenge); fillBox("ai-insight", ai.insight); fillBox("ai-hayato", ai.hayato);
+  } else {
+    $("ai-summary").hidden = false;
+    $("ai-summary").textContent = entries.length ? "まだ整理していません。" : "";
+    ["ai-good","ai-challenge","ai-insight","ai-hayato"].forEach((id) => $(id).hidden = true);
+  }
+}
+function fillBox(id, text){ const el = $(id); el.hidden = !text; el.querySelector("span").textContent = text || ""; }
+// 要約を使うのは音声の日だけ。打ち込みや手書きは本文をそのまま全部見せる
+const hasVoice = (d) => (d && d.entries || []).some((e) => e.src === "sheet");
+const usesSummary = (d) => !!(d && hasVoice(d) && d.ai && d.ai.summary);
+function summaryOf(d){
+  if (!d) return "";
+  if (usesSummary(d)) return d.ai.summary;
+  return (d.entries || []).map((e) => e.text).join("\n\n");
+}
+const rawLen = (d) => (d.entries || []).reduce((n, e) => n + (e.text || "").length, 0);
+// 原文は押すと広がる形にする
+function rawFold(d, extraHtml){
+  return '<details class="rawfold"><summary>原文を読む（' + rawLen(d) + '字）</summary><div class="group">' + (extraHtml || "") + entriesHtml(d) + '</div></details>';
+}
+function rawOf(d){ return (d.entries || []).map((e) => (e.t ? "【" + e.t + "】\n" : "") + e.text).join("\n\n"); }
+const pageUrl = (id) => { try { const p = pages.find((x) => x.id === id); return p ? p.url : null; } catch(e){ return null; } };
+function entriesHtml(d){
+  return (d.entries || []).map((e, i) => {
+    const url = (e.src === "hand" || e.src === "typed") && e.page ? pageUrl(e.page) : null;
+    const label = e.t ? e.t : (e.src === "hand" ? "手書き" : e.src === "typed" ? "iPadで打ち込み" : e.src === "sheet" ? "音声" : "");
+    return '<div class="eblock" data-date="' + esc(d.date) + '" data-i="' + i + '">'
+      + (label ? '<span class="small">' + esc(label) + '</span>' : '')
+      + '<p class="body etext">' + esc(e.text) + '</p>'
+      + (url ? '<details class="hsrc"><summary class="link">元のページの写真</summary><img ' + imgSrc(url) + ' alt="元のページ"></details>' : '')
+      + '<button type="button" class="link" data-edit>直す</button></div>';
+  }).join("");
+}
+
+/* ---------- 保存先 ---------- */
+let db = null, sample = null, downloads = null;
+const daysCol = () => db.collection("days");
+
+async function loadLastYear(){
+  const snap = await db.doc("days/" + lastYearOf()).get();
+  const body = $("ly-body");
+  $("ly-insight").hidden = true; $("ly-raw").hidden = true;
+  if (!snap.exists){
+    body.innerHTML = '<span class="empty">去年の今日の記録はまだありません。来年の今日、ここに今日の記録が出てきます。</span>';
+    return;
+  }
+  const d = snap.data();
+  if (usesSummary(d)) body.textContent = d.ai.summary;
+  else body.innerHTML = '<div class="group">' + entriesHtml(d) + '</div>';
+  $("ly-date").textContent = jp(lastYearOf()) + (typeof d.mood === "number" ? "　調子 " + d.mood : "");
+  if (d.ai && d.ai.insight){ $("ly-insight").hidden = false; $("ly-insight").querySelector("span").textContent = d.ai.insight; }
+  $("ly-raw").hidden = !usesSummary(d);
+  $("ly-raw").open = false;
+  if (usesSummary(d)){
+    $("ly-raw-label").textContent = "原文を読む（" + rawLen(d) + "字）";
+    $("ly-raw").querySelector(".entries-wrap").innerHTML = entriesHtml(d);
+  }
+}
+
+async function loadOlder(){
+  const snap = await daysCol().where("md", "==", MD).orderBy("year", "desc").limit(50).get();
+  const rows = snap.docs.map((s) => s.data()).filter((d) => d.year < YEAR - 1);
+  $("older-group").hidden = rows.length === 0;
+  $("older-list").innerHTML = rows.map((d) => itemHtml(d)).join("");
+}
+function itemHtml(d){
+  const ago = YEAR - d.year;
+  const extra = [];
+  if (d.ai && d.ai.good) extra.push('<div class="box"><b>よかったこと</b><span>' + esc(d.ai.good) + '</span></div>');
+  if (d.ai && d.ai.challenge) extra.push('<div class="box"><b>課題</b><span>' + esc(d.ai.challenge) + '</span></div>');
+  const insight = d.ai && d.ai.insight ? '<div class="box"><b>気づき</b><span>' + esc(d.ai.insight) + '</span></div>' : '';
+  const head = '<div class="item"><div class="row-between"><span class="year">' + d.year + '年' + (ago === 0 ? '（今年）' : '') + '</span><span class="small">' + (ago > 0 ? ago + '年前　' : '') + (typeof d.mood === "number" ? '調子 ' + d.mood : '') + '</span></div>';
+  // 音声の日は、まとめを見せて原文は押すと広がる。打ち込みや手書きは本文をそのまま
+  if (usesSummary(d)) return head + '<p class="body">' + esc(d.ai.summary) + '</p>' + insight + rawFold(d, extra.join("")) + '</div>';
+  return head + '<div class="group">' + entriesHtml(d) + '</div>' + insight + '</div>';
+}
+
+/* ---------- 記録する ---------- */
+$("save").addEventListener("click", async () => {
+  const raw = entryEl.value.trim();
+  if (!raw){ $("save-status").textContent = "書いてから押してください。"; return; }
+  if (!db){ $("save-status").textContent = "この画面では保存できません。claude.aiで開いてください。"; return; }
+  const btn = $("save"); btn.disabled = true; $("save-status").textContent = "保存しています";
+  if (writeMode === "idea" || writeMode === "book"){
+    try { if (writeMode === "idea") await saveIdea(applyDict(raw)); else await saveBook(applyDict(raw)); }
+    catch(e){ $("save-status").textContent = "保存できませんでした。もう一度押してください。"; }
+    btn.disabled = false; return;
+  }
+  try {
+    const ref = db.doc("days/" + TODAY);
+    const snap = await ref.get();
+    const cur = snap.exists ? snap.data() : {};
+    const entries = (cur.entries || []).slice();
+    entries.push({t: hm(), text: applyDict(raw)});
+    const doc = {date: TODAY, md: MD, year: YEAR, entries: entries, mood: (mood ?? cur.mood ?? null), ai: cur.ai || null, updatedAt: new Date().toISOString()};
+    await ref.set(doc);
+    todayDoc = doc; renderToday();
+    entryEl.value = ""; ls.set("journal.draft", "");
+    $("save-status").textContent = "保存しました（" + entries[entries.length - 1].t + "）";
+    backupRows([[doc.date, entries[entries.length - 1].t, "JOURNAL", doc.mood ?? "", entries[entries.length - 1].text, new Date().toISOString()]]);
+    loadMissing().catch(() => {});
+    if (prefs.auto) runAI();
+  } catch (e) {
+    $("save-status").textContent = e && e.code === "quota_exceeded" ? "保存できる量の上限に達しました。古い記録の整理が必要です。" : "保存できませんでした。通信を確かめて、もう一度押してください。";
+  } finally { btn.disabled = false; }
+});
+
+$("mood").addEventListener("click", async (ev) => {
+  const b = ev.target.closest("button[data-m]"); if (!b) return;
+  mood = Number(b.dataset.m); renderMood();
+  if (db && todayDoc){ try { await db.doc("days/" + TODAY).update({mood: mood}); todayDoc = Object.assign({}, todayDoc, {mood: mood}); } catch(e){} }
+});
+
+/* ---------- AIの整理 ---------- */
+let aiBusy = false;
+async function runAI(){
+  if (!sample || !db || aiBusy) return;
+  const d = todayDoc; if (!d || !(d.entries || []).length) return;
+  aiBusy = true; $("ai-redo").disabled = true;
+  $("ai-status").textContent = "AIが整理しています（数十秒かかることがあります）";
+  const len = lenText(rawOf(d));
+  const prompt = "あなたは日記の整理を手伝う役です。以下は" + jp(d.date) + "の日記です。音声入力を文字にしたものを含むため、言い間違いや話し言葉が混ざっています。\n"
+    + "書いた本人が1年後の同じ日に読み返すことを想定して、次の項目を日本語で作ってください。\n"
+    + (hasVoice(d)
+      ? "summary: その日の出来事、感じていたこと、考えていたことが流れで分かる文章。" + len + "。本人の目線で、「〜した」「〜と感じた」のような常体で書く。\n"
+      : "summary: 空文字にする（本文をそのまま読み返すため要約は不要）。\n")
+    + "good: よかったこと。1〜3文。\n"
+    + "challenge: うまくいかなかったことや課題。1〜3文。\n"
+    + "insight: 本人の気づき。できるだけ本人の言葉をそのまま使う。1〜2文。\n"
+    + "ideas: 日記の中に出てきた新しいアイデアや、やってみたいこと（仕事、事業、仕組み、企画など）。それぞれ title（短い名前）、core（中身を1〜2文）、next（次の一歩を1文）。なければ空の配列。\n"
+    + "hayato: 息子の隼人に関する出来事や気持ち。本人の言葉をなるべく残して1〜3文。なければ空文字。\n"
+    + "todos: 本人が「やる」「やりたい」「〜しないと」と書いている、これから行う具体的な行動。短い1文で3つまで。気持ちや目標だけのものは入れない。なければ空の配列。\n"
+    + "書かれていない内容は足さないこと。該当がなければ空文字にすること。数字は算用数字で書くこと。\n"
+    + '返答はJSONのみ: {"summary":"","good":"","challenge":"","insight":"","ideas":[{"title":"","core":"","next":""}],"hayato":"","todos":[""]}\n\n'
+    + "日記:\n" + rawOf(d).slice(0, 20000);
+  try {
+    const r = await sample.json(prompt, {cache: false});
+    const ai = {summary: String(r.summary || ""), good: String(r.good || ""), challenge: String(r.challenge || ""), insight: String(r.insight || ""), hayato: String(r.hayato || ""), at: new Date().toISOString()};
+    await db.doc("days/" + d.date).update({ai: ai, hasHayato: !!ai.hayato});
+    const ideas = Array.isArray(r.ideas) ? r.ideas.filter((x) => x && (x.title || x.core)).slice(0, 5) : [];
+    for (let k = 0; k < 5; k++){
+      const ref = db.doc("ideas/" + d.date + "-d" + k);
+      if (ideas[k]) await ref.set({date: d.date, at: new Date().toISOString(), title: String(ideas[k].title || ""), core: String(ideas[k].core || ""), next: String(ideas[k].next || ""), src: "diary"});
+      else { try { await ref.delete(); } catch(e){} }
+    }
+    ideasCache = null;
+    const tds = Array.isArray(r.todos) ? r.todos.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 3) : [];
+    for (let k = 0; k < tds.length; k++) await addTodo(tds[k], "JOURNAL", "j-" + d.date + "-" + k, d.date);
+    if (d.date === TODAY){ todayDoc = Object.assign({}, todayDoc, {ai: ai}); renderToday(); }
+    $("ai-status").textContent = "整理しました";
+  } catch (e) {
+    const c = e && e.code;
+    if (c === "not_granted" || c === "sampling_disabled" || c === "not_declared" || c === "capability_disabled" || c === "capability_removed"){
+      $("ai-status").textContent = "AIの整理が使えない状態です。記録はそのまま残っています。"; sample = null;
+    } else if (c === "rate_limited"){ $("ai-status").textContent = "少し時間をおいてから「整理し直す」を押してください。"; }
+    else { $("ai-status").textContent = "整理に失敗しました。「整理し直す」でもう一度試せます。"; }
+  } finally { aiBusy = false; $("ai-redo").disabled = false; }
+}
+$("ai-redo").addEventListener("click", runAI);
+
+/* ---------- 振り返り ---------- */
+let rvDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+const yearsCache = {}; let recentCache = null; let rvSeq = 0;
+function paintYears(md, rows){
+  $("rv-years").innerHTML = rows.length ? rows.map(itemHtml).join("") : '<div class="item"><p class="empty">この日の記録はまだありません。</p></div>';
+}
+function paintRecent(rows){
+  $("rv-recent").innerHTML = rows.length ? rows.map((d) => {
+    const [y, m, dd] = d.date.split("-").map(Number);
+    return '<button class="recent" type="button" data-date="' + esc(d.date) + '"><span class="d">' + m + '/' + dd + '</span><span class="s">' + esc(summaryOf(d) || "（本文なし）") + '</span></button>';
+  }).join("") : '<div class="item"><p class="empty">記録するとここに並びます。</p></div>';
+}
+async function renderReview(){
+  const seq = ++rvSeq;
+  $("rv-label").textContent = (rvDate.getMonth() + 1) + "月" + rvDate.getDate() + "日";
+  $("rv-today").hidden = mdOf(rvDate) === REAL_MD;
+  if (!db){ $("rv-years").innerHTML = '<div class="item"><p class="empty">claude.aiで開くと記録が表示されます。</p></div>'; return; }
+  const md = mdOf(rvDate);
+  $("rv-hand").hidden = fillHand($("rv-hand").querySelector(".hand-imgs"), md) === 0;
+  // 前に読んだ分はすぐ出して、裏で新しくする
+  if (yearsCache[md]) paintYears(md, yearsCache[md]);
+  else $("rv-years").innerHTML = '<div class="item"><p class="empty">読み込んでいます</p></div>';
+  if (recentCache) paintRecent(recentCache);
+  const qYears = daysCol().where("md", "==", md).orderBy("year", "desc").limit(50).get();
+  const qRecent = daysCol().orderBy("date", "desc").limit(14).get();
+  try {
+    const rows = (await qYears).docs.map((s) => s.data());
+    const changed = JSON.stringify(rows) !== JSON.stringify(yearsCache[md] || null);
+    yearsCache[md] = rows;
+    if (seq === rvSeq && changed) paintYears(md, rows);
+  } catch(e){ if (!yearsCache[md] && seq === rvSeq) $("rv-years").innerHTML = '<div class="item"><p class="empty">読み込めませんでした。少し待ってから開き直してください。</p></div>'; }
+  try {
+    const rows = (await qRecent).docs.map((s) => s.data());
+    const changed = JSON.stringify(rows) !== JSON.stringify(recentCache);
+    recentCache = rows;
+    if (seq === rvSeq && changed) paintRecent(rows);
+  } catch(e){}
+}
+$("rv-prev").addEventListener("click", () => { rvDate.setDate(rvDate.getDate() - 1); renderReview(); });
+$("rv-next").addEventListener("click", () => { rvDate.setDate(rvDate.getDate() + 1); renderReview(); });
+$("rv-today").addEventListener("click", () => { rvDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()); renderReview(); });
+$("rv-recent").addEventListener("click", (ev) => {
+  const b = ev.target.closest("button[data-date]"); if (!b) return;
+  const [y, m, d] = b.dataset.date.split("-").map(Number); rvDate = new Date(y, m - 1, d); renderReview(); window.scrollTo(0, 0);
+});
+
+/* ---------- 設定 ---------- */
+function chip(on, label, attrs, style){ return '<button type="button" class="chip" aria-pressed="' + on + '" ' + attrs + (style ? ' style="' + style + '"' : '') + '>' + esc(label) + '</button>'; }
+function renderPrefs(){
+  const t = BGS[prefs.bg], c = COLORS[prefs.color];
+  $("p-bg-v").textContent = t.label;
+  $("p-bg").innerHTML = Object.keys(BGS).map((k) => '<button type="button" class="dot" data-p="bg" data-v="' + k + '" aria-label="' + BGS[k].label + '" aria-pressed="' + (prefs.bg === k) + '" style="background:' + BGS[k].bg + '"></button>').join("");
+  $("p-color-v").textContent = c.label + "（濃さ " + (prefs.shade + 1) + "）";
+  $("p-color").innerHTML = Object.keys(COLORS).map((k) => '<button type="button" class="dot" data-p="color" data-v="' + k + '" aria-label="' + COLORS[k].label + '" aria-pressed="' + (prefs.color === k) + '" style="background:' + tone(COLORS[k], prefs.shade, t.dark) + '"></button>').join("");
+  $("p-shade").innerHTML = [0,1,2,3,4].map((i) => '<button type="button" class="dot" data-p="shade" data-v="' + i + '" aria-label="濃さ ' + (i + 1) + '" aria-pressed="' + (prefs.shade === i) + '" style="background:' + tone(c, i, t.dark) + '"></button>').join("");
+  $("p-font-v").textContent = ALLF[prefs.font].label;
+  $("p-font").innerHTML = FONTS.map((g) => '<div class="small">' + esc(g.group) + '</div><div class="chips">' + Object.keys(g.items).map((k) => chip(prefs.font === k, g.items[k].label, 'data-p="font" data-v="' + k + '"', "font-family:" + g.items[k].css.replace(/"/g, "&quot;") + ",sans-serif")).join("") + '</div>').join("");
+  $("p-shape-v").textContent = SHAPES[prefs.shape].label;
+  $("p-shape").innerHTML = Object.keys(SHAPES).map((k) => chip(prefs.shape === k, SHAPES[k].label, 'data-p="shape" data-v="' + k + '"')).join("");
+  $("p-size-v").textContent = SIZES[prefs.size].label;
+  $("p-size").innerHTML = Object.keys(SIZES).map((k) => chip(prefs.size === k, SIZES[k].label, 'data-p="size" data-v="' + k + '"')).join("");
+  $("p-auto-v").textContent = prefs.auto ? "する" : "しない";
+  $("p-auto").innerHTML = chip(prefs.auto, "する", 'data-p="auto" data-v="1"') + chip(!prefs.auto, "しない", 'data-p="auto" data-v="0"');
+  $("p-len").value = LEN_STEPS.indexOf(prefs.len);
+  paintLen();
+  const hours = (sel) => Array.from({length: 24}, (_, h) => '<option value="' + h + '"' + (h === sel ? ' selected' : '') + '>' + h + '時</option>').join("");
+  $("n-morning").innerHTML = hours(Number(prefs.nMorning)); $("n-night").innerHTML = hours(Number(prefs.nNight));
+  ["Morning","Night","Week","Month"].forEach((k) => { const key = "n" + k + "On"; $("n-" + k.toLowerCase() + "-on").innerHTML = chip(prefs[key] !== false, "送る", 'data-p="' + key + '" data-v="1"') + chip(prefs[key] === false, "なし", 'data-p="' + key + '" data-v="0"'); });
+  $("p-showhand").innerHTML = chip(prefs.showHand, "する", 'data-p="showHand" data-v="1"') + chip(!prefs.showHand, "しない", 'data-p="showHand" data-v="0"');
+  renderDict();
+  $("p-store").textContent = db ? "スプレッドシート「JOURNALアプリのデータ」と「控え」" : "未接続";
+}
+function renderDict(){
+  $("p-dict").innerHTML = dict.map((p, i) => '<div class="dict-row"><input id="dict-from-' + i + '" data-i="' + i + '" data-k="from" value="' + esc(p.from) + '" aria-label="間違い ' + (i + 1) + '" placeholder="間違い"><span class="small">→</span><input id="dict-to-' + i + '" data-i="' + i + '" data-k="to" value="' + esc(p.to) + '" aria-label="正しい ' + (i + 1) + '" placeholder="正しい"><button type="button" class="x" data-del="' + i + '" aria-label="この行を消す">×</button></div>').join("");
+}
+let prefTimer = null;
+// まとめの長さの見本。実際の音声の日で、長さごとのまとめを見比べられる
+let lenSample = null;
+function paintLen(){
+  const k = prefs.len;
+  $("p-len-v").textContent = lenLabel(k);
+  if (!lenSample){
+    if (db && lenSample === null){ lenSample = false; db.doc("meta/lensample").get().then((s) => { lenSample = s.exists ? s.data() : false; paintLen(); }).catch(() => {}); }
+    return;
+  }
+  const n = k === "auto" ? Math.min(300, Math.max(100, Math.round(lenSample.rawLen / 4 / 10) * 10)) : Number(k);
+  const keys = Object.keys(lenSample.samples).map(Number).sort((a, b) => a - b);
+  const pick = keys.reduce((a, b) => Math.abs(b - n) < Math.abs(a - n) ? b : a, keys[0]);
+  const text = lenSample.samples[String(pick)] || "";
+  $("p-len-note").textContent = "見本：" + jp(lenSample.date) + "（原文" + lenSample.rawLen + "字）" + (k === "auto" ? "は約" + n + "字になります" : "") + "　この見本は" + text.length + "字";
+  $("p-len-sample").textContent = text;
+}
+$("p-len").addEventListener("input", (ev) => { prefs.len = LEN_STEPS[Number(ev.target.value)] || "auto"; paintLen(); savePrefs(); });
+function savePrefs(){
+  ls.set("journal.prefs", prefs); ls.set("journal.dict", dict);
+  clearTimeout(prefTimer);
+  prefTimer = setTimeout(async () => { if (db){ try { await db.doc("settings/main").set({prefs: prefs, dict: dict, updatedAt: new Date().toISOString()}); } catch(e){} } }, 600);
+}
+$("v-prefs").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-p]");
+  if (b){
+    const k = b.dataset.p, v = b.dataset.v;
+    prefs[k] = (k === "shade") ? Number(v) : (k === "auto" || k === "showHand" || /^n[A-Z]\w*On$/.test(k)) ? v === "1" : v;
+    applyTheme(); renderPrefs(); savePrefs();
+    if (k === "showHand"){ const ly = $("ly-hand"); ly.hidden = fillHand(ly.querySelector(".hand-imgs"), MD) === 0; for (const md in yearsCache) delete yearsCache[md]; }
+    return;
+  }
+  const del = ev.target.closest("[data-del]");
+  if (del){ dict.splice(Number(del.dataset.del), 1); renderDict(); savePrefs(); }
+});
+$("p-dict").addEventListener("input", (ev) => {
+  const i = ev.target.dataset.i, k = ev.target.dataset.k; if (i == null) return;
+  dict[Number(i)][k] = ev.target.value; savePrefs();
+});
+$("p-dict-add").addEventListener("click", () => { dict.push({from: "", to: ""}); renderDict(); const el = $("dict-from-" + (dict.length - 1)); if (el) el.focus(); });
+$("p-export").addEventListener("click", async () => {
+  if (!db || !downloads){ $("p-status").textContent = "この画面では書き出せません。"; return; }
+  $("p-status").textContent = "まとめています";
+  try {
+    const snap = await daysCol().orderBy("date", "asc").limit(1000).get();
+    const q = (s) => '"' + String(s ?? "").replace(/"/g, '""') + '"';
+    const lines = [["日付","調子","時刻","本文","要約","よかったこと","課題","気づき"].map(q).join(",")];
+    snap.docs.forEach((s) => { const d = s.data(); (d.entries || []).forEach((e, i) => {
+      lines.push([d.date, d.mood ?? "", e.t, e.text, i === 0 && d.ai ? d.ai.summary : "", i === 0 && d.ai ? d.ai.good : "", i === 0 && d.ai ? d.ai.challenge : "", i === 0 && d.ai ? d.ai.insight : ""].map(q).join(","));
+    }); });
+    await downloads.save({filename: "journal-" + TODAY + ".csv", data: "﻿" + lines.join("\r\n")});
+    $("p-status").textContent = "書き出しました";
+  } catch(e){ $("p-status").textContent = e && e.code === "declined" ? "" : "書き出せませんでした。"; }
+});
+
+/* ---------- 以前の記録の取り込み ---------- */
+const SHEET_ID = "1BsAlrZ7ktB2DPbDPpM1V8P_PekPf319675x7GPtnztY";
+let mcp = null;
+const MCP_MSG = {
+  server_not_connected: "Googleスプレッドシートがつながっていません。claude.aiの設定のコネクタから追加してください。",
+  needs_reauth: "Googleスプレッドシートの接続が切れています。claude.aiの設定のコネクタからつなぎ直してください。",
+  not_in_manifest: "スプレッドシートの読み取りが許可されていません。もう一度押すと確認が出ます。",
+  selection_required: "使うGoogleスプレッドシートの接続を選んでから、もう一度押してください。",
+  blocked_by_policy: "組織の設定でスプレッドシートの読み取りが止められています。",
+  server_unavailable: "スプレッドシートにつながりませんでした。少し待ってからもう一度押してください。",
+  tool_error: "スプレッドシートを読めませんでした。ファイルがあるか確かめてください。"
+};
+function toDate(s){
+  const m = String(s || "").trim().match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+  return m ? m[1] + "-" + pad(m[2]) + "-" + pad(m[3]) : null;
+}
+// 音声ジャーナル（ショートカット）のLOGシートとつなぐ。変わった日だけ書き込む
+const fp = (r) => { let h = 0; const t = JSON.stringify(r); for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return String(h); };
+let syncing = false;
+async function syncSheet(quiet){
+  const st = $("p-import-status"), btn = $("p-import");
+  if (syncing) return; 
+  if (!db || !mcp){ if (!quiet) st.textContent = "この画面ではスプレッドシートを読めません。claude.aiで開いてください。"; return; }
+  syncing = true; btn.disabled = true; if (!quiet) st.textContent = "スプレッドシートを読んでいます";
+  try {
+    const res = await mcp.callTool("Google Sheets", "get_values", {spreadsheetId: SHEET_ID, range: "LOG!A2:K3000"}, {cache: false});
+    const rows = (res.payload && res.payload.values) || [];
+    if (!quiet){
+      try {
+        const dres = await mcp.callTool("Google Sheets", "get_values", {spreadsheetId: SHEET_ID, range: "用語辞書!A2:B500"}, {cache: false});
+        const pairs = ((dres.payload && dres.payload.values) || []).filter((r) => r[0]).map((r) => ({from: String(r[0]), to: String(r[1] || "")}));
+        pairs.forEach((p) => { if (!dict.some((q) => q.from === p.from)) dict.push(p); });
+        savePrefs();
+      } catch(e){}
+    }
+    const metaRef = db.doc("meta/sheetsync");
+    const ms = await metaRef.get();
+    const seen = ms.exists ? (ms.data().fp || {}) : {};
+    // 同じ日に複数行あればまとめる
+    const byDate = {};
+    rows.forEach((r) => { const d = toDate(r[0]); if (d && (String(r[10] || "").trim() || r[5])) (byDate[d] = byDate[d] || []).push(r); });
+    const dates = Object.keys(byDate).sort();
+    let changed = 0;
+    for (const date of dates){
+      const rs = byDate[date], key = fp(rs);
+      if (seen[date] === key) continue;
+      const [y, m, d] = date.split("-");
+      const last = rs[rs.length - 1];
+      const c = Number(last[4]);
+      const imported = rs.map((r) => ({t: "", text: String(r[10] || "").trim() || String(r[5] || ""), src: "sheet"}));
+      const sum = rs.map((r) => r[5]).filter(Boolean).join("\n");
+      const ai = rs.some((r) => r[5] || r[6] || r[7] || r[8]) ? {summary: String(sum || ""), good: rs.map((r) => r[6]).filter(Boolean).join("\n"), challenge: rs.map((r) => r[7]).filter(Boolean).join("\n"), insight: rs.map((r) => r[8]).filter(Boolean).join("\n"), at: "imported"} : null;
+      const ref = db.doc("days/" + date);
+      const snap = await ref.get();
+      if (snap.exists){
+        const cur = snap.data();
+        const others = (cur.entries || []).filter((e) => e.src !== "sheet");
+        await ref.set(Object.assign({}, cur, {entries: imported.concat(others), ai: cur.ai && cur.ai.at !== "imported" ? cur.ai : ai, mood: cur.mood ?? (c >= 1 && c <= 5 ? c : null)}));
+      } else {
+        await ref.set({date: date, md: m + "-" + d, year: Number(y), entries: imported, mood: (c >= 1 && c <= 5 ? c : null), ai: ai, imported: true, updatedAt: new Date().toISOString()});
+      }
+      seen[date] = key; changed++;
+      if (!quiet && changed % 10 === 0) st.textContent = changed + "日分を移しました";
+    }
+    await metaRef.set({fp: seen, at: new Date().toISOString()});
+    const msg = changed ? "ショートカットの記録から" + changed + "日分を取り込みました。" : "新しい記録はありませんでした。";
+    if (!quiet) st.textContent = msg + (changed ? "" : "");
+    else if (changed) $("save-status").textContent = msg;
+    if (changed){ loadLastYear().catch(() => {}); loadOlder().catch(() => {}); loadMissing().catch(() => {}); }
+    renderDict();
+  } catch (e) {
+    const c = e && e.code;
+    if (!quiet) st.textContent = MCP_MSG[c] || (c === "quota_exceeded" ? "保存できる量の上限に達しました。" : "取り込めませんでした。少し待ってからもう一度押してください。");
+  } finally { syncing = false; btn.disabled = false; }
+}
+$("p-import").addEventListener("click", () => syncSheet(false));
+
+/* ---------- 溜め日記：書いていない日 ---------- */
+async function loadMissing(){
+  if (!db) return;
+  const days = [];
+  for (let i = 1; i <= 14; i++){ const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i); days.push(ymd(d)); }
+  const snap = await daysCol().where("date", ">=", days[days.length - 1]).limit(100).get();
+  const have = new Set(snap.docs.map((s) => s.id));
+  const miss = days.filter((d) => !have.has(d)).reverse();
+  const box = $("missing");
+  box.hidden = miss.length === 0;
+  $("missing-count").textContent = miss.length + "日";
+  $("missing-list").innerHTML = miss.map((d) => { const [y, m, dd] = d.split("-").map(Number); return '<button type="button" class="chip" data-wd="' + d + '" aria-pressed="' + (d === TODAY) + '">' + m + "/" + dd + "（" + WD[new Date(y, m - 1, dd).getDay()] + "）</button>"; }).join("");
+}
+$("missing-list").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-wd]"); if (!b) return;
+  $("w-panel").hidden = false; $("w-date").value = b.dataset.wd; setWriteDate(b.dataset.wd);
+  loadMissing().catch(() => {});
+  $("entry").focus();
+});
+
+/* ---------- 手書きのページ ---------- */
+let pages = [];           // {id, md, kind, year?, asset, url, done}
+const handOf = (md) => pages.filter((p) => p.md === md && p.url);
+function fillHand(container, md){
+  const list = prefs.showHand ? handOf(md) : [];
+  container.innerHTML = list.map((p) => '<img ' + imgSrc(p.url) + ' alt="' + esc(Number(md.slice(0, 2)) + "月" + Number(md.slice(3)) + "日") + 'の手書きのページ">').join("");
+  return list.length;
+}
+async function loadPages(){
+  const idx = await db.doc("meta/handpages").get();
+  const list = idx.exists ? (idx.data().pages || []) : [];
+  const doneSnap = await db.collection("handdone").limit(1000).get();
+  const doneSet = new Set(doneSnap.docs.map((s) => s.id));
+  let extras = [];
+  try { extras = (await db.collection("handextra").limit(1000).get()).docs.map((s) => s.data()); } catch(e){}
+  // 写真はドライブにある。前のアプリの番号からドライブの番号を引く
+  let pmap = {};
+  try { (await db.collection("photos").limit(1000).get()).docs.forEach((s) => { pmap[s.id] = s.data().drive; }); } catch(e){}
+  const purl = (asset) => pmap[asset] ? "photo:" + pmap[asset] : (/^[A-Za-z0-9_-]{25,}$/.test(asset || "") && !/^[0-9a-f]{32}$/.test(asset) ? "photo:" + asset : null);
+  pages = list.map((p) => Object.assign({}, p, {url: purl(p.asset), done: doneSet.has(p.id)}))
+    .concat(extras.map((p) => ({id: p.id, md: p.md, kind: "extra", year: p.year, asset: p.asset, url: purl(p.asset), done: doneSet.has(p.id)})));
+  const ly = $("ly-hand");
+  ly.hidden = fillHand(ly.querySelector(".hand-imgs"), MD) === 0;
+  renderHandStatus();
+  loadLastYear().catch(() => {}); loadOlder().catch(() => {}); renderToday();
+}
+function inRange(md){
+  const f = $("p-hand-from").value, t = $("p-hand-to").value;
+  if (!f && !t) return true;
+  const a = f ? f.slice(5) : "01-01", b = t ? t.slice(5) : "12-31";
+  return a <= b ? (md >= a && md <= b) : (md >= a || md <= b);
+}
+function renderHandStatus(){
+  const total = pages.length, done = pages.filter((p) => p.done).length;
+  const left = pages.filter((p) => !p.done && inRange(p.md)).length;
+  $("p-hand-v").textContent = total ? done + " / " + total + "ページ" : "ページなし";
+  $("p-hand").textContent = handRunning ? "止める" : (left ? "文字にする（" + left + "ページ）" : "この範囲はすべて文字にしました");
+  $("p-hand").disabled = !handRunning && left === 0;
+}
+["p-hand-from","p-hand-to"].forEach((id) => $(id).addEventListener("change", renderHandStatus));
+let handRunning = false, handCtl = null;
+async function transcribe(p){
+  if (!sample) return {ok: false, msg: "AIの読み取りが使えない状態です。", stop: true};
+  let caps = null; try { caps = await sample.limits(); } catch(e){}
+  if (!caps || !caps.images) return {ok: false, msg: "この画面では画像の読み取りが使えません。", stop: true};
+  try {
+    const blob = await (await fetch(p.url)).blob();
+    const ctl = new AbortController(); handCtl = ctl; ctls.add(ctl);
+    const yearHint = p.kind === "extra" ? "この画像は" + p.year + "年" + Number(p.md.slice(0, 2)) + "月" + Number(p.md.slice(3)) + "日の日記です。年の欄が印字されていない場合は、すべて" + p.year + "年として扱ってください。\n" : "";
+    const r = await sample.json(
+      "これは手書きの連用日記（7年日記）の1ページの画像です。ページは年ごとの欄に分かれていて、各欄の左上に年（例：2025）と曜日が印字されています。\n" + yearHint
+      + "各年の欄に書かれた文章を、日本語の文字に正確に起こしてください。手書きだけでなく、打ち込まれた文字もそのまま起こしてください。\n"
+      + "・行頭の「G」はよかったこと、「C」は課題の印です。起こすときは「G：」「C：」と残してください。\n"
+      + "・読めない字は推測で埋めず「[?]」にしてください。誤字はそのまま残してかまいません。\n"
+      + "・何も書かれていない年は含めないでください。印字（年、曜日、日付）は本文に入れないでください。\n"
+      + "・欄からはみ出して次の年の欄にかかっている文は、書き始めた年の欄に含めてください。\n"
+      + (p.ocr && Object.keys(p.ocr).length ? "\n参考：このページに埋め込まれていた文字データです。打ち込まれた文章はここに正確に入っているので、そのまま使ってください。手書きの部分は自動認識なので順番や字が崩れています。手書きは画像を見て読み、この文字データは手がかりにだけ使ってください。\n" + Object.keys(p.ocr).map((y) => y + "年: " + p.ocr[y]).join("\n") + "\n" : "")
+      + dictHints() + (await fixHints())
+      + '返答はJSONのみ: {"entries":[{"year":2025,"text":"..."}]}',
+      {images: blob, cache: false, signal: ctl.signal});
+    const items = (r && Array.isArray(r.entries)) ? r.entries : [];
+    for (const it of items){
+      const y = Number(it.year), text = applyDict(String(it.text || "").trim());
+      if (!text || !(y >= 2024 && y <= 2032)) continue;
+      const date = y + "-" + p.md, ref = db.doc("days/" + date);
+      const snap = await ref.get();
+      const hand = {t: "", text: text, src: "hand", page: p.id};
+      if (snap.exists){
+        const cur = snap.data();
+        const others = (cur.entries || []).filter((e) => !(e.src === "hand" && e.page === p.id));
+        await ref.set(Object.assign({}, cur, {entries: [hand].concat(others)}));
+      } else {
+        await ref.set({date: date, md: p.md, year: y, entries: [hand], mood: null, ai: null, imported: true, updatedAt: new Date().toISOString()});
+      }
+    }
+    await db.doc("handdone/" + p.id).set({at: new Date().toISOString(), years: items.map((it) => Number(it.year)).filter(Boolean)});
+    p.done = true;
+    return {ok: true};
+  } catch (e) {
+    const c = e && e.code;
+    if (c === "cancelled") return {ok: false, msg: "", stop: true};
+    if (c === "not_granted" || c === "sampling_disabled" || c === "images_unavailable") return {ok: false, msg: "AIの読み取りが使えない状態です。", stop: true};
+    if (c === "rate_limited") return {ok: false, msg: "AIの利用が上限に近づきました。時間をおいてから続けてください。", stop: true};
+    return {ok: false, msg: "読み取れませんでした。"};
+  } finally { handCtl = null; ctls.forEach((c) => { if (c.signal.aborted) ctls.delete(c); }); }
+}
+$("p-hand").addEventListener("click", async () => {
+  const st = $("p-hand-status");
+  if (handRunning){ handRunning = false; if (handCtl) handCtl.abort(); st.textContent = "止めました。もう一度押すと続きから始めます。"; renderHandStatus(); return; }
+  if (!db || !sample){ st.textContent = "この画面ではAIの読み取りが使えません。claude.aiで開いてください。"; return; }
+  const todo = pages.filter((p) => !p.done && p.url && inRange(p.md));
+  handRunning = true; renderHandStatus();
+  let ok = 0, skipped = 0, stopMsg = "";
+  for (const p of todo){
+    if (!handRunning) break;
+    st.textContent = "読み取り中：" + Number(p.md.slice(0, 2)) + "月" + Number(p.md.slice(3)) + "日（残り" + (todo.length - ok - skipped) + "ページ）";
+    const r = await transcribe(p);
+    if (r.ok){ ok++; renderHandStatus(); continue; }
+    if (r.stop){ stopMsg = r.msg; break; }
+    skipped++;
+  }
+  const was = handRunning; handRunning = false; renderHandStatus();
+  if (stopMsg) st.textContent = ok + "ページを文字にしました。" + stopMsg;
+  else if (was) st.textContent = ok + "ページを文字にしました。" + (skipped ? "読み取れなかった" + skipped + "ページは、もう一度押すと再挑戦します。" : "");
+  loadLastYear().catch(() => {}); loadOlder().catch(() => {});
+});
+
+/* ---------- 書く日を変える ---------- */
+let unwatch = null;
+function watchDay(){
+  if (unwatch) { try { unwatch(); } catch(e){} }
+  todayDoc = null; renderToday();
+  if (!db) return;
+  const date = TODAY;
+  unwatch = db.doc("days/" + date).onSnapshot((snap) => { if (date !== TODAY) return; todayDoc = snap.exists ? snap.data() : null; renderToday(); }, () => {});
+}
+function setWriteDate(str){
+  if (!str || str > REAL_TODAY) str = REAL_TODAY;
+  const d = new Date(str + "T00:00:00");
+  TODAY = str; MD = mdOf(d); YEAR = d.getFullYear();
+  mood = null; renderMood(); paintWriteDate();
+  $("save-status").textContent = ""; $("ai-status").textContent = "";
+  $("ly-body").innerHTML = '<span class="empty">読み込んでいます</span>';
+  watchDay();
+  if (db){
+    loadLastYear().catch(() => {}); loadOlder().catch(() => {});
+    const ly = $("ly-hand"); ly.hidden = fillHand(ly.querySelector(".hand-imgs"), MD) === 0;
+  }
+}
+$("w-date").max = REAL_TODAY;
+$("w-change").addEventListener("click", () => { $("w-panel").hidden = false; $("w-date").value = TODAY; paintWriteDate(); $("w-date").focus(); });
+$("w-date").addEventListener("change", (ev) => setWriteDate(ev.target.value));
+$("w-back").addEventListener("click", () => { $("w-panel").hidden = true; setWriteDate(REAL_TODAY); });
+
+/* ---------- 手書きのページを追加 ---------- */
+let assets = null;
+$("hand-file").addEventListener("change", async (ev) => {
+  const file = ev.target.files && ev.target.files[0]; ev.target.value = "";
+  const st = $("hand-add-status");
+  if (!file) return;
+  if (!assets || !db){ st.textContent = "この画面では画像を保存できません。claude.aiで開いてください。"; return; }
+  st.textContent = "画像を保存しています";
+  try {
+    const up = await assets.upload(file);
+    const id = TODAY + "_" + Date.now().toString(36);
+    const p = {id: id, md: MD, kind: "extra", year: YEAR, asset: up.id, url: "photo:" + up.id, done: false};
+    await db.doc("handextra/" + id).set({id: id, md: MD, year: YEAR, date: TODAY, asset: up.id, at: new Date().toISOString()});
+    pages.push(p);
+    const ly = $("ly-hand"); ly.hidden = fillHand(ly.querySelector(".hand-imgs"), MD) === 0;
+    st.textContent = "保存しました。文字にしています";
+    const r = await transcribe(p);
+    st.textContent = r.ok ? "手書きのページを保存して、文字にしました。" : "画像は保存しました。" + r.msg;
+  } catch (e) {
+    st.textContent = "保存できませんでした。画像が大きすぎないか確かめて、もう一度選んでください。";
+  }
+});
+
+/* ---------- 記録を直す ---------- */
+document.addEventListener("click", async (ev) => {
+  const b = ev.target.closest("[data-edit],[data-edit-save],[data-edit-cancel]"); if (!b) return;
+  const blk = b.closest(".eblock"); if (!blk) return;
+  const date = blk.dataset.date, i = Number(blk.dataset.i);
+  const tEl = blk.querySelector(".etext");
+  if (b.hasAttribute("data-edit")){
+    if (blk.querySelector("textarea")) return;
+    const ta = document.createElement("textarea"); ta.value = tEl.textContent; ta.id = "edit-" + date + "-" + i; ta.setAttribute("aria-label", "記録を直す");
+    ta.style.minHeight = "140px"; ta.style.border = "1px solid var(--line)";
+    tEl.hidden = true; b.hidden = true;
+    const bar = document.createElement("div"); bar.className = "row-between"; bar.dataset.bar = "1";
+    bar.innerHTML = '<button type="button" class="link" data-edit-cancel>やめる</button><button type="button" class="btn" data-edit-save style="min-height:44px">保存する</button>';
+    tEl.after(ta, bar); ta.focus(); return;
+  }
+  const ta = blk.querySelector("textarea"), bar = blk.querySelector("[data-bar]");
+  if (b.hasAttribute("data-edit-cancel")){ ta.remove(); bar.remove(); tEl.hidden = false; blk.querySelector("[data-edit]").hidden = false; return; }
+  if (!db) return;
+  b.disabled = true;
+  try {
+    const ref = db.doc("days/" + date), snap = await ref.get(); if (!snap.exists) return;
+    const cur = snap.data(), entries = (cur.entries || []).slice();
+    const before = entries[i] ? entries[i].text : "", after = ta.value.trim();
+    if (entries[i] && after !== before){
+      entries[i] = Object.assign({}, entries[i], {text: after, edited: new Date().toISOString()});
+      await ref.set(Object.assign({}, cur, {entries: entries}));
+      if (entries[i].src === "hand") await db.collection("handfix").add({before: before.slice(0, 600), after: after.slice(0, 600), date: date, at: new Date().toISOString()});
+    }
+    tEl.textContent = after; ta.remove(); bar.remove(); tEl.hidden = false; blk.querySelector("[data-edit]").hidden = false;
+    for (const k in yearsCache) delete yearsCache[k];
+    loadLastYear().catch(() => {}); loadOlder().catch(() => {});
+  } catch(e){ b.disabled = false; }
+});
+async function fixHints(){
+  try {
+    const snap = await db.collection("handfix").orderBy("at", "desc").limit(30).get();
+    const rows = snap.docs.map((s) => s.data()).filter((f) => f.before && f.after);
+    if (!rows.length) return "";
+    return "\n参考：この人の字は、過去に次のように読み違えて本人が直しています（左が読み取った文、右が正しい文）。字のくせや、よく出てくる名前の手がかりにしてください。\n"
+      + rows.map((f) => "・" + f.before.slice(0, 160).replace(/\n/g, " ") + " → " + f.after.slice(0, 160).replace(/\n/g, " ")).join("\n") + "\n";
+  } catch(e){ return ""; }
+}
+function dictHints(){
+  const ps = dict.filter((p) => p.from && p.to);
+  return ps.length ? "\nよく使う言葉：" + ps.map((p) => p.to).join("、") + "\n" : "";
+}
+
+/* ---------- 日記とアイデアの切り替え ---------- */
+let writeMode = "diary";
+document.querySelector(".mode[aria-label='書く種類']").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-mode]"); if (!b) return;
+  writeMode = b.dataset.mode;
+  b.parentElement.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  const isIdea = writeMode === "idea", isBook = writeMode === "book";
+  $("entry-label").textContent = isIdea ? "思いついたこと" : isBook ? "読んだ本のこと" : (TODAY === REAL_TODAY ? "今日のこと" : "この日のこと");
+  entryEl.placeholder = isIdea ? "思いついたことをそのまま。AIが中身と次の一歩に整理します" : isBook ? "書名から書き始めてください。AIが内容、学び、1つの行動に整理します" : "思いついた順でかまいません";
+  $("save").textContent = isIdea ? "IDEAを残す" : isBook ? "本の記録を残す" : "記録する";
+});
+async function saveIdea(raw){
+  const st = $("save-status");
+  const id = TODAY + "-i" + Date.now().toString(36);
+  const ref = db.doc("ideas/" + id);
+  await ref.set({date: TODAY, at: new Date().toISOString(), title: "", core: raw, next: "", raw: raw, src: "direct"});
+  entryEl.value = ""; ls.set("journal.draft", ""); ideasCache = null;
+  backupRows([[TODAY, hm(), "IDEA", "", raw, new Date().toISOString()]]);
+  st.textContent = "IDEAを残しました";
+  if (!sample) return;
+  try {
+    const r = await sample.json("次のメモは、ふと思いついたアイデアです。本人があとで見返して動けるように整理してください。title（短い名前）、core（中身を1〜2文。本人の言葉をなるべく残す）、next（次の一歩を1文）。書かれていない内容は足さないこと。\\n返答はJSONのみ: {\"title\":\"\",\"core\":\"\",\"next\":\"\"}\\n\\nメモ:\\n" + raw.slice(0, 8000), {cache: false, modelTier: "quick"});
+    await ref.update({title: String(r.title || ""), core: String(r.core || raw), next: String(r.next || "")});
+    if (r.next) await addTodo(r.next, "IDEA", "i-" + id, TODAY);
+    st.textContent = "IDEAを残しました：" + (r.title || "") + (r.next ? "（次の一歩をやることに入れました）" : "");
+  } catch(e){}
+}
+
+async function saveBook(raw){
+  const st = $("save-status");
+  const id = TODAY + "-b" + Date.now().toString(36);
+  const ref = db.doc("books/" + id);
+  await ref.set({date: TODAY, at: new Date().toISOString(), title: "", author: "", note: "", takeaway: raw, action: "", raw: raw, src: "direct"});
+  entryEl.value = ""; ls.set("journal.draft", ""); booksCache = null;
+  backupRows([[TODAY, hm(), "BOOK", "", raw, new Date().toISOString()]]);
+  st.textContent = "本の記録を残しました";
+  if (!sample) return;
+  try {
+    const r = await sample.json("次のメモは、本を読んだあとの記録です。書名、著者、内容（本に書いてあったこと）、学び（本人が感じたこと）、1つの行動（この本から明日やること1つ）に分けてください。著者が分からなければ空。書かれていない内容は足さないこと。数字は算用数字。\n返答はJSONのみ: {\"title\":\"\",\"author\":\"\",\"note\":\"\",\"takeaway\":\"\",\"action\":\"\"}\n\nメモ:\n" + raw.slice(0, 12000), {cache: false, modelTier: "quick"});
+    await ref.update({title: String(r.title || ""), author: String(r.author || ""), note: String(r.note || ""), takeaway: String(r.takeaway || raw), action: String(r.action || "")});
+    booksCache = null;
+    if (r.action) await addTodo(r.action, "本", "b-" + id, TODAY);
+    st.textContent = "本の記録を残しました：" + (r.title || "") + (r.action ? "（1つの行動をやることに入れました）" : "");
+  } catch(e){}
+}
+
+/* ---------- 振り返り：アイデアと隼人 ---------- */
+let ideasCache = null, hayatoCache = null, booksCache = null, rvPane = "years";
+$("rv-mode").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-rv]"); if (!b || b.dataset.rv === rvPane) return;
+  rvPane = b.dataset.rv;
+  $("rv-mode").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  ["years","sum","ideas","books","hayato"].forEach((k) => { $("rv-" + k + "-pane").hidden = rvPane !== k; });
+  renderPane();
+});
+const md2 = (date) => { const [y, m, d] = date.split("-").map(Number); return y + "年" + m + "月" + d + "日"; };
+function renderPane(){
+  if (rvPane === "years") renderReview(); else if (rvPane === "ideas") renderIdeas(); else if (rvPane === "books") renderBooks();
+  else if (rvPane === "sum") renderSums(); else renderHayato();
+}
+const todoBtn = (text, from) => text ? '<button type="button" class="link" data-todo-add="' + esc(text) + '" data-from="' + from + '">やることに入れる</button>' : '';
+async function renderIdeas(){
+  const el = $("rv-ideas");
+  const paint = (rows) => { el.innerHTML = rows.length ? rows.map((x) => '<div class="item idea"><div class="row-between"><span class="ttl">' + esc(x.title || "（名前なし）") + '</span><span class="small">' + md2(x.date) + (x.src === "diary" ? "　JOURNALから" : "") + '</span></div>'
+      + (x.core ? '<p class="body">' + esc(x.core) + '</p>' : '') + (x.next ? '<div class="box"><b>次の一歩</b><span>' + esc(x.next) + '</span></div>' : '') + todoBtn(x.next, "IDEA") + '</div>').join("")
+      : '<div class="item"><p class="empty">まだIDEAはありません。今日を書くでIDEAに切り替えて書くと、ここに並びます。</p></div>'; };
+  if (ideasCache) paint(ideasCache); else el.innerHTML = '<div class="item"><p class="empty">読み込んでいます</p></div>';
+  if (!db) return;
+  try { const s2 = await db.collection("ideas").orderBy("at", "desc").limit(200).get(); ideasCache = s2.docs.map((x) => x.data()); paint(ideasCache); } catch(e){}
+}
+async function renderBooks(){
+  const el = $("rv-books");
+  const paint = (rows) => {
+    if (!rows.length){ el.innerHTML = '<div class="item"><p class="empty">まだ本の記録はありません。今日を書くでBOOKに切り替えて書くと、ここに並びます。</p></div>'; return; }
+    // 本ごとにまとめる。新しく読んだ本が上
+    const groups = [];
+    rows.forEach((x) => { const k = x.title || "（書名なし）"; let g = groups.find((y) => y.k === k); if (!g){ g = {k: k, author: x.author, list: []}; groups.push(g); } g.list.push(x); });
+    el.innerHTML = groups.map((g) => '<div class="item"><div class="row-between"><span class="ttl" style="font-weight:700">' + esc(g.k) + '</span><span class="small">' + esc(g.author || "") + '　' + g.list.length + '回</span></div>'
+      + g.list.slice().reverse().map((x) => '<details class="rawfold"><summary>' + md2(x.date) + (x.takeaway ? '　' + esc(x.takeaway.slice(0, 18)) + (x.takeaway.length > 18 ? "…" : "") : "") + '</summary><div class="group">'
+        + (x.note ? '<div class="box"><b>内容</b><span>' + esc(x.note) + '</span></div>' : '')
+        + (x.takeaway ? '<div class="box"><b>学び</b><span>' + esc(x.takeaway) + '</span></div>' : '')
+        + (x.action ? '<div class="box"><b>1つの行動</b><span>' + esc(x.action) + '</span></div>' : '')
+        + todoBtn(x.action, "本") + '</div></details>').join("") + '</div>').join("");
+  };
+  if (booksCache) paint(booksCache); else el.innerHTML = '<div class="item"><p class="empty">読み込んでいます</p></div>';
+  if (!db) return;
+  try { const s2 = await db.collection("books").orderBy("at", "desc").limit(300).get(); booksCache = s2.docs.map((x) => x.data()); paint(booksCache); } catch(e){}
+}
+
+/* ---------- 週と月のまとめ ---------- */
+let sumKind = "w", sumCache = {}, sumBusy = false;
+const dObj = (s2) => { const [y, m, d] = s2.split("-").map(Number); return new Date(y, m - 1, d); };
+const addD = (s2, n) => { const d = dObj(s2); d.setDate(d.getDate() + n); return ymd(d); };
+const mondayOf = (s2) => { const d = dObj(s2); const w = (d.getDay() + 6) % 7; d.setDate(d.getDate() - w); return ymd(d); };
+const mdJ = (s2) => { const [, m, d] = s2.split("-").map(Number); return m + "月" + d + "日"; };
+const periodLabel = (k, start, end) => k === "w" ? mdJ(start) + "〜" + mdJ(end) : Number(start.slice(0, 4)) + "年" + Number(start.slice(5, 7)) + "月";
+// 終わった週と月
+function lastPeriods(){
+  const thisMon = mondayOf(REAL_TODAY);
+  const wStart = addD(thisMon, -7), wEnd = addD(thisMon, -1);
+  const t = dObj(REAL_TODAY); const ms = new Date(t.getFullYear(), t.getMonth() - 1, 1), me = new Date(t.getFullYear(), t.getMonth(), 0);
+  return [{k: "w", start: wStart, end: wEnd}, {k: "m", start: ymd(ms), end: ymd(me)}];
+}
+$("sum-kind").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-k]"); if (!b || b.dataset.k === sumKind) return;
+  sumKind = b.dataset.k;
+  $("sum-kind").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  $("sum-now").textContent = sumKind === "w" ? "今の週の途中までをまとめる" : "今月の途中までをまとめる";
+  renderSums();
+});
+function sumHtml(x){
+  const box = (t, v) => v ? '<div class="box"><b>' + t + '</b><span>' + esc(v) + '</span></div>' : '';
+  return '<div class="item sum"><div class="row-between"><h3>' + esc(periodLabel(x.kind, x.start, x.end)) + (x.partial ? '（途中まで）' : '') + '</h3><span class="small">記録 ' + (x.count || 0) + '日' + (x.avgMood ? '　調子 ' + x.avgMood : '') + '</span></div>'
+    + '<p class="body">' + esc(x.story || "") + '</p>'
+    + box("よかったこと", x.good) + box("テーマ", x.themes) + box("IDEA", x.ideas) + box("読んだ本", x.books) + box("隼人", x.hayato) + box(x.kind === "w" ? "来週への問い" : "来月への問い", x.questions)
+    + '<div class="mini-actions"><button type="button" class="link" data-sum-redo="' + x.kind + '|' + x.start + '|' + x.end + '">作り直す</button></div></div>';
+}
+async function renderSums(){
+  const el = $("rv-sum"), k = sumKind;
+  if (sumCache[k]) el.innerHTML = sumCache[k].length ? sumCache[k].map(sumHtml).join("") : '<div class="item"><p class="empty">まだまとめはありません。</p></div>';
+  else el.innerHTML = '<div class="item"><p class="empty">読み込んでいます</p></div>';
+  if (!db) return;
+  try {
+    const s2 = await db.collection("summaries").where("kind", "==", k).orderBy("start", "desc").limit(60).get();
+    sumCache[k] = s2.docs.map((x) => x.data());
+    if (sumKind === k) el.innerHTML = sumCache[k].length ? sumCache[k].map(sumHtml).join("") : '<div class="item"><p class="empty">まだまとめはありません。週が終わると、ここにできます。</p></div>';
+  } catch(e){}
+}
+function sumText(x){
+  const L = [(x.kind === "w" ? "【週のまとめ】" : "【月のまとめ】") + periodLabel(x.kind, x.start, x.end) + (x.partial ? "（途中まで）" : ""), "記録 " + (x.count || 0) + "日" + (x.avgMood ? "　平均の調子 " + x.avgMood : ""), "", x.story || ""];
+  [["よかったこと", x.good], ["テーマ", x.themes], ["IDEA", x.ideas], ["読んだ本", x.books], ["隼人", x.hayato], [x.kind === "w" ? "来週への問い" : "来月への問い", x.questions]]
+    .forEach(([t, v]) => { if (v) L.push("", "■" + t, v); });
+  return L.join("\n");
+}
+async function makeSummary(k, start, end, partial){
+  if (!db || !sample) return null;
+  const ds = (await daysCol().where("date", ">=", start).where("date", "<=", end).orderBy("date", "asc").limit(40).get()).docs.map((x) => x.data()).filter((d) => (d.entries || []).length);
+  if (!ds.length) return null;
+  const per = k === "w" ? 2500 : 1200;
+  const body = ds.map((d) => "■" + jp(d.date) + (typeof d.mood === "number" ? "　調子" + d.mood : "") + "\n" + (usesSummary(d) ? d.ai.summary : rawOf(d)).slice(0, per) + (d.ai && d.ai.hayato ? "\n（隼人）" + d.ai.hayato : "")).join("\n\n").slice(0, 45000);
+  let ideas = [], books = [];
+  try { ideas = (await db.collection("ideas").where("date", ">=", start).where("date", "<=", end).limit(50).get()).docs.map((x) => x.data()); } catch(e){}
+  try { books = (await db.collection("books").where("date", ">=", start).where("date", "<=", end).limit(50).get()).docs.map((x) => x.data()); } catch(e){}
+  const moods = ds.map((d) => d.mood).filter((m) => typeof m === "number");
+  const label = periodLabel(k, start, end);
+  const prompt = "あなたは日記の振り返りを手伝う役です。以下は" + label + "の日記です。音声入力や手書きを文字にしたものを含み、言い間違いが混ざっています。\n"
+    + "書いた本人が読み返して、この" + (k === "w" ? "1週間" : "1か月") + "の流れと自分の変化が分かるように、次の項目を日本語で作ってください。\n"
+    + "story: 出来事、感じていたこと、考えていたことが流れで分かる文章。" + (k === "w" ? "350〜450字" : "500〜650字") + "。本人の目線で常体。\n"
+    + "good: よかったこと。3つまで。1行に1つ、行頭は「・」ではなく「1. 」のような番号。\n"
+    + "themes: この期間に繰り返し出てきたテーマ。3つまで。番号付きで1行に1つ。\n"
+    + "hayato: 息子の隼人に関すること。本人の言葉を残して1〜3文。なければ空文字。\n"
+    + "questions: " + (k === "w" ? "来週の自分への問いを1つ" : "来月の自分への問いを3つ、番号付きで1行に1つ") + "。\n"
+    + "書かれていない内容は足さないこと。数字は算用数字。文中で中黒（・）は使わないこと。\n"
+    + '返答はJSONのみ: {"story":"","good":"","themes":"","hayato":"","questions":""}\n\n' + body;
+  const r = await sample.json(prompt, {cache: false});
+  const doc = {kind: k, start: start, end: end, partial: !!partial, count: ds.length, avgMood: moods.length ? Math.round(moods.reduce((a, b) => a + b, 0) / moods.length * 10) / 10 : null,
+    story: String(r.story || ""), good: String(r.good || ""), themes: String(r.themes || ""), hayato: String(r.hayato || ""), questions: String(r.questions || ""),
+    ideas: ideas.map((x) => (x.title || x.core || "").slice(0, 40) + (x.next ? "（次の一歩：" + x.next + "）" : "")).filter(Boolean).join("\n"),
+    books: books.map((x) => (x.title || "書名なし") + (x.action ? "（行動：" + x.action + "）" : "")).filter(Boolean).join("\n"),
+    at: new Date().toISOString(), line: false};
+  const id = k + "-" + start + (partial ? "-p" : "");
+  await db.doc("summaries/" + id).set(doc);
+  if (!partial){ try { await db.doc("summaries/" + k + "-" + start + "-p").delete(); } catch(e){} }
+  await sendSummaryToSheet(id, doc);
+  sumCache = {};
+  return doc;
+}
+// スプレッドシートの「まとめ」に1行足す。そこからLINEに届く
+async function sendSummaryToSheet(id, doc){
+  if (!mcp || doc.partial) return;
+  try {
+    await mcp.callTool("Google Sheets", "append_values", {spreadsheetId: SHEET_ID, range: "まとめ!A1", values: [[doc.kind === "w" ? "週" : "月", periodLabel(doc.kind, doc.start, doc.end), doc.start, doc.end, sumText(doc), new Date().toISOString(), ""]]});
+    await db.doc("summaries/" + id).update({line: true});
+  } catch(e){}
+}
+async function ensureSummaries(){
+  if (!db || !sample || sumBusy) return;
+  sumBusy = true;
+  try {
+    for (const p of lastPeriods()){
+      const id = p.k + "-" + p.start;
+      const s2 = await db.doc("summaries/" + id).get();
+      if (s2.exists){ const d = s2.data(); if (!d.line && mcp) await sendSummaryToSheet(id, d); continue; }
+      await makeSummary(p.k, p.start, p.end, false);
+    }
+  } catch(e){}
+  sumBusy = false;
+  if (currentView === "review" && rvPane === "sum") renderSums();
+}
+$("sum-now").addEventListener("click", async () => {
+  const st = $("sum-status"), btn = $("sum-now");
+  if (!sample){ st.textContent = "この画面ではAIのまとめが使えません。"; return; }
+  btn.disabled = true; st.textContent = "AIがまとめています（1分ほどかかることがあります）";
+  try {
+    const t = dObj(REAL_TODAY);
+    const start = sumKind === "w" ? mondayOf(REAL_TODAY) : ymd(new Date(t.getFullYear(), t.getMonth(), 1));
+    const d = await makeSummary(sumKind, start, REAL_TODAY, true);
+    st.textContent = d ? "まとめました" : "この期間の記録がまだありません。";
+    renderSums();
+  } catch(e){ st.textContent = e && e.code === "rate_limited" ? "少し時間をおいてから押してください。" : "まとめられませんでした。もう一度押してください。"; }
+  finally { btn.disabled = false; }
+});
+$("rv-sum").addEventListener("click", async (ev) => {
+  const b = ev.target.closest("[data-sum-redo]"); if (!b) return;
+  const [k, start, end] = b.dataset.sumRedo.split("|");
+  b.disabled = true; b.textContent = "作り直しています";
+  try { await makeSummary(k, start, end, end === REAL_TODAY && start >= (k === "w" ? mondayOf(REAL_TODAY) : REAL_TODAY.slice(0, 8) + "01")); } catch(e){}
+  renderSums();
+});
+
+/* ---------- やること ---------- */
+let todoCache = null;
+function todoHtml(x){
+  return '<div class="todo' + (x.done ? ' done' : '') + '"><input type="checkbox" data-todo-check="' + esc(x.id) + '"' + (x.done ? ' checked' : '') + ' aria-label="終わった">'
+    + '<div><div class="tx">' + esc(x.text) + '</div>' + (x.from && x.from !== "手入力" ? '<div class="src">' + esc(x.from) + (x.date ? '（' + mdJ(x.date) + '）' : '') + 'から</div>' : '') + '</div>'
+    + '<button type="button" class="link" data-todo-del="' + esc(x.id) + '" aria-label="消す">消す</button></div>';
+}
+async function renderTodo(){
+  const paint = (rows) => {
+    const open = rows.filter((x) => !x.done), done = rows.filter((x) => x.done);
+    $("todo-open").innerHTML = open.length ? open.map(todoHtml).join("") : '<div class="item"><p class="empty">やることはありません。</p></div>';
+    $("todo-done-wrap").hidden = done.length === 0;
+    $("todo-done-label").textContent = "終わったこと（" + done.length + "）";
+    $("todo-done").innerHTML = done.map(todoHtml).join("");
+  };
+  if (todoCache) paint(todoCache);
+  if (!db) return;
+  try { const s2 = await db.collection("todos").orderBy("at", "desc").limit(300).get(); todoCache = s2.docs.map((x) => Object.assign({id: x.id}, x.data())).filter((x) => !x.deleted); paint(todoCache); } catch(e){}
+}
+async function addTodo(text, from, fixedId, date){
+  text = String(text || "").trim(); if (!text || !db) return false;
+  const id = fixedId || ("t" + Date.now().toString(36));
+  try {
+    if (fixedId){ const s0 = await db.doc("todos/" + id).get(); if (s0.exists) return false; }  // 同じものは二度入れない。消したものも戻さない
+    await db.doc("todos/" + id).set({text: text, from: from || "手入力", date: date || REAL_TODAY, done: false, at: new Date().toISOString()});
+  } catch(e){ return false; }
+  todoCache = null; return true;
+}
+// 最近の日記やIDEA、本からまとめて拾う
+$("todo-scan").addEventListener("click", async () => {
+  const st = $("todo-scan-status"), btn = $("todo-scan");
+  if (!db || !sample){ st.textContent = "この画面ではAIが使えません。"; return; }
+  btn.disabled = true; st.textContent = "最近2週間の記録から拾っています（1分ほどかかることがあります）";
+  try {
+    const from = addD(REAL_TODAY, -13);
+    const ds = (await daysCol().where("date", ">=", from).orderBy("date", "asc").limit(20).get()).docs.map((x) => x.data()).filter((d) => (d.entries || []).length);
+    let n = 0;
+    if (ds.length){
+      const body = ds.map((d) => "■" + d.date + "\n" + rawOf(d).slice(0, 2500)).join("\n\n").slice(0, 40000);
+      const r = await sample.json("以下は最近2週間の日記です。本人が「やる」「やりたい」「〜しないと」と書いている、これから行う具体的な行動を拾ってください。もう終わったと書かれているものと、気持ちや目標だけのものは入れない。各日3つまで、短い1文で。数字は算用数字。\n返答はJSONのみ: {\"items\":[{\"date\":\"YYYY-MM-DD\",\"text\":\"\"}]}\n\n" + body, {cache: false});
+      const items = Array.isArray(r.items) ? r.items : [];
+      const cnt = {};
+      for (const it of items){
+        const dt = /^\d{4}-\d{2}-\d{2}$/.test(it.date || "") ? it.date : REAL_TODAY;
+        cnt[dt] = (cnt[dt] || 0) + 1; if (cnt[dt] > 3) continue;
+        if (await addTodo(it.text, "JOURNAL", "j-" + dt + "-s" + (cnt[dt] - 1), dt)) n++;
+      }
+    }
+    const is = (await db.collection("ideas").where("date", ">=", from).limit(50).get()).docs;
+    for (const x of is){ const v = x.data(); if (v.next && await addTodo(v.next, "IDEA", "i-" + x.id, v.date)) n++; }
+    const bs = (await db.collection("books").where("date", ">=", from).limit(50).get()).docs;
+    for (const x of bs){ const v = x.data(); if (v.action && await addTodo(v.action, "本", "b-" + x.id, v.date)) n++; }
+    st.textContent = n ? n + "件をやることに入れました。" : "新しく入れるものはありませんでした。";
+    renderTodo();
+  } catch(e){ st.textContent = e && e.code === "rate_limited" ? "少し時間をおいてから押してください。" : "拾えませんでした。もう一度押してください。"; }
+  finally { btn.disabled = false; }
+});
+$("todo-add").addEventListener("click", async () => {
+  const el = $("todo-in"); if (await addTodo(el.value, "手入力")){ el.value = ""; renderTodo(); }
+});
+$("todo-in").addEventListener("keydown", (ev) => { if (ev.key === "Enter" && !ev.isComposing){ ev.preventDefault(); $("todo-add").click(); } });
+document.addEventListener("click", async (ev) => {
+  const a = ev.target.closest("[data-todo-add]");
+  if (a){ a.disabled = true; if (await addTodo(a.dataset.todoAdd, a.dataset.from)) a.textContent = "やることに入れました"; return; }
+  const d = ev.target.closest("[data-todo-del]");
+  if (d){ try { await db.doc("todos/" + d.dataset.todoDel).update({deleted: true}); } catch(e){} todoCache = (todoCache || []).filter((x) => x.id !== d.dataset.todoDel); renderTodo(); }
+});
+document.addEventListener("change", async (ev) => {
+  const c = ev.target.closest("[data-todo-check]"); if (!c) return;
+  const id = c.dataset.todoCheck, done = c.checked;
+  (todoCache || []).forEach((x) => { if (x.id === id) x.done = done; });
+  renderTodo();
+  try { await db.doc("todos/" + id).update({done: done, doneAt: done ? new Date().toISOString() : null}); } catch(e){}
+});
+
+async function renderHayato(){
+  const el = $("rv-hayato");
+  const paint = (rows) => { el.innerHTML = rows.length ? rows.map((d) => '<div class="item"><span class="small">' + md2(d.date) + '</span><p class="body">' + esc(d.ai.hayato) + '</p></div>').join("")
+      : '<div class="item"><p class="empty">日記で隼人のことを話すと、AIが拾ってここに並べます。</p></div>'; };
+  if (hayatoCache) paint(hayatoCache); else el.innerHTML = '<div class="item"><p class="empty">読み込んでいます</p></div>';
+  if (!db) return;
+  try { const s2 = await daysCol().where("hasHayato", "==", true).orderBy("date", "desc").limit(300).get(); hayatoCache = s2.docs.map((x) => x.data()).filter((d) => d.ai && d.ai.hayato); paint(hayatoCache); } catch(e){}
+}
+
+/* ---------- 最初の取り込み（スプレッドシートと手書き） ---------- */
+let migrating = false;
+const ctls = new Set();
+async function checkMigrate(){
+  if (!db) return;
+  try { const m = await db.doc("meta/migration").get(); $("migrate").hidden = m.exists && m.data().done === true; } catch(e){}
+}
+$("migrate-go").addEventListener("click", async () => {
+  const st = $("migrate-status"), btn = $("migrate-go");
+  if (migrating){ migrating = false; ctls.forEach((c) => c.abort()); st.textContent = "止めました。もう一度押すと続きから始めます。"; btn.textContent = "続きから取り込む"; return; }
+  if (!db){ st.textContent = "この画面では取り込めません。claude.aiで開いてください。"; return; }
+  migrating = true; btn.textContent = "止める";
+  // 1. スプレッドシート
+  st.textContent = "スプレッドシートの記録を移しています";
+  await syncSheet(false);
+  const sheetMsg = $("p-import-status").textContent;
+  if (!migrating) return;
+  // 2. 手書き（2ページずつ並べて進める）
+  const todo = pages.filter((p) => !p.done && p.url);
+  let done = pages.filter((p) => p.done).length, fail = 0, stopMsg = "";
+  const total = pages.length;
+  const paint = () => { st.textContent = sheetMsg + "\n手書きを文字にしています：" + done + " / " + total + "ページ" + (fail ? "（読めなかった" + fail + "ページはあとで再挑戦）" : ""); };
+  paint();
+  let next = 0;
+  const worker = async () => {
+    while (migrating && next < todo.length && !stopMsg){
+      const p = todo[next++];
+      const r = await transcribe(p);
+      if (r.ok) done++; else if (r.stop){ stopMsg = r.msg || " "; break; } else fail++;
+      paint(); renderHandStatus();
+    }
+  };
+  await Promise.all([worker(), worker()]);
+  const all = pages.every((p) => p.done);
+  migrating = false;
+  if (all){
+    await db.doc("meta/migration").set({done: true, at: new Date().toISOString()});
+    st.textContent = sheetMsg + "\n手書き" + total + "ページもすべて文字にしました。"; btn.hidden = true;
+  } else if (stopMsg.trim()){
+    st.textContent = sheetMsg + "\n手書きは" + done + " / " + total + "ページまで進みました。" + stopMsg; btn.textContent = "続きから取り込む";
+  } else if (fail){
+    st.textContent = sheetMsg + "\n手書きは" + done + " / " + total + "ページ。読めなかったページは、もう一度押すと再挑戦します。"; btn.textContent = "残りを取り込む";
+  } else { btn.textContent = "続きから取り込む"; }
+  for (const k in yearsCache) delete yearsCache[k];
+  loadLastYear().catch(() => {}); loadOlder().catch(() => {}); loadMissing().catch(() => {});
+});
+
+/* ---------- スプレッドシートに控えを取る ---------- */
+async function backupRows(rows){
+  // rows: [[日付, 時刻, 種類, 調子, 本文, 保存日時]]
+  if (!rows.length) return true;
+  if (!mcp){ await queueBackup(rows); return false; }
+  try {
+    await mcp.callTool("Google Sheets", "append_values", {spreadsheetId: SHEET_ID, range: "控え!A1", values: rows});
+    return true;
+  } catch(e){ await queueBackup(rows); return false; }
+}
+async function queueBackup(rows){
+  if (!db) return;
+  try { await db.collection("backupq").add({rows: JSON.stringify(rows), at: new Date().toISOString()}); } catch(e){}
+}
+async function flushBackup(){
+  if (!db || !mcp) return;
+  try {
+    const snap = await db.collection("backupq").orderBy("at", "asc").limit(50).get();
+    if (snap.empty) return;
+    let rows = [];
+    snap.docs.forEach((d) => { try { rows = rows.concat(JSON.parse(d.data().rows)); } catch(e){} });
+    await mcp.callTool("Google Sheets", "append_values", {spreadsheetId: SHEET_ID, range: "控え!A1", values: rows});
+    for (const d of snap.docs) await db.doc("backupq/" + d.id).delete();
+  } catch(e){}
+}
+$("p-backup-all").addEventListener("click", async () => {
+  const st = $("p-backup-status"), btn = $("p-backup-all");
+  if (!db || !mcp){ st.textContent = "この画面ではスプレッドシートに書き込めません。"; return; }
+  btn.disabled = true; st.textContent = "書き出しています";
+  try {
+    const snap = await daysCol().orderBy("date", "asc").limit(1000).get();
+    const now2 = new Date().toISOString(), rows = [];
+    snap.docs.forEach((s2) => { const d = s2.data(); (d.entries || []).forEach((e) => rows.push([d.date, e.t || "", e.src === "hand" ? "手書き" : e.src === "sheet" ? "音声" : e.src === "typed" ? "打ち込み" : "JOURNAL", d.mood ?? "", e.text, now2])); });
+    const is = await db.collection("ideas").orderBy("at", "asc").limit(1000).get();
+    is.docs.forEach((s2) => { const x = s2.data(); rows.push([x.date, "", "IDEA", "", [x.title, x.core, x.next ? "次の一歩：" + x.next : ""].filter(Boolean).join("\n"), now2]); });
+    for (let k = 0; k < rows.length; k += 300){
+      await mcp.callTool("Google Sheets", "append_values", {spreadsheetId: SHEET_ID, range: "控え!A1", values: rows.slice(k, k + 300)});
+      st.textContent = Math.min(k + 300, rows.length) + " / " + rows.length + "件を書き出しました";
+    }
+    st.textContent = rows.length + "件をスプレッドシートの「控え」に書き出しました。";
+  } catch(e){ st.textContent = MCP_MSG[e && e.code] || "書き出せませんでした。少し待ってからもう一度押してください。"; }
+  finally { btn.disabled = false; }
+});
+
+/* ---------- 画面切り替え ---------- */
+let currentView = "today", prefsRendered = false, fontsLoaded = false;
+document.querySelector("nav.tabs").addEventListener("click", (ev) => {
+  const b = ev.target.closest("button[data-view]"); if (!b) return;
+  const v = b.dataset.view;
+  if (v === currentView) return;           // 開いているタブはそのまま
+  currentView = v;
+  document.querySelectorAll("nav.tabs button").forEach((x) => { if (x === b) x.setAttribute("aria-current", "page"); else x.removeAttribute("aria-current"); });
+  ["today","review","todo","prefs"].forEach((k) => { $("v-" + k).hidden = v !== k; });
+  window.scrollTo(0, 0);
+  if (v === "review") renderPane();
+  if (v === "todo") renderTodo();
+  if (v === "prefs"){ if (!prefsRendered){ prefsRendered = true; renderPrefs(); } renderHandStatus(); renderPush().catch(() => {}); }
+});
+// フォントの一覧は開いたときだけ読み込む
+$("p-font").closest("details").addEventListener("toggle", (ev) => {
+  if (ev.target.open && !fontsLoaded){ fontsLoaded = true; Object.keys(ALLF).forEach(ensureFont); }
+});
+
+/* ---------- iPhoneへのお知らせ ---------- */
+async function renderPush(){
+  const P2 = window.JOURNAL_PUSH, st = $("n-state");
+  if (!P2.supported()){ st.textContent = "使えません"; $("n-note").textContent = P2.standalone() ? "このiPhoneではお知らせが使えません。iOSを16.4以降にしてください。" : "Safariで開き、共有ボタンから「ホーム画面に追加」をして、ホーム画面のアイコンから開いてください。"; $("n-on").hidden = true; return; }
+  const s2 = await P2.state();
+  st.textContent = s2 === "on" ? "受け取る" : s2 === "denied" ? "許可されていません" : "まだ";
+  $("n-on").textContent = s2 === "on" ? "受け取り直す" : "お知らせを受け取る";
+  $("n-test").hidden = s2 !== "on";
+  $("n-note").textContent = s2 === "denied" ? "iPhoneの設定 → 通知 → JOURNAL で許可してください。" : "朝と夜の時刻、週と月のまとめは下で選べます。";
+}
+$("n-on").addEventListener("click", async () => {
+  const st = $("n-status"); st.textContent = "設定しています";
+  try { const r = await window.JOURNAL_PUSH.enable(); st.textContent = r === "on" ? "このiPhoneで受け取れるようになりました。" : "許可されませんでした。"; }
+  catch(e){ st.textContent = "設定できませんでした。ホーム画面のアイコンから開いているか確かめてください。"; }
+  renderPush();
+});
+$("n-test").addEventListener("click", async () => {
+  const st = $("n-status"); st.textContent = "送っています";
+  try { await window.JOURNAL_PUSH.test(); st.textContent = "送りました。数秒で届きます。"; } catch(e){ st.textContent = "送れませんでした。"; }
+});
+["n-morning","n-night"].forEach((id) => $(id).addEventListener("change", (ev) => { prefs[id === "n-morning" ? "nMorning" : "nNight"] = Number(ev.target.value); savePrefs(); }));
+
+/* ---------- 起動 ---------- */
+renderToday();
+(async () => {
+  if (!window.claude || !window.claude.use){ showBanner(); return; }
+  [db, sample, downloads, mcp, assets] = await Promise.all([claude.use("db"), claude.use("sample"), claude.use("downloads"), claude.use("mcp"), claude.use("assets")]);
+  $("hand-add").hidden = !assets;
+  loadMissing().catch(() => {});
+  checkMigrate();
+  try {
+    const perms = await claude.use("permissions");
+    const s = perms ? await perms.state("mcp:Google Sheets").catch(() => "unavailable") : "unavailable";
+    if (mcp && s === "granted"){ syncSheet(true); flushBackup(); }
+  } catch(e){}
+  if (!db){ showBanner(); return; }
+  try {
+    const s = await db.doc("settings/main").get();
+    if (s.exists){ const v = s.data(); if (v.prefs) prefs = fixPrefs(v.prefs); if (Array.isArray(v.dict)) dict = v.dict; ls.set("journal.prefs", prefs); ls.set("journal.dict", dict); applyTheme(); }
+  } catch(e){}
+  watchDay();
+  loadLastYear().catch(() => { $("ly-body").innerHTML = '<span class="empty">読み込めませんでした。</span>'; });
+  loadOlder().catch(() => {});
+  // 写真の一覧が届いたら、写真へのリンク付きで描き直す
+  loadPages().then(() => { loadLastYear().catch(() => {}); loadOlder().catch(() => {}); }).catch(() => {});
+  // 終わった週と月のまとめを、まだなければ作る（少し待ってから）
+  setTimeout(() => { ensureSummaries(); }, 4000);
+  if (location.hash === "#sum"){ document.querySelector('nav.tabs button[data-view="review"]').click(); document.querySelector('[data-rv="sum"]').click(); }
+})();
+function showBanner(){
+  const b = $("banner"); b.hidden = false;
+  b.textContent = "記録の保存先につながりません。通信を確かめて、開き直してください。";
+  $("ly-body").innerHTML = '<span class="empty">つながると、去年の今日がここに出ます。</span>';
+}
+})();
+</script>
+</body>
+</html>

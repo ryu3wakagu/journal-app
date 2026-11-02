@@ -1,0 +1,1 @@
+self.JOURNAL_GAS = "";
