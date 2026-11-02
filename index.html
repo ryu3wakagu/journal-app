@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>JOURNAL</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -18,6 +18,23 @@ body{margin:0;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Hiragino Sans",san
 img{max-width:100%}
 [hidden]{display:none!important}
 *{-webkit-tap-highlight-color:transparent}
+html{touch-action:manipulation}
+input,textarea,select{font-size:16px!important}
+/* 押したのが分かるように */
+.btn,.chip,.link,.icon-btn,.recent,.mode button,nav.tabs button,.dot{transition:transform .08s ease,opacity .08s ease}
+.btn:active,.chip:active,.icon-btn:active,.recent:active,.mode button:active,nav.tabs button:active,.dot:active{transform:scale(.96);opacity:.7}
+.link:active{opacity:.5}
+.btn:disabled{opacity:.6}
+.cal{display:flex;flex-direction:column;gap:10px;padding-bottom:14px}
+.cal-head{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;text-align:center}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal-grid .wd{font-size:11px;color:var(--sub);text-align:center}
+.cal-grid button{aspect-ratio:1/1;border:0;border-radius:10px;background:transparent;font-size:14px;position:relative;color:var(--text)}
+.cal-grid button.has{background:var(--soft);color:var(--accentText);font-weight:700}
+.cal-grid button.has::after{content:"";position:absolute;left:50%;bottom:5px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--accent)}
+.cal-grid button.today{box-shadow:inset 0 0 0 2px var(--accent)}
+.cal-grid button:disabled{color:var(--line)}
+
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap">
 <style>
@@ -269,6 +286,14 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
     <button type="button" data-rv="hayato" aria-pressed="false">隼人</button>
   </div>
   <div id="rv-years-pane" class="view">
+  <details class="rawfold" id="cal-wrap"><summary>カレンダーで選ぶ</summary>
+    <div class="cal">
+      <div class="cal-head"><button class="icon-btn" id="cal-prev" type="button" aria-label="前の月">‹</button><b id="cal-label"></b><button class="icon-btn" id="cal-next" type="button" aria-label="次の月">›</button></div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="small" id="cal-note">印のある日に記録があります。押すと、その日の記録が下に出ます。</div>
+      <button class="btn ghost" id="cal-write" type="button" hidden></button>
+    </div>
+  </details>
   <div class="datebar">
     <button class="icon-btn" id="rv-prev" type="button" aria-label="前の日"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
     <div class="mid"><b id="rv-label"></b><button type="button" id="rv-today">今日に戻る</button></div>
@@ -312,8 +337,8 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
 <section id="v-todo" class="view" hidden>
   <div class="head"><h1>やること</h1></div>
   <div class="group">
-    <label class="label" for="todo-in">やることを足す</label>
-    <div class="todo-add"><input id="todo-in" class="date-input" type="text" placeholder="例：鶴目くんと面談の日を決める" enterkeyhint="done"><button class="btn" id="todo-add" type="button">足す</button></div>
+    <label class="label" for="todo-in">やることを追加</label>
+    <div class="todo-add"><input id="todo-in" class="date-input" type="text" placeholder="例：鶴目くんと面談の日を決める" enterkeyhint="done"><button class="btn" id="todo-add" type="button">追加</button></div>
     <div class="small">JOURNALに書いた「やる」こと、IDEAの次の一歩、本の1つの行動は、保存すると自動でここに入ります。いらないものは消してください。</div>
     <button class="btn ghost" id="todo-scan" type="button">最近2週間の記録から拾う</button>
     <div class="status" id="todo-scan-status" role="status"></div>
@@ -464,14 +489,27 @@ async function call(action, payload){
 }
 window.JOURNAL_CALL = call;
 const clone = (x) => x === undefined || x === null ? x : JSON.parse(JSON.stringify(x));
+// 一覧は前に読んだ分をすぐ返し、裏で新しくする。書き込んだらそのコレクションの分は捨てる
+const CK = "jc:", NOCACHE = {summaries: 1, settings: 1, push: 1};
+function cget(k){ try { return JSON.parse(localStorage.getItem(CK + k)); } catch(e){ return null; } }
+function cset(k, v){ try { const s = JSON.stringify(v); if (s.length < 1500000) localStorage.setItem(CK + k, s); } catch(e){} }
+function cclear(coll){ try { Object.keys(localStorage).forEach((k) => { if (k.indexOf(CK) === 0 && k.indexOf('"coll":"' + coll + '"') >= 0) localStorage.removeItem(k); }); } catch(e){} }
+async function cachedQuery(p){
+  if (NOCACHE[p.coll]) return call("db", p);
+  const k = JSON.stringify(p), hit = cget(k);
+  const fresh = call("db", p).then((r) => { cset(k, r); return r; });
+  if (hit){ fresh.catch(() => {}); return hit; }
+  return fresh;
+}
+window.JOURNAL_CCLEAR = cclear;
 const snap = (id, data) => ({id: id, exists: !!data, data: () => clone(data) || undefined});
 function q(coll, where, ob, dir, lim){
   return {
     where: (f, op, v) => q(coll, where.concat([[f, op, v]]), ob, dir, lim),
     orderBy: (f, d) => q(coll, where, f, d || "asc", lim),
     limit: (n) => q(coll, where, ob, dir, n),
-    get: async () => { const r = await call("db", {op: "query", coll: coll, where: where, orderBy: ob, dir: dir, limit: lim}); const docs = (r.docs || []).map((x) => snap(x.id, x.data)); return {docs: docs, empty: !docs.length, size: docs.length}; },
-    add: async (data) => { const r = await call("db", {op: "add", coll: coll, data: data}); return {id: r.id}; },
+    get: async () => { const r = await cachedQuery({op: "query", coll: coll, where: where, orderBy: ob, dir: dir, limit: lim}); const docs = (r.docs || []).map((x) => snap(x.id, x.data)); return {docs: docs, empty: !docs.length, size: docs.length}; },
+    add: async (data) => { cclear(coll); const r = await call("db", {op: "add", coll: coll, data: data}); return {id: r.id}; },
     doc: (id) => db.doc(coll + "/" + id)
   };
 }
@@ -481,9 +519,9 @@ const db = {
     const ref = {
       id: id,
       get: async () => { const r = await call("db", {op: "get", coll: coll, id: id}); return snap(id, r.data); },
-      set: (data) => call("db", {op: "set", coll: coll, id: id, data: clone(data)}),
-      update: (data) => call("db", {op: "update", coll: coll, id: id, data: clone(data)}),
-      delete: () => call("db", {op: "delete", coll: coll, id: id}),
+      set: (data) => { cclear(coll); return call("db", {op: "set", coll: coll, id: id, data: clone(data)}); },
+      update: (data) => { cclear(coll); return call("db", {op: "update", coll: coll, id: id, data: clone(data)}); },
+      delete: () => { cclear(coll); return call("db", {op: "delete", coll: coll, id: id}); },
       onSnapshot(cb, err){ let alive = true; ref.get().then((s) => { if (alive) cb(s); }, (e) => { if (err) err(e); }); return () => { alive = false; }; }
     };
     return ref;
@@ -817,11 +855,11 @@ $("save").addEventListener("click", async () => {
   const raw = entryEl.value.trim();
   if (!raw){ $("save-status").textContent = "書いてから押してください。"; return; }
   if (!db){ $("save-status").textContent = "この画面では保存できません。claude.aiで開いてください。"; return; }
-  const btn = $("save"); btn.disabled = true; $("save-status").textContent = "保存しています";
+  const btn = $("save"), label0 = btn.textContent; btn.disabled = true; btn.textContent = "保存しています"; $("save-status").textContent = "保存しています";
   if (writeMode === "idea" || writeMode === "book"){
     try { if (writeMode === "idea") await saveIdea(applyDict(raw)); else await saveBook(applyDict(raw)); }
     catch(e){ $("save-status").textContent = "保存できませんでした。もう一度押してください。"; }
-    btn.disabled = false; return;
+    btn.disabled = false; btn.textContent = label0; return;
   }
   try {
     const ref = db.doc("days/" + TODAY);
@@ -839,7 +877,7 @@ $("save").addEventListener("click", async () => {
     if (prefs.auto) runAI();
   } catch (e) {
     $("save-status").textContent = e && e.code === "quota_exceeded" ? "保存できる量の上限に達しました。古い記録の整理が必要です。" : "保存できませんでした。通信を確かめて、もう一度押してください。";
-  } finally { btn.disabled = false; }
+  } finally { btn.disabled = false; btn.textContent = label0; }
 });
 
 $("mood").addEventListener("click", async (ev) => {
@@ -894,6 +932,45 @@ async function runAI(){
   } finally { aiBusy = false; $("ai-redo").disabled = false; }
 }
 $("ai-redo").addEventListener("click", runAI);
+
+/* ---------- カレンダー ---------- */
+let calMonth = new Date(now.getFullYear(), now.getMonth(), 1), calDays = null, calPick = null;
+async function loadCalDays(force){
+  if (calDays && !force) return calDays;
+  try { const r = await window.JOURNAL_CALL("db", {op: "ids", coll: "days"}); calDays = new Set(r.ids || []); } catch(e){ calDays = calDays || new Set(); }
+  return calDays;
+}
+function paintCal(){
+  const y = calMonth.getFullYear(), m = calMonth.getMonth();
+  $("cal-label").textContent = y + "年" + (m + 1) + "月";
+  const first = new Date(y, m, 1).getDay(), last = new Date(y, m + 1, 0).getDate();
+  let h = WD.map((w) => '<div class="wd">' + w + '</div>').join("");
+  for (let i = 0; i < first; i++) h += "<div></div>";
+  for (let d = 1; d <= last; d++){
+    const ds = y + "-" + pad(m + 1) + "-" + pad(d), has = calDays && calDays.has(ds);
+    h += '<button type="button" data-cal="' + ds + '" class="' + (has ? "has " : "") + (ds === REAL_TODAY ? "today" : "") + '"' + (ds > REAL_TODAY ? " disabled" : "") + ' aria-label="' + (m + 1) + "月" + d + "日" + (has ? "、記録あり" : "") + '">' + d + "</button>";
+  }
+  $("cal-grid").innerHTML = h;
+}
+$("cal-wrap").addEventListener("toggle", async (ev) => { if (!ev.target.open) return; paintCal(); await loadCalDays(true); paintCal(); });
+$("cal-prev").addEventListener("click", () => { calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1); paintCal(); });
+$("cal-next").addEventListener("click", () => { calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1); paintCal(); });
+$("cal-grid").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-cal]"); if (!b || b.disabled) return;
+  calPick = b.dataset.cal;
+  const [y, m, d] = calPick.split("-").map(Number);
+  rvDate = new Date(y, m - 1, d); renderReview();
+  const has = calDays && calDays.has(calPick);
+  $("cal-note").textContent = m + "月" + d + "日" + (has ? "の記録を下に出しました（ほかの年の同じ日も並びます）。" : "は記録がありません。");
+  $("cal-write").hidden = false;
+  $("cal-write").textContent = m + "月" + d + "日の分を書く";
+  if (has) $("rv-years").scrollIntoView({behavior: "smooth", block: "start"});
+});
+$("cal-write").addEventListener("click", () => {
+  if (!calPick) return;
+  document.querySelector('nav.tabs button[data-view="today"]').click();
+  $("w-panel").hidden = false; $("w-date").value = calPick; setWriteDate(calPick);
+});
 
 /* ---------- 振り返り ---------- */
 let rvDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
