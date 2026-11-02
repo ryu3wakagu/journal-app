@@ -40,6 +40,37 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .link.tapped{background:var(--soft);border-radius:6px}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:30;background:var(--text);color:var(--card);border-radius:24px;padding:10px 18px;font-size:14px;display:flex;gap:14px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.18);max-width:calc(100% - 32px)}
 .toast button{border:0;background:transparent;color:var(--card);font-weight:700;text-decoration:underline;font-size:14px;padding:4px}
+/* 小さな丸いボタン（写真、直す、作り直す） */
+.eacts{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.mini{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--accentText);font-size:13px;font-weight:500;cursor:pointer;list-style:none}
+.mini::-webkit-details-marker{display:none}
+.mini[aria-pressed="true"],details[open]>summary.mini{background:var(--soft)}
+.photo-box{margin-top:8px}
+.photo-box img,.hand-imgs img{cursor:zoom-in}
+.zoom-hint{font-size:11px;color:var(--sub);margin-top:4px}
+/* 写真を大きく見る */
+.lb{position:fixed;inset:0;z-index:40;background:rgba(10,14,20,.96);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+.lb-bar{display:flex;justify-content:space-between;gap:8px;padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+.lb-bar button{min-height:40px;padding:0 16px;border:0;border-radius:999px;background:rgba(255,255,255,.14);color:#fff;font-size:14px;font-weight:600}
+.lb-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
+#lb-img{display:block;width:100%;max-width:none;height:auto;background:#fff}
+/* 設定の折りたたみ */
+.setfold>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;min-height:36px}
+.setfold>summary::-webkit-details-marker{display:none}
+.setfold>summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--sub);border-bottom:2px solid var(--sub);transform:rotate(45deg);margin:0 6px 4px}
+.setfold[open]>summary::after{transform:rotate(-135deg);margin-bottom:-4px}
+.setfold>summary .v{margin-left:auto;margin-right:8px;font-size:12px;color:var(--sub);font-weight:400;letter-spacing:0}
+/* TODO */
+.todo .meta{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:4px;align-items:center}
+.due{position:relative;display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--accentText);border:1px solid var(--line);border-radius:999px;padding:3px 10px;background:var(--card)}
+.due.over{color:var(--rec);border-color:var(--rec)}
+.due.today{color:var(--onAccent);background:var(--accent);border-color:var(--accent)}
+.due input{position:absolute;inset:0;opacity:0;width:100%;height:100%;font-size:16px}
+.donedate{font-size:12px;color:var(--sub)}
+.todo.checking .tx{text-decoration:line-through;color:var(--sub)}
+.todo.checking{background:var(--soft)}
+.todo-opts{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--sub)}
+.todo-opts .date-input{width:auto;height:40px}
 .todo{transition:opacity .2s ease,transform .2s ease}
 .todo.gone{opacity:0;transform:translateX(24px)}
 .cal-grid button:disabled{color:var(--line)}
@@ -200,6 +231,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
     <div class="status" id="login-status" role="status"></div>
   </div>
 </div>
+<div class="lb" id="lb" hidden role="dialog" aria-label="写真を大きく見る"><div class="lb-bar"><button type="button" id="lb-zoom">拡大</button><button type="button" id="lb-close">閉じる</button></div><div class="lb-scroll"><img id="lb-img" alt="手書きのページ"></div></div>
 <div class="wrap">
 
 <div id="banner" class="notice" hidden></div>
@@ -233,7 +265,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
     <div class="body" id="ly-body"><span class="empty">読み込んでいます</span></div>
     <div class="box" id="ly-insight" hidden><b>気づき</b><span></span></div>
     <details class="rawfold" id="ly-raw" hidden><summary id="ly-raw-label">原文を読む</summary><div class="entries-wrap"></div></details>
-    <details id="ly-hand" hidden><summary class="link">この日の手書きのページを見る</summary><div class="hand-imgs"></div></details>
+    <details id="ly-hand" hidden><summary class="mini"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 16l-5-5-8 8"/></svg>この日の手書きのページを見る</summary><div class="hand-imgs"></div></details>
   </article>
 
   <div class="group">
@@ -274,7 +306,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
     <div class="box" id="ai-challenge"><b>課題</b><span></span></div>
     <div class="box" id="ai-insight"><b>気づき</b><span></span></div>
     <div class="box" id="ai-hayato"><b>隼人のこと</b><span></span></div>
-    <button class="link" id="ai-redo" type="button">整理し直す</button>
+    <button class="mini" id="ai-redo" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>整理し直す</button>
     <div class="status" id="ai-status" role="status"></div>
   </article>
 
@@ -324,10 +356,11 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
       <button type="button" data-k="w" aria-pressed="true">週のまとめ</button>
       <button type="button" data-k="m" aria-pressed="false">月のまとめ</button>
     </div>
-    <p class="small" style="margin:0;padding:0 4px" id="sum-note">週は月曜から日曜まで、月は1日から末日まで。終わった週と月は、アプリを開いたときにAIが自動でまとめます。</p>
-    <button class="btn ghost" id="sum-now" type="button">今の週の途中までをまとめる</button>
+    <label class="label" for="sum-period" style="padding:0 4px">期間</label>
+    <select id="sum-period" class="date-input"></select>
     <div class="status" id="sum-status" role="status"></div>
     <div class="list" id="rv-sum"></div>
+    <p class="small" style="margin:0;padding:0 4px" id="sum-note">週は月曜から日曜まで、月は1日から末日まで。終わった週と月は、自動でまとめます。</p>
   </div>
   <div id="rv-books-pane" class="view" hidden>
     <p class="small" style="margin:0;padding:0 4px">BOOKに切り替えて書いたものが、本ごとに並びます。</p>
@@ -349,6 +382,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
   <div class="group">
     <label class="label" for="todo-in">TODOを追加</label>
     <div class="todo-add"><input id="todo-in" class="date-input" type="text" placeholder="例：鶴目くんと面談の日を決める" enterkeyhint="done"><button class="btn" id="todo-add" type="button">追加</button></div>
+    <div class="todo-opts"><label for="todo-due">期限</label><input type="date" id="todo-due" class="date-input" aria-label="期限（なくても大丈夫）"><span>なくても大丈夫です。期限の日の朝にお知らせします</span></div>
     <div class="small">JOURNALに書いた「やる」こと、IDEAの次の一歩、本の1つの行動は、保存すると自動でここに入ります。いらないものは消してください。</div>
     <button class="btn ghost" id="todo-scan" type="button">最近2週間の記録から拾う</button>
     <div class="status" id="todo-scan-status" role="status"></div>
@@ -389,8 +423,8 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
     </div>
   </div>
 
-  <div class="group">
-    <div class="label">iPhoneへのお知らせ</div>
+  <details class="group setfold">
+    <summary class="label">iPhoneへのお知らせ <span class="v" id="n-sum"></span></summary>
     <div class="prefs">
       <div class="pref">
         <div class="row-between"><span class="t">このiPhoneで受け取る</span><span class="v" id="n-state"></span></div>
@@ -403,20 +437,21 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
       <div class="pref"><div class="row-between"><span class="t">夜、書いていない日に</span><span class="ntime"><select id="n-night" aria-label="夜のお知らせの時刻"></select><span class="chips" id="n-night-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></span></div></div>
       <div class="pref"><div class="row-between"><span class="t">週のまとめ（月曜の朝）</span><span class="chips" id="n-week-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></div></div>
       <div class="pref"><div class="row-between"><span class="t">月のまとめ（1日の朝）</span><span class="chips" id="n-month-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></div></div>
+      <div class="pref"><div class="row-between"><span class="t">TODOの期限（朝）</span><span class="chips" id="n-todo-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></div></div>
     </div>
-  </div>
+  </details>
 
-  <div class="group">
-    <div class="label">LINEへのお知らせ</div>
+  <details class="group setfold">
+    <summary class="label">LINEへのお知らせ</summary>
     <div class="prefs">
       <div class="prow"><span>週のまとめ</span><span class="small">毎週月曜</span></div>
       <div class="prow"><span>月のまとめ</span><span class="small">毎月1日</span></div>
       <div class="pref"><div class="small">まとめができると、「JOURNAL」スプレッドシートの「まとめ」に1行入り、そこからLINEの「7年ジャーナル」に届きます。</div></div>
     </div>
-  </div>
+  </details>
 
-  <div class="group">
-    <div class="label">以前の記録</div>
+  <details class="group setfold">
+    <summary class="label">以前の記録</summary>
     <div class="prefs">
   <div class="pref" id="migrate" hidden>
     <div class="row-between"><span class="t">これまでの記録をまとめて取り込む</span></div>
@@ -432,10 +467,10 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
         <div class="status" id="p-import-status" role="status" style="text-align:left"></div>
       </div>
     </div>
-  </div>
+  </details>
 
-  <div class="group">
-    <div class="label">手書きの日記</div>
+  <details class="group setfold">
+    <summary class="label">手書きの日記</summary>
     <div class="prefs">
       <div class="pref">
         <div class="row-between"><span class="t">手書きを文字にする</span><span class="v" id="p-hand-v"></span></div>
@@ -452,10 +487,10 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
         <div class="status" id="p-hand-status" role="status" style="text-align:left"></div>
       </div>
     </div>
-  </div>
+  </details>
 
-  <div class="group">
-    <div class="label">記録</div>
+  <details class="group setfold">
+    <summary class="label">記録</summary>
     <div class="prefs">
       <div class="prow"><span>保存先</span><span class="small" id="p-store"></span></div>
       <div class="pref">
@@ -467,7 +502,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
       <div class="prow"><span>すべての記録を書き出す</span><button class="link" id="p-export" type="button" style="align-self:center">書き出す</button></div>
     </div>
     <div class="status" id="p-status" role="status"></div>
-  </div>
+  </details>
 </section>
 
 </div>
@@ -686,7 +721,7 @@ const ALLF = {}; FONTS.forEach((g) => Object.assign(ALLF, g.items));
 const SHAPES = {sharp:{label:"角ばる",r:4,pill:6}, mid:{label:"標準",r:14,pill:30}, round:{label:"まるい",r:24,pill:30}};
 const SIZES = {s:{label:"小さめ",fs:14}, m:{label:"標準",fs:15}, l:{label:"大きめ",fs:17}};
 const LEN_STEPS = ["auto","100","150","200","250","300","400"];
-const DEFAULTS = {nMorning:6, nNight:21, nMorningOn:true, nNightOn:true, nWeekOn:true, nMonthOn:true, bg:"sky", color:"kon", shade:3, font:"noto", shape:"mid", size:"m", len:"auto", lenV:2, auto:true, showHand:false};
+const DEFAULTS = {nTodoOn:true, nMorning:6, nNight:21, nMorningOn:true, nNightOn:true, nWeekOn:true, nMonthOn:true, bg:"sky", color:"kon", shade:3, font:"noto", shape:"mid", size:"m", len:"auto", lenV:2, auto:true, showHand:false};
 function fixPrefs(p){
   const o = Object.assign({}, DEFAULTS, p || {});
   if (o.lenV !== 2){ o.len = "auto"; o.lenV = 2; }
@@ -814,8 +849,9 @@ function entriesHtml(d){
     return '<div class="eblock" data-date="' + esc(d.date) + '" data-i="' + i + '">'
       + (label ? '<span class="small">' + esc(label) + '</span>' : '')
       + '<p class="body etext">' + esc(e.text) + '</p>'
-      + (url ? '<details class="hsrc"><summary class="link">元のページの写真</summary><img ' + imgSrc(url) + ' alt="元のページ"></details>' : '')
-      + '<button type="button" class="link" data-edit>直す</button></div>';
+      + '<div class="eacts">' + (url ? '<button type="button" class="mini" data-ph aria-pressed="false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 16l-5-5-8 8"/></svg>元のページの写真</button>' : '')
+      + '<button type="button" class="mini" data-edit><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>直す</button></div>'
+      + (url ? '<div class="photo-box" hidden><img ' + imgSrc(url) + ' alt="元のページ（押すと大きく見られます）"><div class="zoom-hint">写真を押すと大きく見られます</div></div>' : '') + '</div>';
   }).join("");
 }
 
@@ -1051,7 +1087,7 @@ function renderPrefs(){
   paintLen();
   const hours = (sel) => Array.from({length: 24}, (_, h) => '<option value="' + h + '"' + (h === sel ? ' selected' : '') + '>' + h + '時</option>').join("");
   $("n-morning").innerHTML = hours(Number(prefs.nMorning)); $("n-night").innerHTML = hours(Number(prefs.nNight));
-  ["Morning","Night","Week","Month"].forEach((k) => { const key = "n" + k + "On"; $("n-" + k.toLowerCase() + "-on").innerHTML = chip(prefs[key] !== false, "送る", 'data-p="' + key + '" data-v="1"') + chip(prefs[key] === false, "なし", 'data-p="' + key + '" data-v="0"'); });
+  ["Morning","Night","Week","Month","Todo"].forEach((k) => { const key = "n" + k + "On"; $("n-" + k.toLowerCase() + "-on").innerHTML = chip(prefs[key] !== false, "送る", 'data-p="' + key + '" data-v="1"') + chip(prefs[key] === false, "なし", 'data-p="' + key + '" data-v="0"'); });
   $("p-showhand").innerHTML = chip(prefs.showHand, "する", 'data-p="showHand" data-v="1"') + chip(!prefs.showHand, "しない", 'data-p="showHand" data-v="0"');
   renderDict();
   $("p-store").textContent = db ? "スプレッドシート「JOURNALアプリのデータ」と「控え」" : "未接続";
@@ -1381,7 +1417,7 @@ document.addEventListener("click", async (ev) => {
     tEl.hidden = true; b.hidden = true;
     const bar = document.createElement("div"); bar.className = "row-between"; bar.dataset.bar = "1";
     bar.innerHTML = '<button type="button" class="link" data-edit-cancel>やめる</button><button type="button" class="btn" data-edit-save style="min-height:44px">保存する</button>';
-    tEl.after(ta, bar); ta.focus(); return;
+    (blk.querySelector(".eacts") || tEl).after(ta, bar); ta.focus(); return;
   }
   const ta = blk.querySelector("textarea"), bar = blk.querySelector("[data-bar]");
   if (b.hasAttribute("data-edit-cancel")){ ta.remove(); bar.remove(); tEl.hidden = false; blk.querySelector("[data-edit]").hidden = false; return; }
@@ -1522,27 +1558,49 @@ $("sum-kind").addEventListener("click", (ev) => {
   const b = ev.target.closest("[data-k]"); if (!b || b.dataset.k === sumKind) return;
   sumKind = b.dataset.k;
   $("sum-kind").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-  $("sum-now").textContent = sumKind === "w" ? "今の週の途中までをまとめる" : "今月の途中までをまとめる";
-  renderSums();
+  sumPick[sumKind] = null; renderSums();
 });
 function sumHtml(x){
   const box = (t, v) => v ? '<div class="box"><b>' + t + '</b><span>' + esc(v) + '</span></div>' : '';
   return '<div class="item sum"><div class="row-between"><h3>' + esc(periodLabel(x.kind, x.start, x.end)) + (x.partial ? '（途中まで）' : '') + '</h3><span class="small">記録 ' + (x.count || 0) + '日' + (x.avgMood ? '　調子 ' + x.avgMood : '') + '</span></div>'
     + '<p class="body">' + esc(x.story || "") + '</p>'
     + box("よかったこと", x.good) + box("テーマ", x.themes) + box("IDEA", x.ideas) + box("読んだ本", x.books) + box("隼人", x.hayato) + box(x.kind === "w" ? "来週への問い" : "来月への問い", x.questions)
-    + '<div class="mini-actions"><button type="button" class="link" data-sum-redo="' + x.kind + '|' + x.start + '|' + x.end + '">作り直す</button></div></div>';
+    + '<div class="eacts"><button type="button" class="mini" data-sum-redo="' + x.kind + '|' + x.start + '|' + x.end + '"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 12a9 9 0 1 1-3-6.7L21 8\"/><path d=\"M21 3v5h-5\"/></svg>作り直す</button></div></div>';
+}
+// 選べる期間の一覧。今の週（月）は途中まで、その前は終わった週（月）
+const sumPick = {w: null, m: null};
+function sumPeriods(k){
+  const out = [], t = dObj(REAL_TODAY);
+  if (k === "w"){
+    const mon = mondayOf(REAL_TODAY);
+    out.push({k: k, start: mon, end: REAL_TODAY, partial: true, label: "今週（" + mdJ(mon) + "〜、途中まで）"});
+    for (let i = 1; i <= 52; i++){ const s = addD(mon, -7 * i), e = addD(s, 6); out.push({k: k, start: s, end: e, partial: false, label: periodLabel("w", s, e) + (i === 1 ? "（先週）" : "")}); }
+  } else {
+    out.push({k: k, start: ymd(new Date(t.getFullYear(), t.getMonth(), 1)), end: REAL_TODAY, partial: true, label: "今月（" + (t.getMonth() + 1) + "月、途中まで）"});
+    for (let i = 1; i <= 24; i++){ const s = new Date(t.getFullYear(), t.getMonth() - i, 1), e = new Date(t.getFullYear(), t.getMonth() - i + 1, 0); out.push({k: k, start: ymd(s), end: ymd(e), partial: false, label: periodLabel("m", ymd(s), ymd(e)) + (i === 1 ? "（先月）" : "")}); }
+  }
+  return out;
 }
 async function renderSums(){
-  const el = $("rv-sum"), k = sumKind;
-  if (sumCache[k]) el.innerHTML = sumCache[k].length ? sumCache[k].map(sumHtml).join("") : '<div class="item"><p class="empty">まだまとめはありません。</p></div>';
-  else el.innerHTML = '<div class="item"><p class="empty">読み込んでいます</p></div>';
+  const el = $("rv-sum"), k = sumKind, list = sumPeriods(k);
+  const have = {}; (sumCache[k] || []).forEach((x) => { have[x.start + (x.partial ? "-p" : "")] = x; });
+  // 何も選んでいなければ、終わった直近の週（月）
+  if (!sumPick[k]) sumPick[k] = list[1].start;
+  $("sum-period").innerHTML = list.map((p) => '<option value="' + p.start + '"' + (p.start === sumPick[k] ? " selected" : "") + '>' + esc(p.label) + (have[p.start + (p.partial ? "-p" : "")] ? "　✓" : "") + '</option>').join("");
+  const p = list.find((x) => x.start === sumPick[k]) || list[1];
+  const doc = have[p.start + (p.partial ? "-p" : "")];
+  if (doc) el.innerHTML = sumHtml(doc);
+  else el.innerHTML = '<div class="item"><p class="empty">' + (sumCache[k] ? "この期間はまだまとめていません。" : "読み込んでいます") + '</p>'
+    + (sumCache[k] ? '<div class="eacts"><button type="button" class="mini" data-sum-make="' + p.start + '|' + p.end + '|' + (p.partial ? 1 : 0) + '">' + (p.partial ? "途中までをまとめる" : "この期間をまとめる") + '</button></div>' : '') + '</div>';
   if (!db) return;
   try {
-    const s2 = await db.collection("summaries").where("kind", "==", k).orderBy("start", "desc").limit(60).get();
-    sumCache[k] = s2.docs.map((x) => x.data());
-    if (sumKind === k) el.innerHTML = sumCache[k].length ? sumCache[k].map(sumHtml).join("") : '<div class="item"><p class="empty">まだまとめはありません。週が終わると、ここにできます。</p></div>';
+    const s2 = await db.collection("summaries").where("kind", "==", k).orderBy("start", "desc").limit(120).get();
+    const fresh = s2.docs.map((x) => x.data());
+    if (JSON.stringify(fresh) !== JSON.stringify(sumCache[k])){ sumCache[k] = fresh; if (sumKind === k) renderSums(); }
+    else if (!sumCache[k]){ sumCache[k] = fresh; renderSums(); }
   } catch(e){}
 }
+$("sum-period").addEventListener("change", (ev) => { sumPick[sumKind] = ev.target.value; renderSums(); });
 function sumText(x){
   const L = [(x.kind === "w" ? "【週のまとめ】" : "【月のまとめ】") + periodLabel(x.kind, x.start, x.end) + (x.partial ? "（途中まで）" : ""), "記録 " + (x.count || 0) + "日" + (x.avgMood ? "　平均の調子 " + x.avgMood : ""), "", x.story || ""];
   [["よかったこと", x.good], ["テーマ", x.themes], ["IDEA", x.ideas], ["読んだ本", x.books], ["隼人", x.hayato], [x.kind === "w" ? "来週への問い" : "来月への問い", x.questions]]
@@ -1604,20 +1662,15 @@ async function ensureSummaries(){
   sumBusy = false;
   if (currentView === "review" && rvPane === "sum") renderSums();
 }
-$("sum-now").addEventListener("click", async () => {
-  const st = $("sum-status"), btn = $("sum-now");
-  if (!sample){ st.textContent = "この画面ではAIのまとめが使えません。"; return; }
-  btn.disabled = true; st.textContent = "AIがまとめています（1分ほどかかることがあります）";
-  try {
-    const t = dObj(REAL_TODAY);
-    const start = sumKind === "w" ? mondayOf(REAL_TODAY) : ymd(new Date(t.getFullYear(), t.getMonth(), 1));
-    const d = await makeSummary(sumKind, start, REAL_TODAY, true);
-    st.textContent = d ? "まとめました" : "この期間の記録がまだありません。";
-    renderSums();
-  } catch(e){ st.textContent = e && e.code === "rate_limited" ? "少し時間をおいてから押してください。" : "まとめられませんでした。もう一度押してください。"; }
-  finally { btn.disabled = false; }
-});
 $("rv-sum").addEventListener("click", async (ev) => {
+  const mk = ev.target.closest("[data-sum-make]");
+  if (mk){
+    const [start, end, part] = mk.dataset.sumMake.split("|"), st = $("sum-status");
+    mk.disabled = true; mk.textContent = "AIがまとめています（1分ほど）";
+    try { const d = await makeSummary(sumKind, start, end, part === "1"); st.textContent = d ? "" : "この期間の記録がありません。"; sumCache[sumKind] = null; renderSums(); }
+    catch(e){ mk.disabled = false; mk.textContent = "もう一度まとめる"; st.textContent = e && e.code === "no-key" ? "AIのキーが設定されていないため、まとめられません。" : "まとめられませんでした。"; }
+    return;
+  }
   const b = ev.target.closest("[data-sum-redo]"); if (!b) return;
   const [k, start, end] = b.dataset.sumRedo.split("|");
   b.disabled = true; b.textContent = "作り直しています";
@@ -1627,16 +1680,29 @@ $("rv-sum").addEventListener("click", async (ev) => {
 
 /* ---------- TODO ---------- */
 let todoCache = null;
+function dueLabel(due){
+  const diff = Math.round((dObj(due) - dObj(REAL_TODAY)) / 86400000);
+  return {text: "期限 " + mdJ(due) + (diff === 0 ? "（今日）" : diff === 1 ? "（明日）" : diff > 1 ? "（あと" + diff + "日）" : "（" + (-diff) + "日過ぎ）"), cls: diff === 0 ? "today" : diff < 0 ? "over" : ""};
+}
 function todoHtml(x){
-  return '<div class="todo' + (x.done ? ' done' : '') + '"><input type="checkbox" data-todo-check="' + esc(x.id) + '"' + (x.done ? ' checked' : '') + ' aria-label="終わった">'
-    + '<div><div class="tx">' + esc(x.text) + '</div>' + (x.from && x.from !== "手入力" ? '<div class="src">' + esc(x.from) + (x.date ? '（' + mdJ(x.date) + '）' : '') + 'から</div>' : '') + '</div>'
-    + '<button type="button" class="link" data-todo-del="' + esc(x.id) + '" aria-label="消す">消す</button></div>';
+  const meta = [];
+  if (x.done) meta.push('<span class="donedate">' + (x.doneAt ? mdJ(ymd(new Date(x.doneAt))) + "に完了" : "完了") + '</span>');
+  else {
+    const dl = x.due ? dueLabel(x.due) : null;
+    meta.push('<label class="due ' + (dl ? dl.cls : "") + '">' + (dl ? esc(dl.text) : "期限を決める") + '<input type="date" data-todo-due="' + esc(x.id) + '" value="' + esc(x.due || "") + '" aria-label="期限"></label>');
+  }
+  if (x.from && x.from !== "手入力") meta.push('<span class="src">' + esc(x.from) + (x.date ? '（' + mdJ(x.date) + '）' : '') + 'から</span>');
+  return '<div class="todo' + (x.done ? ' done' : '') + '" data-row="' + esc(x.id) + '"><input type="checkbox" data-todo-check="' + esc(x.id) + '"' + (x.done ? ' checked' : '') + ' aria-label="終わった">'
+    + '<div><div class="tx">' + esc(x.text) + '</div><div class="meta">' + meta.join("") + '</div></div>'
+    + '<button type="button" class="mini" data-todo-del="' + esc(x.id) + '" aria-label="消す">消す</button></div>';
 }
 function renderTodoPaint(){ if (todoCache) todoPaint(todoCache); }
 let todoPaint = () => {};
 async function renderTodo(){
   const paint = todoPaint = (rows) => {
-    const open = rows.filter((x) => !x.done), done = rows.filter((x) => x.done);
+    // 期限のあるものを上に（近い順）、終わったものは終わった日の新しい順
+    const open = rows.filter((x) => !x.done).sort((a, b) => (a.due || "9999") < (b.due || "9999") ? -1 : (a.due || "9999") > (b.due || "9999") ? 1 : (a.at < b.at ? 1 : -1));
+    const done = rows.filter((x) => x.done).sort((a, b) => (a.doneAt || "") < (b.doneAt || "") ? 1 : -1);
     $("todo-open").innerHTML = open.length ? open.map(todoHtml).join("") : '<div class="item"><p class="empty">TODOはありません。</p></div>';
     $("todo-done-wrap").hidden = done.length === 0;
     $("todo-done-label").textContent = "終わったこと（" + done.length + "）";
@@ -1646,12 +1712,12 @@ async function renderTodo(){
   if (!db) return;
   try { const s2 = await db.collection("todos").orderBy("at", "desc").limit(300).get(); todoCache = s2.docs.map((x) => Object.assign({id: x.id}, x.data())).filter((x) => !x.deleted); paint(todoCache); } catch(e){}
 }
-async function addTodo(text, from, fixedId, date){
+async function addTodo(text, from, fixedId, date, due){
   text = String(text || "").trim(); if (!text || !db) return false;
   const id = fixedId || ("t" + Date.now().toString(36));
   try {
     if (fixedId){ const s0 = await db.doc("todos/" + id).get(); if (s0.exists) return false; }  // 同じものは二度入れない。消したものも戻さない
-    await db.doc("todos/" + id).set({text: text, from: from || "手入力", date: date || REAL_TODAY, done: false, at: new Date().toISOString()});
+    await db.doc("todos/" + id).set(Object.assign({text: text, from: from || "手入力", date: date || REAL_TODAY, done: false, at: new Date().toISOString()}, due ? {due: due, remind: true} : {}));
   } catch(e){ return false; }
   todoCache = null; return true;
 }
@@ -1688,10 +1754,11 @@ $("todo-add").addEventListener("click", async () => {
   const el = $("todo-in"), text = el.value.trim(); if (!text) { el.focus(); return; }
   const btn = $("todo-add"); btn.disabled = true; btn.textContent = "追加しています";
   // 先に一覧へ出す
-  const tmp = {id: "tmp" + Date.now(), text: text, from: "手入力", done: false, at: new Date().toISOString()};
-  todoCache = [tmp].concat(todoCache || []); el.value = ""; renderTodoPaint();
+  const due = $("todo-due").value || "";
+  const tmp = {id: "tmp" + Date.now(), text: text, from: "手入力", done: false, due: due || undefined, at: new Date().toISOString()};
+  todoCache = [tmp].concat(todoCache || []); el.value = ""; $("todo-due").value = ""; renderTodoPaint();
   toast("TODOに追加しました");
-  try { await addTodo(text, "手入力"); } catch(e){ toast("追加できませんでした。もう一度押してください"); }
+  try { await addTodo(text, "手入力", null, null, due); } catch(e){ toast("追加できませんでした。もう一度押してください"); }
   btn.disabled = false; btn.textContent = "追加"; renderTodo();
 });
 $("todo-in").addEventListener("keydown", (ev) => { if (ev.key === "Enter" && !ev.isComposing){ ev.preventDefault(); $("todo-add").click(); } });
@@ -1708,12 +1775,25 @@ document.addEventListener("click", async (ev) => {
   }
 });
 document.addEventListener("change", async (ev) => {
+  const du = ev.target.closest("[data-todo-due]");
+  if (du){
+    const id = du.dataset.todoDue, v = du.value || null;
+    const saving = db.doc("todos/" + id).update({due: v, remind: !!v}).catch(() => {});
+    (todoCache || []).forEach((x) => { if (x.id === id) x.due = v || undefined; });
+    renderTodoPaint(); toast(v ? "期限を" + mdJ(v) + "にしました" : "期限をなくしました");
+    await saving; return;
+  }
   const c = ev.target.closest("[data-todo-check]"); if (!c) return;
-  const id = c.dataset.todoCheck, done = c.checked;
+  const id = c.dataset.todoCheck, done = c.checked, at = new Date().toISOString();
+  // 先に保存を始める（古い一覧で上書きされないように）
+  const saving = db.doc("todos/" + id).update({done: done, doneAt: done ? at : null}).catch(() => {});
+  const row = c.closest(".todo");
+  if (row) row.classList.add("checking");
   toast(done ? "終わったことにしました" : "TODOに戻しました");
-  (todoCache || []).forEach((x) => { if (x.id === id) x.done = done; });
-  renderTodo();
-  try { await db.doc("todos/" + id).update({done: done, doneAt: done ? new Date().toISOString() : null}); } catch(e){}
+  (todoCache || []).forEach((x) => { if (x.id === id){ x.done = done; x.doneAt = done ? at : null; } });
+  // チェックが見えてから、少しして移す
+  setTimeout(() => { if (row) row.classList.add("gone"); setTimeout(renderTodoPaint, 200); }, 650);
+  await saving;
 });
 
 async function renderHayato(){
@@ -1835,6 +1915,24 @@ $("p-font").closest("details").addEventListener("toggle", (ev) => {
   if (ev.target.open && !fontsLoaded){ fontsLoaded = true; Object.keys(ALLF).forEach(ensureFont); }
 });
 
+/* ---------- 写真：ボタンで開く、押すと大きく ---------- */
+document.addEventListener("click", (ev) => {
+  const ph = ev.target.closest("[data-ph]");
+  if (ph){ const box = ph.closest(".eblock").querySelector(".photo-box"); if (box){ box.hidden = !box.hidden; ph.setAttribute("aria-pressed", String(!box.hidden)); } return; }
+  const img = ev.target.closest(".photo-box img, .hand-imgs img");
+  if (img && img.src) openLb(img.src);
+});
+let lbScale = 1, lbBase = 1;
+function lbApply(){ $("lb-img").style.width = Math.round(lbScale * 100) + "%"; $("lb-zoom").textContent = lbScale > 1.05 ? "元の大きさ" : "拡大"; }
+function openLb(src){ $("lb-img").src = src; lbScale = 1; lbApply(); $("lb").hidden = false; }
+$("lb-close").addEventListener("click", () => { $("lb").hidden = true; $("lb-img").removeAttribute("src"); });
+$("lb-zoom").addEventListener("click", () => { lbScale = lbScale > 1.05 ? 1 : 2.2; lbApply(); });
+$("lb-img").addEventListener("dblclick", () => { lbScale = lbScale > 1.05 ? 1 : 2.2; lbApply(); });
+// iPhoneの2本指の拡大は、写真の中だけ効かせる。画面全体は拡大しない
+document.addEventListener("gesturestart", (ev) => { ev.preventDefault(); if (!$("lb").hidden) lbBase = lbScale; }, {passive: false});
+document.addEventListener("gesturechange", (ev) => { ev.preventDefault(); if ($("lb").hidden) return; lbScale = Math.min(4, Math.max(1, lbBase * ev.scale)); lbApply(); }, {passive: false});
+document.addEventListener("gestureend", (ev) => { ev.preventDefault(); }, {passive: false});
+
 /* ---------- 押した手応え ---------- */
 document.addEventListener("touchstart", () => {}, {passive: true});
 document.addEventListener("pointerdown", (ev) => { const b = ev.target.closest("button,.chip,label.btn"); if (!b) return; b.classList.add("tapped"); setTimeout(() => b.classList.remove("tapped"), 260); });
@@ -1853,6 +1951,7 @@ async function renderPush(){
   if (!P2.supported()){ st.textContent = "使えません"; $("n-note").textContent = P2.standalone() ? "このiPhoneではお知らせが使えません。iOSを16.4以降にしてください。" : "Safariで開き、共有ボタンから「ホーム画面に追加」をして、ホーム画面のアイコンから開いてください。"; $("n-on").hidden = true; return; }
   const s2 = await P2.state();
   st.textContent = s2 === "on" ? "受け取る" : s2 === "denied" ? "許可されていません" : "まだ";
+  if ($("n-sum")) $("n-sum").textContent = s2 === "on" ? "受け取り中" : "未設定";
   $("n-on").textContent = s2 === "on" ? "受け取り直す" : "お知らせを受け取る";
   $("n-test").hidden = s2 !== "on";
   $("n-note").textContent = s2 === "denied" ? "iPhoneの設定 → 通知 → JOURNAL で許可してください。" : "朝と夜の時刻、週と月のまとめは下で選べます。";
@@ -1901,6 +2000,7 @@ renderToday();
   }, 1500);
   // 終わった週と月のまとめを、まだなければ作る（少し待ってから）
   setTimeout(() => { ensureSummaries(); }, 4000);
+  if (location.hash === "#todo") document.querySelector('nav.tabs button[data-view="todo"]').click();
   if (location.hash === "#sum"){ document.querySelector('nav.tabs button[data-view="review"]').click(); document.querySelector('[data-rv="sum"]').click(); }
 })();
 function showBanner(){
