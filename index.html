@@ -154,6 +154,23 @@ h2{margin:0;font-size:15px;font-weight:700}
 .vis-edit{display:flex;flex-direction:column;gap:10px}
 .vis-edit label{font-size:12px;color:var(--sub);display:flex;flex-direction:column;gap:4px}
 .vis-edit textarea{min-height:64px;font-size:16px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg);color:var(--text);font-family:inherit;line-height:1.6}
+/* 朝の画面 */
+.morn{position:fixed;inset:0;z-index:44;background:var(--bg);display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 12px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 16px) max(16px,env(safe-area-inset-left,0px))}
+.morn-top{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:760px;width:100%;margin:0 auto}
+.morn-dots{display:flex;gap:6px}
+.morn-dots i{width:22px;height:4px;border-radius:2px;background:var(--line)}
+.morn-dots i.on{background:var(--accent)}
+.morn-body{flex:1;overflow:auto;display:flex;flex-direction:column;gap:14px;padding:16px 0;max-width:760px;width:100%;margin:0 auto}
+.morn-body h2{margin:0;font-size:20px}
+.morn-body .lead{margin:0;font-size:13px;color:var(--sub);line-height:1.6}
+.morn-big{font-size:22px;line-height:1.75;font-weight:700;text-align:center;white-space:pre-wrap;text-wrap:balance;padding:18px 8px;background:var(--card);border-radius:var(--r)}
+.morn-foot{display:flex;gap:10px;max-width:760px;width:100%;margin:0 auto}
+.morn-foot .btn{flex:1}
+.morn .muted{color:var(--sub)}
+.morn-chips{display:flex;flex-wrap:wrap;gap:6px}
+.morn-chips button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--text)}
+.morn-chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+.vis-open-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 /* iPadやパソコンでは少し広く */
 @media (min-width:820px){
   .wrap{max-width:760px}
@@ -320,6 +337,11 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
     <div class="status" id="login-status" role="status"></div>
   </div>
 </div>
+<div class="morn" id="morn" hidden role="dialog" aria-label="わたしの軸">
+  <div class="morn-top"><div class="morn-dots" id="morn-dots"></div><button type="button" class="mini" id="morn-close">閉じる</button></div>
+  <div class="morn-body" id="vis-body"></div>
+  <div class="morn-foot" id="morn-foot"><button type="button" class="mini" id="morn-back">戻る</button><button type="button" class="btn" id="morn-next">次へ</button></div>
+</div>
 <div class="recv" id="recv" hidden role="dialog" aria-label="音声入力">
   <div class="recv-top"><i class="recv-dot"></i><b id="recv-state">聞いています</b><span id="recv-time">0:00</span><span id="recv-count">0字</span></div>
   <div class="recv-text" id="recv-text"></div>
@@ -341,10 +363,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
       <button class="link" id="w-change" type="button" style="align-self:center">別の日の分を書く</button>
     </div>
   </div>
-  <details class="vis" id="vis" open>
-    <summary><b>わたしの軸</b><span class="small" id="vis-sub">アファメーション、フューチャーマップ、ドリームクローバー</span></summary>
-    <div class="vis-body" id="vis-body"><p class="empty">読み込んでいます</p></div>
-  </details>
+  <div class="vis-open-row"><button type="button" class="mini" id="vis-open"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>わたしの軸</button><span class="small" id="vis-streak"></span></div>
   <div class="notice" id="w-panel" hidden>
     <div class="group">
       <label class="label" for="w-date" style="padding:0">書く日を選ぶ</label>
@@ -1285,79 +1304,140 @@ $("cal-write").addEventListener("click", () => {
   $("w-panel").hidden = false; $("w-date").value = calPick; setWriteDate(calPick);
 });
 
-/* ---------- わたしの軸（アファメーション、フューチャーマップ、ドリームクローバー） ---------- */
+/* ---------- わたしの軸（毎朝1回：ドリームクローバー → フューチャーマップ → 今日の一歩） ---------- */
 const FM_CELLS = [["live", "④ 居住環境"], ["learn", "⑧ 学び"], ["play", "① 趣味／余暇／遊び"], ["family", "⑤ 家族／パートナー"], ["theme", "テーマ／感情"], ["health", "② 健康"], ["people", "⑥ 人間性／人間関係"], ["work", "⑦ 仕事／社会貢献"], ["money", "③ お金／物欲"]];
+const FM_AREAS = FM_CELLS.filter((c) => c[0] !== "theme");
 const CLOVER = [["be", "Be 人格、能力"], ["do", "Do/Enjoy やりたいこと"], ["have", "Have/Get 得たいもの"], ["contribute", "Contribute 貢献"]];
 const CLOVER_ROOT = [["resource", "Resource 持っている能力、資源"], ["experience", "Experience 経験"]];
-let vision = ls.get("journal.vision") || null, visTab = ls.get("journal.visTab") || "fm", visFm = "y1", visCell = null, visEditing = false;
+const MORN_HOUR = 5;
+let vision = ls.get("journal.vision") || null, visFm = "y1", visCell = null, visEditing = null, mornStep = 0, mornArea = null, mornAction = "";
 function visEsc(t){ return esc(t || ""); }
-function paintVision(){
-  const el = $("vis-body");
-  if (!vision){ el.innerHTML = '<p class="empty">読み込んでいます</p>'; return; }
-  if (visEditing){ paintVisionEdit(); return; }
-  const v = vision;
-  let h = '';
+// 朝5時で日が変わる
+function mornDay(){ const d = new Date(Date.now() - MORN_HOUR * 3600000); return ymd(d); }
+function dayIndex(){ return Math.floor(new Date(mornDay() + "T00:00:00").getTime() / 86400000); }
+function todaysArea(){ return FM_AREAS[((dayIndex() % FM_AREAS.length) + FM_AREAS.length) % FM_AREAS.length][0]; }
+function cloverHtml(v){
+  const c = v.clover || {}, fm1 = ((v.fm || {}).y1 || {}).cells || {};
+  const any = CLOVER.concat(CLOVER_ROOT).some(([k]) => c[k]) || c.mission;
+  let h = '<h2>ドリームクローバー</h2><p class="lead">真ん中の使命を、声に出して読んでみましょう。</p>';
   if (v.mission) h += '<div class="vis-mission">' + visEsc(v.mission) + '</div>';
-  h += v.affirm ? '<div class="vis-affirm">' + visEsc(v.affirm) + '</div>' : '<div class="vis-affirm empty">アファメーションはまだありません。下の「書き直す」から書けます。</div>';
-  h += '<div class="vis-tabs" role="group" aria-label="見るもの">' + [["fm", "フューチャーマップ"], ["clover", "ドリームクローバー"], ["none", "たたむ"]].map(([k, l]) => '<button type="button" data-vtab="' + k + '" aria-pressed="' + (visTab === k) + '">' + l + '</button>').join("") + '</div>';
-  if (visTab === "fm"){
-    const m = (v.fm || {})[visFm] || {}, cells = m.cells || {};
-    h += '<div class="fm-head"><b>' + visEsc(m.title || "") + '</b><span>' + [["y1", "1年後"], ["y5", "5年後"]].map(([k, l]) => '<button type="button" class="link" data-vfm="' + k + '" style="' + (k === visFm ? "font-weight:700;text-decoration:underline" : "") + '">' + l + '</button>').join("　") + '</span></div>';
-    h += '<div class="fm-grid">' + FM_CELLS.map(([k, l]) => {
-      const t = cells[k] || "";
-      if (k === "theme") return '<button type="button" class="center" data-vcell="theme" aria-pressed="' + (visCell === k) + '">' + visEsc(t || l) + '</button>';
-      return '<button type="button" class="' + (t ? "" : "empty") + '" data-vcell="' + k + '" aria-pressed="' + (visCell === k) + '"><span>' + visEsc(l) + '</span><span class="fm-full">' + visEsc(t) + '</span></button>';
-    }).join("") + '</div>';
-    if (visCell && visCell !== "theme"){ const lab = (FM_CELLS.find((c) => c[0] === visCell) || [])[1]; h += '<div class="fm-detail"><b>' + visEsc(lab) + '</b>' + (visEsc(cells[visCell]) || '<span class="muted">まだ書いていません</span>') + '</div>'; }
-    else if (!visCell) h += '<p class="small" style="margin:0;text-align:center">マスを押すと中身が見られます</p>';
-  } else if (visTab === "clover"){
-    const c = v.clover || {};
-    const any = Object.keys(c).some((k) => c[k]);
-    if (!any) h += '<p class="small" style="margin:0">ドリームクローバーはまだ書いていません。下の「書き直す」から、Be、Do、Have、Contribute、使命、感情、資源、経験を書けます。</p>';
-    h += '<div class="clover-core"><b>Affirmation 使命</b>' + (visEsc(c.mission) || '<span style="opacity:.6">まだ</span>') + (c.feeling ? '<div style="margin-top:6px;font-size:12px;opacity:.85">得たい感情：' + visEsc(c.feeling) + '</div>' : '') + '</div>';
+  const core = c.mission || v.affirm || fm1.theme || "";
+  h += '<div class="morn-big">' + (visEsc(core) || '<span class="muted" style="font-size:14px;font-weight:400">使命はまだありません</span>') + (c.feeling ? '<div style="font-size:13px;font-weight:400;color:var(--sub);margin-top:8px">得たい感情：' + visEsc(c.feeling) + '</div>' : '') + '</div>';
+  if (!any) h += '<p class="lead">ドリームクローバーはまだ空です。今はフューチャーマップ（1年後）の真ん中の言葉を出しています。「書く」から埋められます。</p>';
+  else {
     h += '<div class="clover">' + CLOVER.map(([k, l]) => '<div class="leaf"><b>' + l + '</b>' + (visEsc(c[k]) || '<span class="muted">まだ</span>') + '</div>').join("") + '</div>';
     h += '<div class="clover-root">' + CLOVER_ROOT.map(([k, l]) => '<div><b>' + l + '</b>' + (visEsc(c[k]) || '<span class="muted">まだ</span>') + '</div>').join("") + '</div>';
   }
-  h += '<div class="eacts"><button type="button" class="mini" data-vedit>書き直す</button></div>';
-  el.innerHTML = h;
+  h += '<div class="eacts"><button type="button" class="mini" data-vedit="clover">' + (any ? "書き直す" : "書く") + '</button></div>';
+  return h;
 }
-function paintVisionEdit(){
+function fmHtml(v){
+  const m = (v.fm || {})[visFm] || {}, cells = m.cells || {};
+  let h = '<h2>フューチャーマップ</h2><p class="lead">今日の1マスを開いています。ほかのマスも押すと読めます。</p>';
+  h += '<div class="fm-head"><b>' + visEsc(m.title || "") + '</b><span>' + [["y1", "1年後"], ["y5", "5年後"]].map(([k, l]) => '<button type="button" class="link" data-vfm="' + k + '" style="' + (k === visFm ? "font-weight:700;text-decoration:underline" : "") + '">' + l + '</button>').join("　") + '</span></div>';
+  h += '<div class="fm-grid">' + FM_CELLS.map(([k, l]) => {
+    const t = cells[k] || "";
+    if (k === "theme") return '<button type="button" class="center" data-vcell="theme">' + visEsc(t || l) + '</button>';
+    return '<button type="button" class="' + (t ? "" : "empty") + '" data-vcell="' + k + '" aria-pressed="' + (visCell === k) + '"><span>' + visEsc(l) + (k === todaysArea() ? "（今日）" : "") + '</span><span class="fm-full">' + visEsc(t) + '</span></button>';
+  }).join("") + '</div>';
+  if (visCell && visCell !== "theme"){ const lab = (FM_CELLS.find((c) => c[0] === visCell) || [])[1]; h += '<div class="fm-detail"><b>' + visEsc(lab) + '</b>' + (visEsc(cells[visCell]) || '<span class="muted">まだ書いていません</span>') + '</div>'; }
+  h += '<div class="eacts"><button type="button" class="mini" data-vedit="fm">書き直す</button></div>';
+  return h;
+}
+function actionHtml(v){
+  const cells = (((v.fm || {}).y1 || {}).cells) || {};
+  let h = '<h2>今日の一歩</h2><p class="lead">フューチャーマップに近づくために、今日やることを1つ決めましょう。TODOにも入ります。書かずに終えても大丈夫です。</p>';
+  h += '<div class="morn-chips">' + FM_AREAS.map(([k, l]) => '<button type="button" data-marea="' + k + '" aria-pressed="' + (mornArea === k) + '">' + visEsc(l.replace(/^[①-⑨]\s*/, "")) + '</button>').join("") + '</div>';
+  if (mornArea && cells[mornArea]) h += '<div class="fm-detail" style="font-size:13px">' + visEsc(cells[mornArea]) + '</div>';
+  h += '<textarea id="morn-action" class="date-input" rows="2" style="height:auto;min-height:64px" placeholder="例：理想の家の条件を3つ書き出す">' + visEsc(mornAction) + '</textarea>';
+  return h;
+}
+function editHtml(kind){
   const v = vision, c = v.clover || {}, m = (v.fm || {})[visFm] || {}, cells = m.cells || {};
   const ta = (id, label, val, rows) => '<label>' + label + '<textarea id="' + id + '" rows="' + (rows || 3) + '">' + visEsc(val) + '</textarea></label>';
   let h = '<div class="vis-edit">';
-  h += ta("ve-mission", "使命（一番上に小さく出ます）", v.mission, 1);
-  h += ta("ve-affirm", "アファメーション（毎朝、声に出して読む言葉）", v.affirm, 3);
-  if (visTab === "clover"){
-    h += '<b style="font-size:13px">ドリームクローバー</b>';
-    h += ta("ve-c-mission", "Affirmation 使命", c.mission, 2) + ta("ve-c-feeling", "Feeling 得たい感情", c.feeling, 2);
+  if (kind === "clover"){
+    h += '<h2>ドリームクローバーを書く</h2>';
+    h += ta("ve-mission", "一番上に小さく出す言葉（使命など）", v.mission, 1);
+    h += ta("ve-c-mission", "Affirmation 使命（真ん中に大きく出ます）", c.mission || v.affirm, 3) + ta("ve-c-feeling", "Feeling 得たい感情", c.feeling, 2);
     CLOVER.concat(CLOVER_ROOT).forEach(([k, l]) => { h += ta("ve-c-" + k, l, c[k], 3); });
   } else {
-    h += '<b style="font-size:13px">フューチャーマップ（' + (visFm === "y1" ? "1年後" : "5年後") + '）</b>';
+    h += '<h2>フューチャーマップ（' + (visFm === "y1" ? "1年後" : "5年後") + '）を書き直す</h2>';
     h += ta("ve-fm-title", "見出し", m.title, 1);
     FM_CELLS.forEach(([k, l]) => { h += ta("ve-fm-" + k, l, cells[k], k === "theme" ? 3 : 4); });
   }
-  h += '<div class="eacts"><button type="button" class="btn" data-vsave style="flex:1">保存する</button><button type="button" class="mini" data-vcancel>やめる</button></div></div>';
-  $("vis-body").innerHTML = h;
+  h += '<div class="eacts"><button type="button" class="btn" data-vsave="' + kind + '" style="flex:1">保存する</button><button type="button" class="mini" data-vcancel>やめる</button></div></div>';
+  return h;
 }
+function paintMorn(){
+  const el = $("vis-body");
+  if (!vision){ el.innerHTML = '<p class="empty">読み込んでいます</p>'; return; }
+  $("morn-dots").innerHTML = [0, 1, 2].map((i) => '<i class="' + (i <= mornStep ? "on" : "") + '"></i>').join("");
+  $("morn-foot").hidden = !!visEditing;
+  if (visEditing){ el.innerHTML = editHtml(visEditing); el.scrollTop = 0; return; }
+  el.innerHTML = mornStep === 0 ? cloverHtml(vision) : mornStep === 1 ? fmHtml(vision) : actionHtml(vision);
+  $("morn-back").style.visibility = mornStep === 0 ? "hidden" : "visible";
+  $("morn-next").textContent = mornStep === 2 ? "今日はこれでよし" : "次へ";
+}
+function mornOpen(auto){
+  mornStep = 0; visCell = todaysArea(); mornArea = todaysArea(); visEditing = null; mornAction = "";
+  $("morn").hidden = false; paintMorn();
+  ls.set("journal.mornShown", mornDay());
+}
+function mornClose(){ $("morn").hidden = true; visEditing = null; }
 async function loadVision(){
-  paintVision();
   if (!db) return;
   try { const s2 = await db.doc("vision/main").get(); if (s2.exists){ vision = s2.data(); ls.set("journal.vision", vision); } else if (!vision) vision = {mission: "", affirm: "", fm: {}, clover: {}}; } catch(e){ if (!vision) vision = {mission: "", affirm: "", fm: {}, clover: {}}; }
-  if (!visEditing) paintVision();
+  if (!$("morn").hidden && !visEditing) paintMorn();
+  paintStreak();
 }
-$("vis").addEventListener("toggle", () => { ls.set("journal.visOpen", $("vis").open); });
-if (ls.get("journal.visOpen") === false) $("vis").open = false;
+// 続いた日数（読んだ日の記録から数える）
+let visLog = null;
+async function paintStreak(){
+  try { const r = await window.JOURNAL_CALL("db", {op: "ids", coll: "vision_log"}); visLog = new Set(r.ids || []); } catch(e){ return; }
+  let n = 0, d = new Date(mornDay() + "T00:00:00");
+  if (!visLog.has(ymd(d))) d.setDate(d.getDate() - 1);
+  while (visLog.has(ymd(d))){ n++; d.setDate(d.getDate() - 1); }
+  $("vis-streak").textContent = visLog.has(mornDay()) ? "今日は読みました" + (n > 1 ? "（" + n + "日続いています）" : "") : n ? n + "日続いています" : "";
+}
+// その日初めて開いたとき（置いたままのアプリに戻ったときも）に出す
+async function mornCheck(){
+  if (!db || document.hidden || !$("morn").hidden || !$("recv").hidden || !document.getElementById("login").hidden) return;
+  const day = mornDay();
+  if (ls.get("journal.mornShown") === day) return;
+  ls.set("journal.mornShown", day);
+  try { const s2 = await db.doc("vision_log/" + day).get(); if (s2.exists) return; } catch(e){}
+  if (!vision) await loadVision();
+  mornOpen(true);
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(mornCheck, 400); });
+setInterval(() => { if (!document.hidden) mornCheck(); }, 60000);
+$("vis-open").addEventListener("click", () => { if (!vision) vision = {mission: "", affirm: "", fm: {}, clover: {}}; mornOpen(false); loadVision(); });
+$("morn-close").addEventListener("click", mornClose);
+$("morn-back").addEventListener("click", () => { mornSaveText(); if (mornStep > 0){ mornStep--; paintMorn(); } });
+function mornSaveText(){ const t = $("morn-action"); if (t) mornAction = t.value; }
+$("morn-next").addEventListener("click", async () => {
+  mornSaveText();
+  if (mornStep < 2){ mornStep++; paintMorn(); $("vis-body").scrollTop = 0; return; }
+  const day = mornDay(), text = mornAction.trim(), area = mornArea;
+  mornClose();
+  try { await db.doc("vision_log/" + day).set({date: day, at: new Date().toISOString(), action: text, area: area || ""}); } catch(e){}
+  if (text){ const lab = ((FM_AREAS.find((c) => c[0] === area) || [])[1] || "").replace(/^[①-⑨]\s*/, ""); await addTodo(text, "わたしの軸" + (lab ? "（" + lab + "）" : ""), null, REAL_TODAY, REAL_TODAY); toast("今日の一歩をTODOに入れました"); }
+  else toast("今日もいってらっしゃい");
+  paintStreak();
+});
 $("vis-body").addEventListener("click", async (ev) => {
-  const t = ev.target.closest("[data-vtab]"); if (t){ visTab = t.dataset.vtab; ls.set("journal.visTab", visTab); visCell = null; paintVision(); return; }
-  const f = ev.target.closest("[data-vfm]"); if (f){ visFm = f.dataset.vfm; visCell = null; paintVision(); return; }
-  const c = ev.target.closest("[data-vcell]"); if (c){ visCell = visCell === c.dataset.vcell ? null : c.dataset.vcell; paintVision(); return; }
-  if (ev.target.closest("[data-vedit]")){ if (visTab === "none") visTab = "fm"; visEditing = true; paintVision(); return; }
-  if (ev.target.closest("[data-vcancel]")){ visEditing = false; paintVision(); return; }
-  if (ev.target.closest("[data-vsave]")){
+  const f = ev.target.closest("[data-vfm]"); if (f){ visFm = f.dataset.vfm; paintMorn(); return; }
+  const c = ev.target.closest("[data-vcell]"); if (c){ if (c.dataset.vcell !== "theme") visCell = visCell === c.dataset.vcell ? null : c.dataset.vcell; paintMorn(); return; }
+  const a = ev.target.closest("[data-marea]"); if (a){ mornSaveText(); mornArea = mornArea === a.dataset.marea ? null : a.dataset.marea; paintMorn(); return; }
+  const e = ev.target.closest("[data-vedit]"); if (e){ visEditing = e.dataset.vedit; paintMorn(); return; }
+  if (ev.target.closest("[data-vcancel]")){ visEditing = null; paintMorn(); return; }
+  const sv = ev.target.closest("[data-vsave]");
+  if (sv){
     const g = (id) => { const e2 = $(id); return e2 ? e2.value.trim() : undefined; };
     const v = JSON.parse(JSON.stringify(vision || {}));
-    v.mission = g("ve-mission"); v.affirm = g("ve-affirm");
-    if (visTab === "clover"){
+    if (sv.dataset.vsave === "clover"){
+      v.mission = g("ve-mission");
       v.clover = v.clover || {};
       v.clover.mission = g("ve-c-mission"); v.clover.feeling = g("ve-c-feeling");
       CLOVER.concat(CLOVER_ROOT).forEach(([k]) => { v.clover[k] = g("ve-c-" + k); });
@@ -1366,7 +1446,7 @@ $("vis-body").addEventListener("click", async (ev) => {
       m.title = g("ve-fm-title"); FM_CELLS.forEach(([k]) => { m.cells[k] = g("ve-fm-" + k); });
     }
     v.updatedAt = new Date().toISOString();
-    vision = v; ls.set("journal.vision", v); visEditing = false; paintVision();
+    vision = v; ls.set("journal.vision", v); visEditing = null; paintMorn();
     try { await db.doc("vision/main").set(v); toast("保存しました"); } catch(e){ toast("保存できませんでした。もう一度押してください"); }
   }
 });
@@ -2377,7 +2457,7 @@ renderToday();
     if (s.exists){ const v = s.data(); if (v.prefs) prefs = fixPrefs(v.prefs); if (Array.isArray(v.dict)) dict = v.dict; ls.set("journal.prefs", prefs); ls.set("journal.dict", dict); applyTheme(); }
   } catch(e){}
   watchDay();
-  loadVision().catch(() => {});
+  loadVision().then(mornCheck).catch(() => {});
   loadLastYear().catch(() => { $("ly-body").innerHTML = '<span class="empty">読み込めませんでした。</span>'; });
   loadOlder().catch(() => {});
   // 写真の一覧が届いたら、写真へのリンク付きで描き直す
