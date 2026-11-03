@@ -49,6 +49,20 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .photo-box img,.hand-imgs img{cursor:zoom-in}
 .zoom-hint{font-size:11px;color:var(--sub);margin-top:4px}
 /* 写真を大きく見る */
+.recv{position:fixed;inset:0;z-index:45;background:var(--bg);display:flex;flex-direction:column;gap:12px;padding:calc(env(safe-area-inset-top,0px) + 16px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 20px) max(16px,env(safe-area-inset-left,0px));-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.recv-top{display:flex;align-items:center;gap:10px;font-size:15px}
+.recv-top b{flex:1;color:var(--text)}
+.recv-top span{font-size:13px;color:var(--sub);font-variant-numeric:tabular-nums}
+.recv-dot{width:12px;height:12px;border-radius:50%;background:var(--rec);animation:blink 1.2s infinite;flex:none}
+.recv.paused .recv-dot{animation:none;background:var(--sub)}
+.recv-text{flex:1;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;font-size:16px;line-height:1.8;white-space:pre-wrap;color:var(--text)}
+.recv-text .interim{color:var(--sub)}
+.recv-note{font-size:12px;color:var(--sub);line-height:1.6;text-align:center}
+.recv-stop{position:relative;overflow:hidden;min-height:64px;border:0;border-radius:999px;background:var(--rec);color:#fff;font-size:17px;font-weight:700;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none}
+.recv-stop .fill{position:absolute;inset:0;background:rgba(0,0,0,.28);transform:scaleX(0);transform-origin:left;pointer-events:none}
+.recv-stop.holding .fill{transform:scaleX(1);transition:transform .9s linear}
+.recv-stop span{position:relative}
+.recv-resume{min-height:64px;border:0;border-radius:999px;background:var(--accent);color:var(--onAccent);font-size:17px;font-weight:700}
 .lb{position:fixed;inset:0;z-index:40;background:rgba(10,14,20,.96);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
 .lb-bar{display:flex;justify-content:space-between;gap:8px;padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
 .lb-bar button{min-height:40px;padding:0 16px;border:0;border-radius:999px;background:rgba(255,255,255,.14);color:#fff;font-size:14px;font-weight:600}
@@ -257,6 +271,13 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
     <button class="btn" id="login-go" type="button">開く</button>
     <div class="status" id="login-status" role="status"></div>
   </div>
+</div>
+<div class="recv" id="recv" hidden role="dialog" aria-label="音声入力">
+  <div class="recv-top"><i class="recv-dot"></i><b id="recv-state">聞いています</b><span id="recv-time">0:00</span><span id="recv-count">0字</span></div>
+  <div class="recv-text" id="recv-text"></div>
+  <div class="recv-note" id="recv-note">画面は消えないようにしています。ほかの場所を押しても止まりません。</div>
+  <button type="button" class="recv-resume" id="recv-resume" hidden>続きを話す</button>
+  <button type="button" class="recv-stop" id="recv-stop"><i class="fill"></i><span id="recv-stop-label">長押しで止める</span></button>
 </div>
 <div class="lb" id="lb" hidden role="dialog" aria-label="写真を大きく見る"><div class="lb-bar"><button type="button" id="lb-zoom">拡大</button><button type="button" id="lb-close">閉じる</button></div><div class="lb-scroll"><img id="lb-img" alt="手書きのページ"></div></div>
 <div class="wrap">
@@ -834,7 +855,68 @@ function micPaint(){
   b.querySelector("span").textContent = recOn ? "止める" : "話して書く";
   const dot = b.querySelector(".dot2"); if (recOn && !dot) b.insertAdjacentHTML("afterbegin", '<i class="dot2"></i>'); if (!recOn && dot) dot.remove();
 }
-function micStop(){ recOn = false; try { rec && rec.stop(); } catch(e){} micPaint(); if (usedVoice) polishVoice(); }
+function micStop(){
+  recOn = false; recPaused = false; try { rec && rec.stop(); } catch(e){}
+  micPaint(); recvClose();
+  if (usedVoice) polishVoice();
+}
+// 話している間の画面。画面が消えないようにし、止めるのは長押しだけ
+let recT0 = 0, recTimer = null, wake = null, recPaused = false;
+async function wakeOn(){ try { if (navigator.wakeLock && !wake) { wake = await navigator.wakeLock.request("screen"); wake.addEventListener("release", () => { wake = null; }); } } catch(e){ wake = null; } }
+function wakeOff(){ try { wake && wake.release(); } catch(e){} wake = null; }
+function recvPaint(interim){
+  const seg = entryEl.value.slice(voiceFrom);
+  const el = $("recv-text");
+  el.textContent = seg.slice(0, seg.length - (interim || "").length);
+  if (interim){ const sp = document.createElement("span"); sp.className = "interim"; sp.textContent = interim; el.appendChild(sp); }
+  if (!seg) el.innerHTML = '<span class="interim">話しはじめてください</span>';
+  el.scrollTop = el.scrollHeight;
+  $("recv-count").textContent = seg.length + "字";
+}
+function recvOpen(){
+  $("recv").hidden = false; $("recv").classList.remove("paused");
+  $("recv-state").textContent = "聞いています"; $("recv-resume").hidden = true;
+  $("recv-note").textContent = "画面は消えないようにしています。ほかの場所を押しても止まりません。";
+  recvPaint("");
+  clearInterval(recTimer);
+  recTimer = setInterval(() => { const t = Math.floor((Date.now() - recT0) / 1000); $("recv-time").textContent = Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); }, 500);
+  wakeOn();
+}
+function recvClose(){ $("recv").hidden = true; clearInterval(recTimer); wakeOff(); }
+function recvPause(msg){
+  recPaused = true;
+  $("recv").classList.add("paused"); $("recv-state").textContent = "止まっています";
+  $("recv-note").textContent = msg; $("recv-resume").hidden = false;
+}
+// 長押しで止める（0.9秒）。軽く触れただけでは止まらない
+(function(){
+  const b = $("recv-stop"); let t = null;
+  const down = (ev) => { ev.preventDefault(); b.classList.add("holding"); $("recv-stop-label").textContent = "そのまま押し続けて"; t = setTimeout(() => { b.classList.remove("holding"); micStop(); }, 900); };
+  const up = () => { if (t){ clearTimeout(t); t = null; } b.classList.remove("holding"); $("recv-stop-label").textContent = "長押しで止める"; };
+  b.addEventListener("pointerdown", down);
+  ["pointerup", "pointercancel", "pointerleave"].forEach((e) => b.addEventListener(e, up));
+  b.addEventListener("contextmenu", (ev) => ev.preventDefault());
+})();
+$("recv-resume").addEventListener("click", () => { recResume(); });
+function recResume(){
+  if (!rec) return;
+  recOn = true; recPaused = false;
+  $("recv").classList.remove("paused"); $("recv-state").textContent = "聞いています"; $("recv-resume").hidden = true;
+  $("recv-note").textContent = "続きから聞いています。ほかの場所を押しても止まりません。";
+  recBase = entryEl.value ? entryEl.value.replace(/\s+$/, "") + (entryEl.value.trim() ? "\n" : "") : ""; recFinal = "";
+  wakeOn();
+  try { rec.start(); } catch(e){ recvPause("もう一度「続きを話す」を押してください。"); }
+}
+// 画面が消えたりアプリを切り替えたりしたら、それまでの分を残して止め、戻ったら続ける
+document.addEventListener("visibilitychange", () => {
+  if (!recOn && !recPaused) return;
+  if (document.hidden){
+    if (recOn){ recOn = false; recPaused = true; try { rec.stop(); } catch(e){} }
+  } else if (recPaused && !$("recv").hidden){
+    recvPause("画面が消えていたので、そこで止まりました。それまでの分は残っています。");
+    recResume();
+  }
+});
 // 止めたら、AIが聞き間違いだけを直す（言い回しは変えない）。元に戻すこともできる
 let voiceUndo = null;
 async function polishVoice(){
@@ -888,22 +970,26 @@ function micStart(){
     for (let i = ev.resultIndex; i < ev.results.length; i++){ const r = ev.results[i]; if (r.isFinal) recFinal += r[0].transcript; else interim += r[0].transcript; }
     entryEl.value = recBase + recFinal + interim; ls.set("journal.draft", entryEl.value);
     entryEl.scrollTop = entryEl.scrollHeight;
+    recvPaint(interim);
   };
   rec.onerror = (ev) => {
     if (ev.error === "not-allowed" || ev.error === "service-not-allowed" || ev.error === "audio-capture"){
-      recOn = false; micPaint();
+      if (recPaused || document.hidden) return;
+      if (usedVoice && entryEl.value.length > voiceFrom){ recOn = false; recvPause("マイクが止まりました。それまでの分は残っています。"); return; }
+      recOn = false; micPaint(); recvClose();
       $("mic-status").textContent = "マイクが使えませんでした。iPhoneの設定でマイクを許可するか、キーボードのマイクのボタンで話してください";
     }
   };
   // iPhoneは少し黙ると止まるので、「止める」を押すまでつなぎ直す
   rec.onend = () => {
-    if (!recOn) return;
-    entryEl.value = entryEl.value; resetBase();
-    try { rec.start(); } catch(e){ recOn = false; micPaint(); }
+    if (!recOn || document.hidden) return;
+    resetBase();
+    try { rec.start(); } catch(e){ recOn = false; recvPause("聞き取りが止まりました。それまでの分は残っています。"); }
   };
   try { rec.start(); } catch(e){ $("mic-status").textContent = "始められませんでした。もう一度押してください"; return; }
-  recOn = true; usedVoice = true; micPaint();
-  $("mic-status").textContent = "聞いています。話し終わったら「止める」を押してください";
+  recOn = true; recPaused = false; usedVoice = true; micPaint();
+  $("mic-status").textContent = "";
+  recT0 = Date.now(); recvOpen();
 }
 $("mic").addEventListener("click", () => { if (recOn) micStop(); else micStart(); });
 
