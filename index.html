@@ -180,6 +180,33 @@ textarea::placeholder{color:var(--sub)}
 .todo .src{font-size:12px;color:var(--sub)}
 .todo.done .tx{color:var(--sub);text-decoration:line-through}
 .sum h3{margin:0;font-size:16px}
+/* 音声入力 */
+.mic-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mic{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:999px;border:1.5px solid var(--accentText);background:var(--card);color:var(--accentText);font-size:15px;font-weight:600;cursor:pointer}
+.mic.on{background:var(--rec);border-color:var(--rec);color:#fff}
+.mic.on .dot2{width:8px;height:8px;border-radius:50%;background:#fff;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.2}}
+.mic-status{font-size:12px;color:var(--sub);flex:1;min-width:0}
+/* まとめの一覧（期間ごとのカード） */
+.sums{display:flex;flex-direction:column;gap:10px}
+.scard{background:var(--card);border-radius:var(--r);border:1px solid var(--line);overflow:hidden}
+.scard>summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.scard>summary::-webkit-details-marker{display:none}
+.scard .sh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.scard .sname{font-size:16px;font-weight:700;color:var(--text)}
+.scard .stag{font-size:11px;font-weight:700;color:var(--onAccent);background:var(--accent);border-radius:999px;padding:2px 8px}
+.scard .stag.soft{color:var(--accentText);background:var(--soft)}
+.scard .srange{font-size:12px;color:var(--sub)}
+.scard .stitle{font-size:14px;color:var(--text);line-height:1.5}
+.scard .stitle.wait{color:var(--sub)}
+.scard .smeta{font-size:12px;color:var(--sub)}
+.scard>summary::after{content:"";align-self:flex-end;width:8px;height:8px;border-right:2px solid var(--sub);border-bottom:2px solid var(--sub);transform:rotate(45deg);margin-top:-14px}
+.scard[open]>summary::after{transform:rotate(-135deg);margin-top:-8px}
+.scard .sbody{padding:0 16px 16px;display:flex;flex-direction:column;gap:10px}
+.scard.nobody>summary{cursor:default}
+.scard.nobody>summary::after{display:none}
+#sum-status:empty{display:none}
+.sum-banner{background:var(--soft);border-radius:var(--r);padding:12px 14px;font-size:13px;color:var(--accentText);line-height:1.6}
 .mini-actions{display:flex;gap:16px;flex-wrap:wrap}
 .rawfold{border:1px solid var(--line);border-radius:max(4px,calc(var(--r) - 4px));padding:0 14px}
 details.rawfold>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:44px;color:var(--accentText);font-size:14px;font-weight:500}
@@ -281,6 +308,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
     </div>
     <label class="label" for="entry" id="entry-label">今日のこと</label>
     <textarea id="entry" placeholder="思いついた順でかまいません"></textarea>
+    <div class="mic-row"><button type="button" class="mic" id="mic" aria-pressed="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg><span>話して書く</span></button><span class="mic-status" id="mic-status" role="status"></span></div>
     <button class="btn" id="save" type="button">記録する</button>
     <div class="status" id="save-status" role="status"></div>
     <div class="hand-add" id="hand-add" hidden>
@@ -356,11 +384,11 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
       <button type="button" data-k="w" aria-pressed="true">週のまとめ</button>
       <button type="button" data-k="m" aria-pressed="false">月のまとめ</button>
     </div>
-    <label class="label" for="sum-period" style="padding:0 4px">期間</label>
-    <select id="sum-period" class="date-input"></select>
+    <div class="sum-banner" id="sum-banner" hidden></div>
     <div class="status" id="sum-status" role="status"></div>
-    <div class="list" id="rv-sum"></div>
-    <p class="small" style="margin:0;padding:0 4px" id="sum-note">週は月曜から日曜まで、月は1日から末日まで。終わった週と月は、自動でまとめます。</p>
+    <div class="sums" id="rv-sum"></div>
+    <button class="btn ghost" id="sum-more" type="button" hidden>もっと前を見る</button>
+    <p class="small" style="margin:0;padding:0 4px" id="sum-note">週は月曜から日曜まで。第何週かは、その週の木曜日がある月で数えます。記録のある週と月は、過去の分もすべて自動でまとめます。</p>
   </div>
   <div id="rv-books-pane" class="view" hidden>
     <p class="small" style="margin:0;padding:0 4px">BOOKに切り替えて書いたものが、本ごとに並びます。</p>
@@ -798,6 +826,44 @@ const entryEl = $("entry");
 entryEl.value = ls.get("journal.draft") || "";
 entryEl.addEventListener("input", () => ls.set("journal.draft", entryEl.value));
 
+/* ---------- 音声入力（話した言葉がそのまま上の欄に入る） ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, recOn = false, recBase = "", recFinal = "", usedVoice = false;
+function micPaint(){
+  const b = $("mic"); b.classList.toggle("on", recOn); b.setAttribute("aria-pressed", String(recOn));
+  b.querySelector("span").textContent = recOn ? "止める" : "話して書く";
+  const dot = b.querySelector(".dot2"); if (recOn && !dot) b.insertAdjacentHTML("afterbegin", '<i class="dot2"></i>'); if (!recOn && dot) dot.remove();
+}
+function micStop(){ recOn = false; try { rec && rec.stop(); } catch(e){} micPaint(); if (usedVoice) $("mic-status").textContent = "止めました。直してから「記録する」を押してください"; }
+function micStart(){
+  if (!SR){ $("mic-status").textContent = "この画面では使えません。キーボードのマイクのボタンで話してください"; entryEl.focus(); return; }
+  rec = new SR(); rec.lang = "ja-JP"; rec.continuous = true; rec.interimResults = true;
+  const resetBase = () => { recBase = entryEl.value ? entryEl.value.replace(/\s+$/, "") + (entryEl.value.trim() ? "\n" : "") : ""; recFinal = ""; };
+  resetBase();
+  rec.onresult = (ev) => {
+    let interim = "";
+    for (let i = ev.resultIndex; i < ev.results.length; i++){ const r = ev.results[i]; if (r.isFinal) recFinal += r[0].transcript; else interim += r[0].transcript; }
+    entryEl.value = recBase + recFinal + interim; ls.set("journal.draft", entryEl.value);
+    entryEl.scrollTop = entryEl.scrollHeight;
+  };
+  rec.onerror = (ev) => {
+    if (ev.error === "not-allowed" || ev.error === "service-not-allowed" || ev.error === "audio-capture"){
+      recOn = false; micPaint();
+      $("mic-status").textContent = "マイクが使えませんでした。iPhoneの設定でマイクを許可するか、キーボードのマイクのボタンで話してください";
+    }
+  };
+  // iPhoneは少し黙ると止まるので、「止める」を押すまでつなぎ直す
+  rec.onend = () => {
+    if (!recOn) return;
+    entryEl.value = entryEl.value; resetBase();
+    try { rec.start(); } catch(e){ recOn = false; micPaint(); }
+  };
+  try { rec.start(); } catch(e){ $("mic-status").textContent = "始められませんでした。もう一度押してください"; return; }
+  recOn = true; usedVoice = true; micPaint();
+  $("mic-status").textContent = "聞いています。話し終わったら「止める」を押してください";
+}
+$("mic").addEventListener("click", () => { if (recOn) micStop(); else micStart(); });
+
 /* ---------- 用語辞書 ---------- */
 function applyDict(s){
   let out = s;
@@ -828,7 +894,7 @@ function renderToday(){
 }
 function fillBox(id, text){ const el = $(id); el.hidden = !text; el.querySelector("span").textContent = text || ""; }
 // 要約を使うのは音声の日だけ。打ち込みや手書きは本文をそのまま全部見せる
-const hasVoice = (d) => (d && d.entries || []).some((e) => e.src === "sheet");
+const hasVoice = (d) => (d && d.entries || []).some((e) => e.src === "sheet" || e.src === "voice");
 const usesSummary = (d) => !!(d && hasVoice(d) && d.ai && d.ai.summary);
 function summaryOf(d){
   if (!d) return "";
@@ -845,7 +911,7 @@ const pageUrl = (id) => { try { const p = pages.find((x) => x.id === id); return
 function entriesHtml(d){
   return (d.entries || []).map((e, i) => {
     const url = (e.src === "hand" || e.src === "typed") && e.page ? pageUrl(e.page) : null;
-    const label = e.t ? e.t : (e.src === "hand" ? "手書き" : e.src === "typed" ? "iPadで打ち込み" : e.src === "sheet" ? "音声" : "");
+    const label = e.t ? e.t + (e.src === "voice" ? "　音声" : "") : (e.src === "hand" ? "手書き" : e.src === "typed" ? "iPadで打ち込み" : e.src === "sheet" ? "音声" : "");
     return '<div class="eblock" data-date="' + esc(d.date) + '" data-i="' + i + '">'
       + (label ? '<span class="small">' + esc(label) + '</span>' : '')
       + '<p class="body etext">' + esc(e.text) + '</p>'
@@ -914,7 +980,9 @@ $("save").addEventListener("click", async () => {
     const snap = await ref.get();
     const cur = snap.exists ? snap.data() : {};
     const entries = (cur.entries || []).slice();
-    entries.push({t: hm(), text: applyDict(raw)});
+    if (recOn) micStop();
+    entries.push(Object.assign({t: hm(), text: applyDict(raw)}, usedVoice ? {src: "voice"} : {}));
+    usedVoice = false; $("mic-status").textContent = "";
     const doc = {date: TODAY, md: MD, year: YEAR, entries: entries, mood: (mood ?? cur.mood ?? null), ai: cur.ai || null, updatedAt: new Date().toISOString()};
     await ref.set(doc);
     todayDoc = doc; renderToday();
@@ -1558,49 +1626,96 @@ $("sum-kind").addEventListener("click", (ev) => {
   const b = ev.target.closest("[data-k]"); if (!b || b.dataset.k === sumKind) return;
   sumKind = b.dataset.k;
   $("sum-kind").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-  sumPick[sumKind] = null; renderSums();
+  renderSums();
 });
 function sumHtml(x){
   const box = (t, v) => v ? '<div class="box"><b>' + t + '</b><span>' + esc(v) + '</span></div>' : '';
-  return '<div class="item sum"><div class="row-between"><h3>' + esc(periodLabel(x.kind, x.start, x.end)) + (x.partial ? '（途中まで）' : '') + '</h3><span class="small">記録 ' + (x.count || 0) + '日' + (x.avgMood ? '　調子 ' + x.avgMood : '') + '</span></div>'
+  return '<div class="sum">'
     + '<p class="body">' + esc(x.story || "") + '</p>'
     + box("よかったこと", x.good) + box("テーマ", x.themes) + box("IDEA", x.ideas) + box("読んだ本", x.books) + box("隼人", x.hayato) + box(x.kind === "w" ? "来週への問い" : "来月への問い", x.questions)
     + '<div class="eacts"><button type="button" class="mini" data-sum-redo="' + x.kind + '|' + x.start + '|' + x.end + '"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 12a9 9 0 1 1-3-6.7L21 8\"/><path d=\"M21 3v5h-5\"/></svg>作り直す</button></div></div>';
 }
-// 選べる期間の一覧。今の週（月）は途中まで、その前は終わった週（月）
-const sumPick = {w: null, m: null};
+// 週の呼び方：その週の木曜日がある月の「第何週」
+const WDJ = ["日","月","火","水","木","金","土"];
+function weekName(start){ const th = dObj(addD(start, 3)); return (th.getMonth() + 1) + "月 第" + Math.ceil(th.getDate() / 7) + "週"; }
+function mdw(s2){ const d = dObj(s2); return (d.getMonth() + 1) + "月" + d.getDate() + "日（" + WDJ[d.getDay()] + "）"; }
+function sumTitle(x){
+  if (x.title) return x.title;
+  const t = String(x.story || "").split(/[。\n]/)[0];
+  return t.length > 34 ? t.slice(0, 33) + "…" : t;
+}
+// 記録のある期間の一覧（新しい順）。今の週と月は途中まで
+const sumShow = {w: 12, m: 12};
+let sumState = null;
 function sumPeriods(k){
-  const out = [], t = dObj(REAL_TODAY);
-  if (k === "w"){
-    const mon = mondayOf(REAL_TODAY);
-    out.push({k: k, start: mon, end: REAL_TODAY, partial: true, label: "今週（" + mdJ(mon) + "〜、途中まで）"});
-    for (let i = 1; i <= 52; i++){ const s = addD(mon, -7 * i), e = addD(s, 6); out.push({k: k, start: s, end: e, partial: false, label: periodLabel("w", s, e) + (i === 1 ? "（先週）" : "")}); }
-  } else {
-    out.push({k: k, start: ymd(new Date(t.getFullYear(), t.getMonth(), 1)), end: REAL_TODAY, partial: true, label: "今月（" + (t.getMonth() + 1) + "月、途中まで）"});
-    for (let i = 1; i <= 24; i++){ const s = new Date(t.getFullYear(), t.getMonth() - i, 1), e = new Date(t.getFullYear(), t.getMonth() - i + 1, 0); out.push({k: k, start: ymd(s), end: ymd(e), partial: false, label: periodLabel("m", ymd(s), ymd(e)) + (i === 1 ? "（先月）" : "")}); }
+  const days = calDays ? Array.from(calDays).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x) && x <= REAL_TODAY).sort() : [];
+  const seen = {}, out = [];
+  const thisMon = mondayOf(REAL_TODAY), thisMonth = REAL_TODAY.slice(0, 8) + "01";
+  for (let i = days.length - 1; i >= 0; i--){
+    const d = days[i];
+    const start = k === "w" ? mondayOf(d) : d.slice(0, 8) + "01";
+    if (seen[start]) continue;
+    seen[start] = 1;
+    const now = start === (k === "w" ? thisMon : thisMonth);
+    const end = now ? REAL_TODAY : k === "w" ? addD(start, 6) : ymd(new Date(dObj(start).getFullYear(), dObj(start).getMonth() + 1, 0));
+    const n = days.filter((x) => x >= start && x <= end).length;
+    out.push({k: k, start: start, end: end, partial: now, n: n});
   }
   return out;
 }
+function sumCard(p, doc, open){
+  const lastW = addD(mondayOf(REAL_TODAY), -7), t = dObj(REAL_TODAY), lastM = ymd(new Date(t.getFullYear(), t.getMonth() - 1, 1));
+  const tag = p.partial ? '<span class="stag soft">' + (p.k === "w" ? "今週" : "今月") + '、途中まで</span>'
+    : p.start === (p.k === "w" ? lastW : lastM) ? '<span class="stag">' + (p.k === "w" ? "先週" : "先月") + '</span>' : "";
+  const name = p.k === "w" ? weekName(p.start) : Number(p.start.slice(0, 4)) + "年" + Number(p.start.slice(5, 7)) + "月";
+  const range = p.k === "w" ? mdw(p.start) + "〜" + mdw(addD(p.start, 6)) : "";
+  const meta = "記録 " + ((doc && doc.count) || p.n) + "日" + (doc && doc.avgMood ? "　平均の調子 " + doc.avgMood : "");
+  let title;
+  if (doc) title = '<div class="stitle">' + esc(sumTitle(doc)) + '</div>';
+  else if (p.partial) title = '<div class="stitle wait">毎晩、その日までの分をまとめます</div>';
+  else title = '<div class="stitle wait">' + (sumState && sumState.err === "key" ? "AIのキーを入れると、自動でまとめます" : "自動でまとめています。少し待つと出てきます") + '</div>';
+  const head = '<summary><div class="sh"><span class="sname">' + esc(name) + '</span>' + tag + (range ? '<span class="srange">' + range + '</span>' : '') + '</div>' + title + '<div class="smeta">' + meta + '</div></summary>';
+  if (!doc) return '<details class="scard nobody" data-sc="' + p.start + '">' + head + '</details>';
+  return '<details class="scard" data-sc="' + p.start + '"' + (open ? " open" : "") + '>' + head + '<div class="sbody">' + sumHtml(doc) + '</div></details>';
+}
+const sumOpen = {w: null, m: null};
+function paintSums(){
+  const el = $("rv-sum"), k = sumKind;
+  const list = sumPeriods(k), have = {};
+  (sumCache[k] || []).forEach((x) => { have[x.start + (x.partial ? "-p" : "")] = x; });
+  if (!calDays || !sumCache[k]){ el.innerHTML = '<div class="item"><p class="empty">読み込んでいます</p></div>'; $("sum-more").hidden = true; return; }
+  if (!list.length){ el.innerHTML = '<div class="item"><p class="empty">まだ記録がありません。</p></div>'; $("sum-more").hidden = true; return; }
+  // 最初に開いておくのは、まとめのある一番新しい終わった期間
+  if (!sumOpen[k]){ const f = list.find((p) => !p.partial && have[p.start]); sumOpen[k] = f ? f.start : "-"; }
+  const shown = list.slice(0, sumShow[k]);
+  el.innerHTML = shown.map((p) => sumCard(p, p.partial ? (have[p.start + "-p"] || null) : (have[p.start] || null), p.start === sumOpen[k])).join("");
+  $("sum-more").hidden = list.length <= sumShow[k];
+  const left = list.filter((p) => !p.partial && !have[p.start]).length;
+  const b = $("sum-banner");
+  if (sumState && sumState.err === "key" && left){ b.hidden = false; b.textContent = "AIのキーが止まっているため、まだまとめていない期間が" + left + "件あります。設定でキーを入れると、過去の分まで自動でまとめます。"; }
+  else if (left){ b.hidden = false; b.textContent = "過去の分を順番にまとめています（あと" + left + "件）。アプリを閉じても進みます。"; }
+  else b.hidden = true;
+}
+let sumPoll = null;
 async function renderSums(){
-  const el = $("rv-sum"), k = sumKind, list = sumPeriods(k);
-  const have = {}; (sumCache[k] || []).forEach((x) => { have[x.start + (x.partial ? "-p" : "")] = x; });
-  // 何も選んでいなければ、終わった直近の週（月）
-  if (!sumPick[k]) sumPick[k] = list[1].start;
-  $("sum-period").innerHTML = list.map((p) => '<option value="' + p.start + '"' + (p.start === sumPick[k] ? " selected" : "") + '>' + esc(p.label) + (have[p.start + (p.partial ? "-p" : "")] ? "　✓" : "") + '</option>').join("");
-  const p = list.find((x) => x.start === sumPick[k]) || list[1];
-  const doc = have[p.start + (p.partial ? "-p" : "")];
-  if (doc) el.innerHTML = sumHtml(doc);
-  else el.innerHTML = '<div class="item"><p class="empty">' + (sumCache[k] ? "この期間はまだまとめていません。" : "読み込んでいます") + '</p>'
-    + (sumCache[k] ? '<div class="eacts"><button type="button" class="mini" data-sum-make="' + p.start + '|' + p.end + '|' + (p.partial ? 1 : 0) + '">' + (p.partial ? "途中までをまとめる" : "この期間をまとめる") + '</button></div>' : '') + '</div>';
+  const k = sumKind;
+  paintSums();
   if (!db) return;
   try {
-    const s2 = await db.collection("summaries").where("kind", "==", k).orderBy("start", "desc").limit(120).get();
-    const fresh = s2.docs.map((x) => x.data());
-    if (JSON.stringify(fresh) !== JSON.stringify(sumCache[k])){ sumCache[k] = fresh; if (sumKind === k) renderSums(); }
-    else if (!sumCache[k]){ sumCache[k] = fresh; renderSums(); }
+    const [, s2] = await Promise.all([loadCalDays(), db.collection("summaries").where("kind", "==", k).orderBy("start", "desc").limit(400).get()]);
+    sumCache[k] = s2.docs.map((x) => x.data());
+    if (sumKind === k) paintSums();
+  } catch(e){}
+  // まだの分があれば、裏でまとめてもらう（サーバーが順番に進める）
+  try {
+    sumState = await window.JOURNAL_CALL("sum_status", {});
+    if (sumKind === k) paintSums();
+    clearTimeout(sumPoll);
+    if (sumState && sumState.left > 0 && sumState.err !== "key") sumPoll = setTimeout(() => { if (currentView === "review" && rvPane === "sum") renderSums(); }, 60000);
   } catch(e){}
 }
-$("sum-period").addEventListener("change", (ev) => { sumPick[sumKind] = ev.target.value; renderSums(); });
+$("sum-more").addEventListener("click", () => { sumShow[sumKind] += 12; paintSums(); });
+$("rv-sum").addEventListener("toggle", (ev) => { const d = ev.target; if (d.classList && d.classList.contains("scard") && d.open) sumOpen[sumKind] = d.dataset.sc; }, true);
 function sumText(x){
   const L = [(x.kind === "w" ? "【週のまとめ】" : "【月のまとめ】") + periodLabel(x.kind, x.start, x.end) + (x.partial ? "（途中まで）" : ""), "記録 " + (x.count || 0) + "日" + (x.avgMood ? "　平均の調子 " + x.avgMood : ""), "", x.story || ""];
   [["よかったこと", x.good], ["テーマ", x.themes], ["IDEA", x.ideas], ["読んだ本", x.books], ["隼人", x.hayato], [x.kind === "w" ? "来週への問い" : "来月への問い", x.questions]]
@@ -1625,11 +1740,12 @@ async function makeSummary(k, start, end, partial){
     + "themes: この期間に繰り返し出てきたテーマ。3つまで。番号付きで1行に1つ。\n"
     + "hayato: 息子の隼人に関すること。本人の言葉を残して1〜3文。なければ空文字。\n"
     + "questions: " + (k === "w" ? "来週の自分への問いを1つ" : "来月の自分への問いを3つ、番号付きで1行に1つ") + "。\n"
+    + "title: この期間をひとことで表す見出し。中身が思い出せる具体的な言葉で15〜25字。日付は入れない。\n"
     + "書かれていない内容は足さないこと。数字は算用数字。文中で中黒（・）は使わないこと。\n"
-    + '返答はJSONのみ: {"story":"","good":"","themes":"","hayato":"","questions":""}\n\n' + body;
+    + '返答はJSONのみ: {"title":"","story":"","good":"","themes":"","hayato":"","questions":""}\n\n' + body;
   const r = await sample.json(prompt, {cache: false});
   const doc = {kind: k, start: start, end: end, partial: !!partial, count: ds.length, avgMood: moods.length ? Math.round(moods.reduce((a, b) => a + b, 0) / moods.length * 10) / 10 : null,
-    story: String(r.story || ""), good: String(r.good || ""), themes: String(r.themes || ""), hayato: String(r.hayato || ""), questions: String(r.questions || ""),
+    title: String(r.title || ""), story: String(r.story || ""), good: String(r.good || ""), themes: String(r.themes || ""), hayato: String(r.hayato || ""), questions: String(r.questions || ""),
     ideas: ideas.map((x) => (x.title || x.core || "").slice(0, 40) + (x.next ? "（次の一歩：" + x.next + "）" : "")).filter(Boolean).join("\n"),
     books: books.map((x) => (x.title || "書名なし") + (x.action ? "（行動：" + x.action + "）" : "")).filter(Boolean).join("\n"),
     at: new Date().toISOString(), line: false};
@@ -1649,18 +1765,8 @@ async function sendSummaryToSheet(id, doc){
   } catch(e){}
 }
 async function ensureSummaries(){
-  if (!db || !sample || sumBusy) return;
-  sumBusy = true;
-  try {
-    for (const p of lastPeriods()){
-      const id = p.k + "-" + p.start;
-      const s2 = await db.doc("summaries/" + id).get();
-      if (s2.exists){ const d = s2.data(); if (!d.line && mcp) await sendSummaryToSheet(id, d); continue; }
-      await makeSummary(p.k, p.start, p.end, false);
-    }
-  } catch(e){}
-  sumBusy = false;
-  if (currentView === "review" && rvPane === "sum") renderSums();
+  // まとめはサーバーが自動で作る。開いたときは、まだの分があれば進めてもらうだけ
+  try { await window.JOURNAL_CALL("sum_status", {}); } catch(e){}
 }
 $("rv-sum").addEventListener("click", async (ev) => {
   const mk = ev.target.closest("[data-sum-make]");
@@ -1674,8 +1780,9 @@ $("rv-sum").addEventListener("click", async (ev) => {
   const b = ev.target.closest("[data-sum-redo]"); if (!b) return;
   const [k, start, end] = b.dataset.sumRedo.split("|");
   b.disabled = true; b.textContent = "作り直しています";
-  try { await makeSummary(k, start, end, end === REAL_TODAY && start >= (k === "w" ? mondayOf(REAL_TODAY) : REAL_TODAY.slice(0, 8) + "01")); } catch(e){}
-  renderSums();
+  try { await makeSummary(k, start, end, end === REAL_TODAY && start >= (k === "w" ? mondayOf(REAL_TODAY) : REAL_TODAY.slice(0, 8) + "01")); }
+  catch(e){ b.disabled = false; b.textContent = "作り直せませんでした"; return; }
+  sumCache = {}; renderSums();
 });
 
 /* ---------- TODO ---------- */
@@ -1884,7 +1991,7 @@ $("p-backup-all").addEventListener("click", async () => {
   try {
     const snap = await daysCol().orderBy("date", "asc").limit(1000).get();
     const now2 = new Date().toISOString(), rows = [];
-    snap.docs.forEach((s2) => { const d = s2.data(); (d.entries || []).forEach((e) => rows.push([d.date, e.t || "", e.src === "hand" ? "手書き" : e.src === "sheet" ? "音声" : e.src === "typed" ? "打ち込み" : "JOURNAL", d.mood ?? "", e.text, now2])); });
+    snap.docs.forEach((s2) => { const d = s2.data(); (d.entries || []).forEach((e) => rows.push([d.date, e.t || "", e.src === "hand" ? "手書き" : e.src === "sheet" || e.src === "voice" ? "音声" : e.src === "typed" ? "打ち込み" : "JOURNAL", d.mood ?? "", e.text, now2])); });
     const is = await db.collection("ideas").orderBy("at", "asc").limit(1000).get();
     is.docs.forEach((s2) => { const x = s2.data(); rows.push([x.date, "", "IDEA", "", [x.title, x.core, x.next ? "次の一歩：" + x.next : ""].filter(Boolean).join("\n"), now2]); });
     for (let k = 0; k < rows.length; k += 300){
