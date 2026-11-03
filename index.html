@@ -337,7 +337,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
     <div class="status" id="login-status" role="status"></div>
   </div>
 </div>
-<div class="morn" id="morn" hidden role="dialog" aria-label="わたしの軸">
+<div class="morn" id="morn" hidden role="dialog" aria-label="MY COMPASS">
   <div class="morn-top"><div class="morn-dots" id="morn-dots"></div><button type="button" class="mini" id="morn-close">閉じる</button></div>
   <div class="morn-body" id="vis-body"></div>
   <div class="morn-foot" id="morn-foot"><button type="button" class="mini" id="morn-back">戻る</button><button type="button" class="btn" id="morn-next">次へ</button></div>
@@ -363,7 +363,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
       <button class="link" id="w-change" type="button" style="align-self:center">別の日の分を書く</button>
     </div>
   </div>
-  <div class="vis-open-row"><button type="button" class="mini" id="vis-open"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>わたしの軸</button><span class="small" id="vis-streak"></span></div>
+  <div class="vis-open-row"><button type="button" class="mini" id="vis-open"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>MY COMPASS</button><span class="small" id="vis-streak"></span></div>
   <div class="notice" id="w-panel" hidden>
     <div class="group">
       <label class="label" for="w-date" style="padding:0">書く日を選ぶ</label>
@@ -1304,7 +1304,7 @@ $("cal-write").addEventListener("click", () => {
   $("w-panel").hidden = false; $("w-date").value = calPick; setWriteDate(calPick);
 });
 
-/* ---------- わたしの軸（毎朝1回：ドリームクローバー → フューチャーマップ → 今日の一歩） ---------- */
+/* ---------- MY COMPASS（毎朝1回：ドリームクローバー → フューチャーマップ → 今日の一歩） ---------- */
 const FM_CELLS = [["live", "④ 居住環境"], ["learn", "⑧ 学び"], ["play", "① 趣味／余暇／遊び"], ["family", "⑤ 家族／パートナー"], ["theme", "テーマ／感情"], ["health", "② 健康"], ["people", "⑥ 人間性／人間関係"], ["work", "⑦ 仕事／社会貢献"], ["money", "③ お金／物欲"]];
 const FM_AREAS = FM_CELLS.filter((c) => c[0] !== "theme");
 const CLOVER = [["be", "Be 人格、能力"], ["do", "Do/Enjoy やりたいこと"], ["have", "Have/Get 得たいもの"], ["contribute", "Contribute 貢献"]];
@@ -1334,7 +1334,7 @@ function cloverHtml(v){
 function fmHtml(v){
   const m = (v.fm || {})[visFm] || {}, cells = m.cells || {};
   let h = '<h2>フューチャーマップ</h2><p class="lead">今日の1マスを開いています。ほかのマスも押すと読めます。</p>';
-  h += '<div class="fm-head"><b>' + visEsc(m.title || "") + '</b><span>' + [["y1", "1年後"], ["y5", "5年後"]].map(([k, l]) => '<button type="button" class="link" data-vfm="' + k + '" style="' + (k === visFm ? "font-weight:700;text-decoration:underline" : "") + '">' + l + '</button>').join("　") + '</span></div>';
+  h += '<div class="fm-head"><b>' + visEsc(m.title || "") + '</b><span>' + [["y7", "7年後"], ["y1", "1年後"], ["m1", "1か月"]].map(([k, l]) => '<button type="button" class="link" data-vfm="' + k + '" style="' + (k === visFm ? "font-weight:700;text-decoration:underline" : "") + '">' + l + '</button>').join("　") + '</span></div>';
   h += '<div class="fm-grid">' + FM_CELLS.map(([k, l]) => {
     const t = cells[k] || "";
     if (k === "theme") return '<button type="button" class="center" data-vcell="theme">' + visEsc(t || l) + '</button>';
@@ -1345,8 +1345,9 @@ function fmHtml(v){
   return h;
 }
 function actionHtml(v){
-  const cells = (((v.fm || {}).y1 || {}).cells) || {};
-  let h = '<h2>今日の一歩</h2><p class="lead">フューチャーマップに近づくために、今日やることを1つ決めましょう。TODOにも入ります。書かずに終えても大丈夫です。</p>';
+  const fmx = v.fm || {}, m1 = (fmx.m1 || {}).cells || {}, useM1 = Object.keys(m1).some((k) => k !== "theme" && m1[k]);
+  const cells = useM1 ? m1 : ((fmx.y1 || {}).cells || {});
+  let h = '<h2>今日の一歩</h2><p class="lead">' + (useM1 ? "1か月のマップ" : "1年後のマップ（1か月はまだ空です）") + 'から、今日やることを1つ決めましょう。TODOにも入ります。書かずに終えても大丈夫です。</p>';
   h += '<div class="morn-chips">' + FM_AREAS.map(([k, l]) => '<button type="button" data-marea="' + k + '" aria-pressed="' + (mornArea === k) + '">' + visEsc(l.replace(/^[①-⑨]\s*/, "")) + '</button>').join("") + '</div>';
   if (mornArea && cells[mornArea]) h += '<div class="fm-detail" style="font-size:13px">' + visEsc(cells[mornArea]) + '</div>';
   h += '<textarea id="morn-action" class="date-input" rows="2" style="height:auto;min-height:64px" placeholder="例：理想の家の条件を3つ書き出す">' + visEsc(mornAction) + '</textarea>';
@@ -1362,7 +1363,7 @@ function editHtml(kind){
     h += ta("ve-c-mission", "Affirmation 使命（真ん中に大きく出ます）", c.mission || v.affirm, 3) + ta("ve-c-feeling", "Feeling 得たい感情", c.feeling, 2);
     CLOVER.concat(CLOVER_ROOT).forEach(([k, l]) => { h += ta("ve-c-" + k, l, c[k], 3); });
   } else {
-    h += '<h2>フューチャーマップ（' + (visFm === "y1" ? "1年後" : "5年後") + '）を書き直す</h2>';
+    h += '<h2>フューチャーマップ（' + (({y7: "7年後", y1: "1年後", m1: "1か月"})[visFm] || "") + '）を書き直す</h2>';
     h += ta("ve-fm-title", "見出し", m.title, 1);
     FM_CELLS.forEach(([k, l]) => { h += ta("ve-fm-" + k, l, cells[k], k === "theme" ? 3 : 4); });
   }
@@ -1387,6 +1388,8 @@ function mornOpen(auto){
 function mornClose(){ $("morn").hidden = true; visEditing = null; }
 async function loadVision(){
   if (!db) return;
+  // ドライブのシート「MY COMPASS」が書き換えられていたら、取り込んでから出し直す
+  if (!loadVision.syncing){ loadVision.syncing = true; window.JOURNAL_CALL("compass_sync", {}).then((r) => { if (r && r.changed) loadVision(); }).catch(() => {}).finally(() => { setTimeout(() => { loadVision.syncing = false; }, 30000); }); }
   try { const s2 = await db.doc("vision/main").get(); if (s2.exists){ vision = s2.data(); ls.set("journal.vision", vision); } else if (!vision) vision = {mission: "", affirm: "", fm: {}, clover: {}}; } catch(e){ if (!vision) vision = {mission: "", affirm: "", fm: {}, clover: {}}; }
   if (!$("morn").hidden && !visEditing) paintMorn();
   paintStreak();
@@ -1422,7 +1425,7 @@ $("morn-next").addEventListener("click", async () => {
   const day = mornDay(), text = mornAction.trim(), area = mornArea;
   mornClose();
   try { await db.doc("vision_log/" + day).set({date: day, at: new Date().toISOString(), action: text, area: area || ""}); } catch(e){}
-  if (text){ const lab = ((FM_AREAS.find((c) => c[0] === area) || [])[1] || "").replace(/^[①-⑨]\s*/, ""); await addTodo(text, "わたしの軸" + (lab ? "（" + lab + "）" : ""), null, REAL_TODAY, REAL_TODAY); toast("今日の一歩をTODOに入れました"); }
+  if (text){ const lab = ((FM_AREAS.find((c) => c[0] === area) || [])[1] || "").replace(/^[①-⑨]\s*/, ""); await addTodo(text, "MY COMPASS" + (lab ? "（" + lab + "）" : ""), null, REAL_TODAY, REAL_TODAY); toast("今日の一歩をTODOに入れました"); }
   else toast("今日もいってらっしゃい");
   paintStreak();
 });
