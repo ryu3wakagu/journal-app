@@ -847,10 +847,26 @@ async function polishVoice(){
     + "話した内容と言い回しは変えないこと。要約、言い換え、内容の追加はしないこと。「えー」「あの」などのつなぎ言葉だけは取ってよい。数字は算用数字。中黒（・）は使わない。\n"
     + "よく出てくる言葉：" + words + "\n"
     + (head.trim() ? "（参考：この前に書いてある文）\n" + head.slice(-600) + "\n" : "")
-    + "直した文章だけを返してください。\n\n文章：\n" + seg;
+    + "直した文章だけを返してください。\n\n文章：\n";
+  // 長いときは2000字ほどずつに分けて、同時に直す（途中で切れないように）
+  const parts = [];
+  let rest = seg;
+  while (rest.length > 2400){
+    let cut = -1;
+    for (const mk of ["\n", "。", " ", "　", "、"]){ const i = rest.lastIndexOf(mk, 2200); if (i > 1200){ cut = i + 1; break; } }
+    if (cut < 0) cut = 2200;
+    parts.push(rest.slice(0, cut)); rest = rest.slice(cut);
+  }
+  parts.push(rest);
+  if (parts.length > 1) st.textContent = "AIが聞き間違いを直しています（" + seg.length + "字）";
   try {
-    const r = await sample(prompt, {cache: false});
-    const fixed = String((r && r.text) || "").trim();
+    const outs = await Promise.all(parts.map(async (p) => {
+      const r = await sample(prompt + p, {cache: false});
+      const t = String((r && r.text) || "").trim();
+      // 切れたり、大きく短くなったりしたら、その部分は元のまま
+      return !t || r.truncated || t.length < p.trim().length * 0.6 ? p : t;
+    }));
+    const fixed = outs.join(parts.length > 1 ? "\n" : "").trim();
     if (!fixed || entryEl.value !== before || recOn) { st.textContent = "止めました。直してから「記録する」を押してください"; return; }
     entryEl.value = head + fixed; ls.set("journal.draft", entryEl.value);
     voiceUndo = before;
