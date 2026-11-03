@@ -571,12 +571,27 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
 "use strict";
 const GAS = self.JOURNAL_GAS;
 const store = { get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }, set(k, v){ try { localStorage.setItem(k, v); } catch(e){} } };
-let KEY = store.get("journal.key");
+// 合言葉の鍵は、iPhoneに消されにくいよう3か所に置く（端末の保存、クッキー、データベース）
+const ck = { get(){ const m = document.cookie.match(/(?:^|; )jk=([^;]+)/); return m ? decodeURIComponent(m[1]) : null; }, set(v){ try { document.cookie = "jk=" + encodeURIComponent(v) + "; max-age=63072000; path=/; SameSite=Strict; Secure"; } catch(e){} } };
+const idb = {
+  open(){ return new Promise((ok, ng) => { try { const r = indexedDB.open("journal", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => ok(r.result); r.onerror = () => ng(r.error); } catch(e){ ng(e); } }); },
+  async get(k){ try { const d = await idb.open(); return await new Promise((ok) => { const q = d.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => ok(q.result || null); q.onerror = () => ok(null); }); } catch(e){ return null; } },
+  async set(k, v){ try { const d = await idb.open(); d.transaction("kv", "readwrite").objectStore("kv").put(v, k); } catch(e){} }
+};
+function saveKey(v){ store.set("journal.key", v); ck.set(v); idb.set("journal.key", v); }
+let KEY = store.get("journal.key") || ck.get();
+if (KEY) saveKey(KEY);
+try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch(e){}
 async function call(action, payload){
   const res = await fetch(GAS, {method: "POST", body: JSON.stringify(Object.assign({action: action, key: KEY}, payload || {}))});
   const j = await res.json();
   if (j && j.error){
-    if (j.error === "auth"){ showLogin(); }
+    if (j.error === "auth"){
+      // 別の場所に残っている鍵があれば、それで1回だけやり直す
+      const alt = await idb.get("journal.key");
+      if (alt && alt !== KEY && !(payload && payload.__retry)){ KEY = alt; saveKey(alt); return call(action, Object.assign({}, payload, {__retry: 1})); }
+      showLogin();
+    }
     const e = new Error(j.error); e.code = j.error === "rate_limited" ? "rate_limited" : j.error; throw e;
   }
   return j;
@@ -677,15 +692,16 @@ async function login(){
     const res = await _fetch(GAS, {method: "POST", body: JSON.stringify({action: "login", pass: pass})});
     const j = await res.json();
     if (!j.ok){ st.textContent = j.msg || "開けませんでした"; return; }
-    KEY = j.key; store.set("journal.key", KEY);
+    KEY = j.key; saveKey(KEY);
     location.reload();
   } catch(e){ st.textContent = "つながりませんでした。通信を確かめてください。"; }
 }
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("login-go").addEventListener("click", login);
   document.getElementById("login-pass").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) login(); });
-  if (!KEY){ showLogin(); return; }
-  setReady();
+  if (KEY){ setReady(); return; }
+  // 端末の保存とクッキーが消えていても、データベースに残っていればそれを使う
+  idb.get("journal.key").then((k) => { if (k){ KEY = k; saveKey(k); setReady(); } else showLogin(); });
 });
 
 // iPhoneへのお知らせ
