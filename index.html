@@ -828,18 +828,45 @@ entryEl.addEventListener("input", () => ls.set("journal.draft", entryEl.value));
 
 /* ---------- 音声入力（話した言葉がそのまま上の欄に入る） ---------- */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let rec = null, recOn = false, recBase = "", recFinal = "", usedVoice = false;
+let rec = null, recOn = false, recBase = "", recFinal = "", usedVoice = false, voiceFrom = 0;
 function micPaint(){
   const b = $("mic"); b.classList.toggle("on", recOn); b.setAttribute("aria-pressed", String(recOn));
   b.querySelector("span").textContent = recOn ? "止める" : "話して書く";
   const dot = b.querySelector(".dot2"); if (recOn && !dot) b.insertAdjacentHTML("afterbegin", '<i class="dot2"></i>'); if (!recOn && dot) dot.remove();
 }
-function micStop(){ recOn = false; try { rec && rec.stop(); } catch(e){} micPaint(); if (usedVoice) $("mic-status").textContent = "止めました。直してから「記録する」を押してください"; }
+function micStop(){ recOn = false; try { rec && rec.stop(); } catch(e){} micPaint(); if (usedVoice) polishVoice(); }
+// 止めたら、AIが聞き間違いだけを直す（言い回しは変えない）。元に戻すこともできる
+let voiceUndo = null;
+async function polishVoice(){
+  const st = $("mic-status");
+  const before = entryEl.value, head = before.slice(0, voiceFrom), seg = before.slice(voiceFrom);
+  if (!sample || seg.trim().length < 8){ st.textContent = "止めました。直してから「記録する」を押してください"; return; }
+  st.textContent = "AIが聞き間違いを直しています";
+  const words = ["隼人"].concat(dict.map((p) => p && p.to).filter(Boolean)).slice(0, 80).join("、");
+  const prompt = "次の文章は、iPhoneの音声認識で文字にした日記です。聞き間違い（同じ音の別の漢字、人の名前や固有名詞の誤り、言葉の切れ目の誤り）を、前後の流れから直してください。句読点と改行も整えてください。\n"
+    + "話した内容と言い回しは変えないこと。要約、言い換え、内容の追加はしないこと。「えー」「あの」などのつなぎ言葉だけは取ってよい。数字は算用数字。中黒（・）は使わない。\n"
+    + "よく出てくる言葉：" + words + "\n"
+    + (head.trim() ? "（参考：この前に書いてある文）\n" + head.slice(-600) + "\n" : "")
+    + "直した文章だけを返してください。\n\n文章：\n" + seg;
+  try {
+    const r = await sample(prompt, {cache: false});
+    const fixed = String((r && r.text) || "").trim();
+    if (!fixed || entryEl.value !== before || recOn) { st.textContent = "止めました。直してから「記録する」を押してください"; return; }
+    entryEl.value = head + fixed; ls.set("journal.draft", entryEl.value);
+    voiceUndo = before;
+    st.innerHTML = 'AIが聞き間違いを直しました。<button type="button" class="mini" id="mic-undo" style="min-height:30px;margin-left:6px">元に戻す</button>';
+  } catch(e){ st.textContent = "止めました。直してから「記録する」を押してください"; }
+}
+document.addEventListener("click", (ev) => {
+  if (!ev.target.closest("#mic-undo") || voiceUndo === null) return;
+  entryEl.value = voiceUndo; ls.set("journal.draft", entryEl.value); voiceUndo = null;
+  $("mic-status").textContent = "元に戻しました";
+});
 function micStart(){
   if (!SR){ $("mic-status").textContent = "この画面では使えません。キーボードのマイクのボタンで話してください"; entryEl.focus(); return; }
   rec = new SR(); rec.lang = "ja-JP"; rec.continuous = true; rec.interimResults = true;
   const resetBase = () => { recBase = entryEl.value ? entryEl.value.replace(/\s+$/, "") + (entryEl.value.trim() ? "\n" : "") : ""; recFinal = ""; };
-  resetBase();
+  resetBase(); voiceFrom = recBase.length; voiceUndo = null;
   rec.onresult = (ev) => {
     let interim = "";
     for (let i = ev.resultIndex; i < ev.results.length; i++){ const r = ev.results[i]; if (r.isFinal) recFinal += r[0].transcript; else interim += r[0].transcript; }
