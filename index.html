@@ -155,16 +155,17 @@ h2{margin:0;font-size:15px;font-weight:700}
 .vis-edit label{font-size:12px;color:var(--sub);display:flex;flex-direction:column;gap:4px}
 .vis-edit textarea{min-height:64px;font-size:16px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg);color:var(--text);font-family:inherit;line-height:1.6}
 /* 朝の画面 */
-.morn{position:fixed;inset:0;z-index:44;background:var(--bg);display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 12px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 16px) max(16px,env(safe-area-inset-left,0px))}
-.morn-top{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:760px;width:100%;margin:0 auto}
+.morn{position:fixed;inset:0;z-index:44;background:var(--bg);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+.morn::-webkit-scrollbar{display:none}
+.morn-top{position:sticky;top:0;z-index:2;background:var(--bg);display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:760px;width:100%;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 12px) 0 8px}
 .morn-dots{display:flex;gap:6px}
 .morn-dots i{width:22px;height:4px;border-radius:2px;background:var(--line)}
 .morn-dots i.on{background:var(--accent)}
-.morn-body{flex:1;overflow:auto;display:flex;flex-direction:column;gap:14px;padding:16px 0;max-width:760px;width:100%;margin:0 auto}
+.morn-body{flex:1 0 auto;display:flex;flex-direction:column;gap:14px;padding:8px 0 16px;max-width:760px;width:100%;margin:0 auto}
 .morn-body h2{margin:0;font-size:20px}
 .morn-body .lead{margin:0;font-size:13px;color:var(--sub);line-height:1.6}
 .morn-big{font-size:22px;line-height:1.75;font-weight:700;text-align:center;white-space:pre-wrap;text-wrap:balance;padding:18px 8px;background:var(--card);border-radius:var(--r)}
-.morn-foot{display:flex;gap:10px;max-width:760px;width:100%;margin:0 auto}
+.morn-foot{position:sticky;bottom:0;z-index:2;background:var(--bg);display:flex;gap:10px;max-width:760px;width:100%;margin:0 auto;padding:10px 0 calc(env(safe-area-inset-bottom,0px) + 16px)}
 .morn-foot .btn{flex:1}
 .morn .muted{color:var(--sub)}
 .morn-chips{display:flex;flex-wrap:wrap;gap:6px}
@@ -1421,7 +1422,7 @@ function paintMorn(){
   if (!vision){ el.innerHTML = '<p class="empty">読み込んでいます</p>'; return; }
   $("morn-dots").innerHTML = [0, 1, 2].map((i) => '<i class="' + (i <= mornStep ? "on" : "") + '"></i>').join("");
   $("morn-foot").hidden = !!visEditing;
-  if (visEditing){ el.innerHTML = editHtml(visEditing); el.scrollTop = 0; return; }
+  if (visEditing){ el.innerHTML = editHtml(visEditing); $("morn").scrollTop = 0; return; }
   el.innerHTML = mornStep === 0 ? cloverHtml(vision) : mornStep === 1 ? fmHtml(vision) : actionHtml(vision);
   $("morn-back").style.visibility = mornStep === 0 ? "hidden" : "visible";
   $("morn-next").textContent = mornStep === 2 ? "今日はこれでよし" : "次へ";
@@ -1467,7 +1468,7 @@ $("morn-back").addEventListener("click", () => { mornSaveText(); if (mornStep > 
 function mornSaveText(){ const t = $("morn-action"); if (t) mornAction = t.value; }
 $("morn-next").addEventListener("click", async () => {
   mornSaveText();
-  if (mornStep < 2){ mornStep++; paintMorn(); $("vis-body").scrollTop = 0; return; }
+  if (mornStep < 2){ mornStep++; paintMorn(); $("morn").scrollTop = 0; return; }
   const day = mornDay(), text = mornAction.trim(), area = mornArea;
   mornClose();
   try { await db.doc("vision_log/" + day).set({date: day, at: new Date().toISOString(), action: text, area: area || ""}); } catch(e){}
