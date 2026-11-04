@@ -47,6 +47,34 @@ input,textarea,select{font-size:16px!important}
 .bk-head .bk-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .bk-meta{font-size:12px;color:var(--sub);line-height:1.5}
 .sum-jump{width:100%}
+.spick{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:10px}
+.spick .row{display:flex;gap:8px}
+.spick select{flex:1;min-width:0}
+.pks{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.pks.m{grid-template-columns:repeat(6,minmax(0,1fr))}
+.pk{min-height:40px;border:1px solid var(--line);border-radius:10px;background:transparent;font-size:13px;color:var(--text);padding:0 2px;line-height:1.2}
+.pk[aria-pressed="true"]{background:var(--accent);color:var(--onAccent);border-color:var(--accent)}
+.pk.off{color:var(--sub);opacity:.45}
+.mnav{display:flex;align-items:center;gap:8px}
+.mnav .icon-btn{flex:none}
+.mlabel{flex:1;border:0;background:var(--soft);border-radius:10px;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--text);font-size:16px;font-weight:700}
+.mlabel small{font-size:12px;font-weight:400;color:var(--sub)}
+.bk-title{font-weight:700;font-size:16px;line-height:1.5}
+.bk-act{background:var(--soft);border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.7}
+.bk-act b{display:block;font-size:13px;margin-bottom:2px}
+.bk-ses{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:4px;font-size:14px;line-height:1.7}
+.bk-ses .when{font-size:12px;color:var(--sub)}
+.bk-ses .lbl{font-size:12px;color:var(--sub);margin-right:6px}
+.sugg{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.sugg h3{margin:0;font-size:16px}
+.sugg-row{border-top:1px solid var(--line);padding:10px 0 4px;display:flex;flex-direction:column;gap:4px}
+.sugg-row .tx{font-size:15px}
+.sugg-row .q{font-size:12px;color:var(--sub);line-height:1.5}
+.sugg-row .eacts{display:flex;gap:8px}
+.sugg-row .eacts button{flex:1}
+.ailog{border-top:1px solid var(--line);padding-top:10px;font-size:14px;line-height:1.7}
+.ailog b{display:block;margin-bottom:4px}
+.ailog ol{margin:4px 0 0;padding-left:1.4em}
 .cal-legend{display:flex;gap:14px;align-items:center;font-size:12px;color:var(--sub)}
 .cal-legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:4px}
 /* 押したときの手応え */
@@ -513,12 +541,12 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
       <button type="button" data-k="w" aria-pressed="true">週のまとめ</button>
       <button type="button" data-k="m" aria-pressed="false">月のまとめ</button>
     </div>
-    <select id="sum-jump" class="date-input sum-jump" aria-label="期間を選んで開く"><option value="">期間を選んで開く</option></select>
+    <div class="spick" id="sum-pick"></div>
     <div class="sum-banner" id="sum-banner" hidden></div>
     <div class="status" id="sum-status" role="status"></div>
     <div class="sums" id="rv-sum"></div>
     <button class="btn ghost" id="sum-more" type="button" hidden>もっと前を見る</button>
-    <p class="small" style="margin:0;padding:0 4px" id="sum-note">週は月曜から日曜まで。第何週かは、その週の木曜日がある月で数えます。記録のある週と月は、過去の分もすべて自動でまとめます。</p>
+    <p class="small" style="margin:0;padding:0 4px" id="sum-note">週は月曜から日曜まで。第何週かは、その週の木曜日がある月で数えます。薄いボタンは記録のない週や月です。記録のある週と月は、過去の分もすべて自動でまとめます。</p>
   </div>
   <div id="rv-books-pane" class="view" hidden>
     <label class="searchbar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="books-q" placeholder="書名、著者、学びでさがす" aria-label="本の記録をさがす"></label>
@@ -527,6 +555,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
   </div>
   <div id="rv-ideas-pane" class="view" hidden>
     <label class="searchbar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="ideas-q" placeholder="言葉でさがす" aria-label="IDEAをさがす"></label>
+    <div class="row" style="display:flex;gap:8px"><select id="ideas-y" class="date-input" style="flex:1;min-width:0" aria-label="年"><option value="">すべての年</option></select><select id="ideas-m" class="date-input" style="flex:1;min-width:0" aria-label="月"><option value="">すべての月</option></select></div>
     <p class="small" style="margin:0;padding:0 4px" id="ideas-note">IDEAに切り替えて書いたものと、JOURNALの中からAIが拾ったものが並びます。</p>
     <div class="list" id="rv-ideas"></div>
   </div>
@@ -551,6 +580,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
     <button class="btn ghost" id="todo-scan" type="button">最近2週間の記録から拾う</button>
     <div class="status" id="todo-scan-status" role="status"></div>
   </div>
+  <div id="todo-sugg"></div>
   <div class="list" id="todo-open"></div>
   <details class="rawfold" id="todo-done-wrap" hidden><summary id="todo-done-label">終わったこと</summary><div class="list" id="todo-done"></div></details>
 </section>
@@ -1452,20 +1482,25 @@ function editHtml(kind){
   h += '<div class="eacts"><button type="button" class="btn" data-vsave="' + kind + '" style="flex:1">保存する</button><button type="button" class="mini" data-vcancel>やめる</button></div></div>';
   return h;
 }
+let mornSugg = false;
+const mornLast = () => (mornSugg ? 3 : 2);
 function paintMorn(){
   const el = $("vis-body");
   if (!vision){ el.innerHTML = '<p class="empty">読み込んでいます</p>'; return; }
-  $("morn-dots").innerHTML = [0, 1, 2].map((i) => '<i class="' + (i <= mornStep ? "on" : "") + '"></i>').join("");
+  if (mornStep > mornLast()) mornStep = mornLast();
+  $("morn-dots").innerHTML = Array.from({length: mornLast() + 1}, (_, i) => '<i class="' + (i <= mornStep ? "on" : "") + '"></i>').join("");
   $("morn-foot").hidden = !!visEditing;
   if (visEditing){ el.innerHTML = editHtml(visEditing); $("morn").scrollTop = 0; return; }
-  el.innerHTML = mornStep === 0 ? cloverHtml(vision) : mornStep === 1 ? fmHtml(vision) : actionHtml(vision);
+  el.innerHTML = mornStep === 0 ? cloverHtml(vision) : mornStep === 1 ? fmHtml(vision) : mornStep === 2 ? actionHtml(vision) : suggHtml(suggs, true) || '<p class="lead">候補はすべて決めました。</p>';
   $("morn-back").style.visibility = mornStep === 0 ? "hidden" : "visible";
-  $("morn-next").textContent = mornStep === 2 ? "今日はこれでよし" : "次へ";
+  $("morn-next").textContent = mornStep === mornLast() ? "今日はこれでよし" : "次へ";
 }
 function mornOpen(auto){
   mornStep = 0; visCell = todaysArea(); mornArea = todaysArea(); visEditing = null; mornAction = "";
   $("morn").hidden = false; paintMorn();
   ls.set("journal.mornShown", mornDay());
+  mornSugg = !!(suggs && suggs.length);
+  loadSuggs().then(() => { if (mornStep < 2) mornSugg = !!(suggs && suggs.length); if (!$("morn").hidden && !visEditing) paintMorn(); });
 }
 function mornClose(){ $("morn").hidden = true; visEditing = null; }
 async function loadVision(){
@@ -1503,9 +1538,9 @@ $("morn-back").addEventListener("click", () => { mornSaveText(); if (mornStep > 
 function mornSaveText(){ const t = $("morn-action"); if (t) mornAction = t.value; }
 $("morn-next").addEventListener("click", async () => {
   mornSaveText();
-  if (mornStep < 2){ mornStep++; paintMorn(); $("morn").scrollTop = 0; return; }
+  if (mornStep < mornLast()){ mornStep++; paintMorn(); $("morn").scrollTop = 0; return; }
   const day = mornDay(), text = mornAction.trim(), area = mornArea;
-  mornClose();
+  mornClose(); mornAction = "";
   try { await db.doc("vision_log/" + day).set({date: day, at: new Date().toISOString(), action: text, area: area || ""}); } catch(e){}
   if (text){ const lab = ((FM_AREAS.find((c) => c[0] === area) || [])[1] || "").replace(/^[①-⑨]\s*/, ""); await addTodo(text, "MY COMPASS" + (lab ? "（" + lab + "）" : ""), null, REAL_TODAY, REAL_TODAY); toast("今日の一歩をTODOに入れました"); }
   else toast("今日もいってらっしゃい");
@@ -2096,11 +2131,19 @@ function renderPane(){
 const todoBtn = (text, from) => text ? '<button type="button" class="link" data-todo-add="' + esc(text) + '" data-from="' + from + '">TODOに入れる</button>' : '';
 const qMatch = (q, ...xs) => { q = (q || "").trim().toLowerCase(); if (!q) return true; const t = xs.join(" ").toLowerCase(); return q.split(/\s+/).every((w) => t.indexOf(w) >= 0); };
 $("ideas-q").addEventListener("input", () => renderIdeas());
+$("ideas-y").addEventListener("change", () => { $("ideas-m").value = ""; renderIdeas(); });
+$("ideas-m").addEventListener("change", () => renderIdeas());
 $("books-q").addEventListener("input", () => renderBooks());
 async function renderIdeas(){
   const el = $("rv-ideas");
-  const paint = (all) => { const q = $("ideas-q").value, rows = all.filter((x) => qMatch(q, x.title || "", x.core || "", x.next || "", x.raw || ""));
-    $("ideas-note").textContent = q.trim() ? all.length + "件のうち" + rows.length + "件" : "IDEAに切り替えて書いたものと、JOURNALの中からAIが拾ったものが並びます。全部で" + all.length + "件。";
+  const paint = (all) => {
+    // 年と月の選択肢は、IDEAのある年月だけ
+    const ys = [...new Set(all.map((x) => String(x.date || "").slice(0, 4)).filter(Boolean))].sort().reverse(), yv = $("ideas-y").value, mv = $("ideas-m").value;
+    $("ideas-y").innerHTML = '<option value="">すべての年</option>' + ys.map((y) => '<option value="' + y + '"' + (y === yv ? " selected" : "") + '>' + y + '年</option>').join("");
+    const ms = [...new Set(all.filter((x) => !yv || String(x.date || "").startsWith(yv)).map((x) => String(x.date || "").slice(5, 7)).filter(Boolean))].sort();
+    $("ideas-m").innerHTML = '<option value="">すべての月</option>' + ms.map((m2) => '<option value="' + m2 + '"' + (m2 === mv ? " selected" : "") + '>' + Number(m2) + '月</option>').join("");
+    const q = $("ideas-q").value, rows = all.filter((x) => (!yv || String(x.date || "").startsWith(yv)) && (!mv || String(x.date || "").slice(5, 7) === mv) && qMatch(q, x.title || "", x.core || "", x.next || "", x.raw || ""));
+    $("ideas-note").textContent = q.trim() || yv || mv ? all.length + "件のうち" + rows.length + "件" : "IDEAに切り替えて書いたものと、JOURNALの中からAIが拾ったものが並びます。全部で" + all.length + "件。";
     el.innerHTML = rows.length ? rows.map((x) => '<div class="item idea"><div class="row-between"><span class="ttl">' + esc(x.title || "（名前なし）") + '</span><span class="small">' + md2(x.date) + (x.src === "diary" ? "　JOURNALから" : "") + '</span></div>'
       + (x.core ? '<p class="body">' + esc(x.core) + '</p>' : '') + (x.next ? '<div class="box"><b>次の一歩</b><span>' + esc(x.next) + '</span></div>' : '') + todoBtn(x.next, "IDEA") + '</div>').join("")
       : '<div class="item"><p class="empty">' + (q.trim() ? "見つかりませんでした。" : "まだIDEAはありません。今日を書くでIDEAに切り替えて書くと、ここに並びます。") + '</p></div>'; };
@@ -2117,12 +2160,16 @@ async function renderBooks(){
     // 本ごとにまとめる。新しく読んだ本が上
     const groups = [];
     rows.forEach((x) => { const k = x.title || "（書名なし）"; let g = groups.find((y) => y.k === k); if (!g){ g = {k: k, author: x.author, list: []}; groups.push(g); } g.list.push(x); });
-    el.innerHTML = groups.map((g) => bookHead(g) 
-      + g.list.slice().reverse().map((x) => '<details class="rawfold"><summary>' + md2(x.date) + (x.takeaway ? '　' + esc(x.takeaway.slice(0, 18)) + (x.takeaway.length > 18 ? "…" : "") : "") + '</summary><div class="group">'
-        + (x.note ? '<div class="box"><b>内容</b><span>' + esc(x.note) + '</span></div>' : '')
-        + (x.takeaway ? '<div class="box"><b>学び</b><span>' + esc(x.takeaway) + '</span></div>' : '')
-        + (x.action ? '<div class="box"><b>1つの行動</b><span>' + esc(x.action) + '</span></div>' : '')
-        + todoBtn(x.action, "本") + '</div></details>').join("") + '</div>').join("");
+    lastBookGroups = groups;
+    el.innerHTML = groups.map((g) => {
+      const ses = g.list.slice().reverse();   // 読んだ順（1回目が上）
+      const one = (x, i) => '<div class="bk-ses"><span class="when">' + (ses.length > 1 ? (i + 1) + "回目　" : "") + md2(x.date) + (x.at ? "　" + atHM(x.at) : "") + '</span>'
+        + (x.takeaway ? '<div><span class="lbl">感じたこと</span>' + esc(x.takeaway) + '</div>' : '')
+        + (x.action ? '<div><span class="lbl">行動</span>' + esc(x.action) + '</div>' + todoBtn(x.action, "本") : '')
+        + (x.note ? '<details class="rawfold"><summary>本の内容のメモを開く</summary><p class="body" style="font-size:13px">' + esc(x.note) + '</p></details>' : '') + '</div>';
+      return bookHead(g) + ses.slice(0, 2).map(one).join("")
+        + (ses.length > 2 ? '<details class="rawfold"><summary>残り' + (ses.length - 2) + '回分を見る</summary>' + ses.slice(2).map((x, i) => one(x, i + 2)).join("") + '</details>' : '') + '</div>';
+    }).join("");
   };
   if (booksCache) paint(booksCache); else el.innerHTML = '<div class="item"><p class="empty">読み込んでいます</p></div>';
   if (!db) return;
@@ -2131,9 +2178,24 @@ async function renderBooks(){
   const need = [...new Set((booksCache || []).map((x) => x.title).filter((t) => t && !bookInfo[bookKey(t)]))].slice(0, 8);
   for (const t of need){ const x = booksCache.find((y) => y.title === t); await lookupBook(t, x && x.author); }
   if (need.length) paint(booksCache);
+  // 何回か読んだ本は、それぞれの「行動」の重なりをAIでまとめておく
+  let made = 0;
+  for (const g of lastBookGroups || []){
+    const acts = g.list.map((x) => x.action).filter(Boolean), key = bookKey(g.k), bi = bookInfo[key] || {};
+    if (acts.length < 2 || bi.actN === acts.length || !sample || made >= 3) continue;
+    try {
+      const r = await sample.json("以下は、同じ本を読んだときに本人が書いた「行動すること」の一覧です。重なっているものはまとめ、本人がこの本から実際に行動することを3つまで、短い1文で書いてください。書かれていない内容は足さない。数字は算用数字。中黒（・）は使わない。\n返答はJSONのみ: {\"items\":[\"\"]}\n\n" + acts.map((a) => "- " + a).join("\n"), {cache: false});
+      const items = (Array.isArray(r.items) ? r.items : []).map(String).filter(Boolean).slice(0, 3);
+      if (!items.length) continue;
+      bookInfo[key] = Object.assign({key: key, asked: g.k}, bi, {actSum: items, actN: acts.length});
+      await db.doc("bookinfo/" + key).set(bookInfo[key]); made++;
+    } catch(e){}
+  }
+  if (made) paint(booksCache);
 }
 /* ---------- 本の情報をインターネットで調べる（Google ブックス） ---------- */
-let bookInfo = {}, bookInfoLoaded = false;
+let bookInfo = {}, bookInfoLoaded = false, lastBookGroups = null;
+const atHM = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.getHours() + "時" + String(d.getMinutes()).padStart(2, "0") + "分"; };
 const bookKey = (t) => String(t || "").replace(/[\s　『』「」]/g, "").toLowerCase().slice(0, 60) || "_";
 async function loadBookInfo(){
   if (bookInfoLoaded) return;
@@ -2154,10 +2216,14 @@ async function lookupBook(title, author){
 }
 function bookHead(g){
   const bi = bookInfo[bookKey(g.k)] || {};
+  const title = bi.title ? String(bi.title).replace(/\s*:\s*/, "　") : g.k;   // 正式な題名（調べられなければ書いた題名）
   const meta = [bi.authors && bi.authors.length ? bi.authors.join("、") : g.author || "", bi.publisher || "", bi.published ? bi.published.slice(0, 4) + "年" : "", bi.pages ? bi.pages + "ページ" : ""].filter(Boolean).join("　");
+  const ds = [...new Set(g.list.map((x) => x.date).filter(Boolean))].sort(), when = ds.length ? mdJ(ds[0]) + (ds.length > 1 ? "〜" + mdJ(ds[ds.length - 1]) : "") : "";
+  const acts = g.list.map((x) => x.action).filter(Boolean), sum = bi.actSum && bi.actN === acts.length ? bi.actSum : acts.length === 1 ? acts : null;
   return '<div class="item"><div class="bk-head">' + (bi.thumb ? '<img src="' + esc(bi.thumb) + '" alt="" loading="lazy">' : '')
-    + '<div class="bk-t"><span class="ttl" style="font-weight:700">' + esc(g.k) + '</span>' + (meta ? '<span class="bk-meta">' + esc(meta) + '</span>' : '') + '<span class="bk-meta">記録 ' + g.list.length + '回</span>'
+    + '<div class="bk-t"><span class="bk-title">' + esc(title) + '</span>' + (meta ? '<span class="bk-meta">' + esc(meta) + '</span>' : '') + '<span class="bk-meta">読んだ記録 ' + g.list.length + '回' + (when ? "　" + when : "") + '</span>'
     + (bi.link ? '<a class="bk-meta" href="' + esc(bi.link) + '" target="_blank" rel="noopener" style="color:var(--accentText)">本の詳しい情報</a>' : '') + '</div></div>'
+    + (sum ? '<div class="bk-act"><b>この本から行動すること</b>' + (sum.length > 1 ? sum.map((t, i) => (i + 1) + ". " + esc(t)).join("<br>") : esc(sum[0])) + '</div>' : acts.length > 1 ? '<div class="bk-act"><b>この本から行動すること</b><span class="small">まとめています</span></div>' : '')
     + (bi.description ? '<details class="rawfold"><summary>本の紹介</summary><p class="body" style="font-size:13px">' + esc(bi.description) + '</p></details>' : '');
 }
 
@@ -2186,7 +2252,29 @@ function sumHtml(x){
   return '<div class="sum">'
     + '<p class="body">' + esc(x.story || "") + '</p>'
     + box("よかったこと", x.good) + box("テーマ", x.themes) + box("IDEA", x.ideas) + box("読んだ本", x.books) + box("隼人", x.hayato) + box(x.kind === "w" ? "来週への問い" : "来月への問い", x.questions)
+    + (x.partial ? '' : '<div class="ailog" data-ailog="' + x.kind + '|' + x.start + '|' + x.end + '">' + aiLogHtml(x.kind + "-" + x.start) + '</div>')
     + '<div class="eacts"><button type="button" class="mini" data-sum-redo="' + x.kind + '|' + x.start + '|' + x.end + '"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 12a9 9 0 1 1-3-6.7L21 8\"/><path d=\"M21 3v5h-5\"/></svg>作り直す</button></div></div>';
+}
+// ChatGPTとClaudeへの相談のまとめ（ドライブの AI LOG）を読み込んで並べる
+const aiLogs = {}, aiLogBusy = {};
+function aiLogHtml(id){
+  const v = aiLogs[id];
+  if (v === undefined) return '<span class="small">AIとの相談を読み込んでいます</span>';
+  if (!v || v.none) return '';
+  const li = (a) => '<ol>' + a.map((t) => '<li>' + esc(t) + '</li>').join("") + '</ol>';
+  return '<b>AIとの相談</b>' + (v.hitokoto ? '<p style="margin:0">' + esc(v.hitokoto) + '</p>' : '')
+    + ((v.items || []).length ? li(v.items.map((x) => (x.cat ? x.cat + "　" : "") + x.text)) : '')
+    + ((v.next || []).length ? '<p class="small" style="margin:8px 0 0">AIとの相談で決めた、次にやること</p>' + li(v.next) : '')
+    + (v.url ? '<a class="small" href="' + esc(v.url) + '" target="_blank" rel="noopener" style="color:var(--accentText)">AI LOGで全部を見る</a>' : '');
+}
+async function loadAiLogs(){
+  for (const el of document.querySelectorAll(".scard[open] [data-ailog]")){
+    const [k, start, end] = el.dataset.ailog.split("|"), id = k + "-" + start;
+    if (aiLogs[id] !== undefined){ el.innerHTML = aiLogHtml(id); continue; }
+    if (aiLogBusy[id]) continue; aiLogBusy[id] = 1;
+    try { const r = await window.JOURNAL_CALL("ailog", {k: k, start: start, end: end}); aiLogs[id] = r && !r.error ? r : null; } catch(e){ aiLogs[id] = null; }
+    document.querySelectorAll('[data-ailog="' + el.dataset.ailog + '"]').forEach((x) => { x.innerHTML = aiLogHtml(id); });
+  }
 }
 // 週の呼び方：その週の木曜日がある月の「第何週」
 const WDJ = ["日","月","火","水","木","金","土"];
@@ -2241,11 +2329,9 @@ function paintSums(){
   // 最初に開いておくのは、まとめのある一番新しい終わった期間
   if (!sumOpen[k]){ const f = list.find((p) => !p.partial && have[p.start]); sumOpen[k] = f ? f.start : "-"; }
   const shown = list.slice(0, sumShow[k]);
-  // 期間を選ぶ一覧（月ごとにまとめる）
-  const groups = {};
-  list.forEach((p) => { const g = k === "w" ? dObj(addD(p.start, 3)).getFullYear() + "年" : p.start.slice(0, 4) + "年"; (groups[g] = groups[g] || []).push(p); });
-  $("sum-jump").innerHTML = '<option value="">' + (k === "w" ? "週を選んで開く" : "月を選んで開く") + '</option>' + Object.keys(groups).map((g) => '<optgroup label="' + g + '">' + groups[g].map((p) => '<option value="' + p.start + '">' + esc(k === "w" ? weekName(p.start) + "（" + mdJ(p.start) + "〜" + mdJ(addD(p.start, 6)) + "）" : Number(p.start.slice(5, 7)) + "月") + (p.partial ? "　途中まで" : have[p.start] ? "" : "　まだ") + '</option>').join("") + '</optgroup>').join("");
+  paintPick(list, have);
   el.innerHTML = shown.map((p) => sumCard(p, p.partial ? (have[p.start + "-p"] || null) : (have[p.start] || null), p.start === sumOpen[k])).join("");
+  setTimeout(loadAiLogs, 0);
   $("sum-more").hidden = list.length <= sumShow[k];
   const left = list.filter((p) => !p.partial && !have[p.start]).length;
   const b = $("sum-banner");
@@ -2273,14 +2359,65 @@ async function renderSums(){
   } catch(e){}
 }
 $("sum-more").addEventListener("click", () => { sumShow[sumKind] += 12; paintSums(); });
-$("rv-sum").addEventListener("toggle", (ev) => { const d = ev.target; if (!d.classList || !d.classList.contains("scard")) return; if (d.open) sumOpen[sumKind] = d.dataset.sc; else if (sumOpen[sumKind] === d.dataset.sc) sumOpen[sumKind] = "-"; }, true);
-$("sum-jump").addEventListener("change", (ev) => {
-  const v = ev.target.value; if (!v) return;
-  const list = sumPeriods(sumKind), i = list.findIndex((p) => p.start === v);
+$("rv-sum").addEventListener("toggle", (ev) => { const d = ev.target; if (!d.classList || !d.classList.contains("scard")) return; if (d.open){ sumOpen[sumKind] = d.dataset.sc; pick[sumKind] = d.dataset.sc; loadAiLogs(); } else if (sumOpen[sumKind] === d.dataset.sc) sumOpen[sumKind] = "-"; }, true);
+// 期間を選んで開く
+function sumJump(v){
+  const list = sumPeriods(sumKind), i = list.findIndex((p) => p.start === v); if (i < 0) return;
   if (i >= sumShow[sumKind]) sumShow[sumKind] = i + 1;
-  sumOpen[sumKind] = v; paintSums();
+  sumOpen[sumKind] = v; pick[sumKind] = v; paintSums();
   const c = document.querySelector('.scard[data-sc="' + v + '"]'); if (c) c.scrollIntoView({behavior: "smooth", block: "start"});
-  ev.target.value = "";
+}
+// 週は「年月を選んで第何週かを押す」、月は「矢印で動いて、真ん中を押すと年月を選べる」
+const pick = {w: null, m: null, ym: null, grid: false, gy: null};
+const thuYM = (start) => addD(start, 3).slice(0, 7);
+function paintPick(list, have){
+  const el = $("sum-pick"), k = sumKind;
+  if (!list.length){ el.hidden = true; return; }
+  el.hidden = false;
+  const cur = pick[k] || (sumOpen[k] && sumOpen[k] !== "-" ? sumOpen[k] : list[0].start);
+  if (k === "w"){
+    const yms = [...new Set(list.map((p) => thuYM(p.start)))].sort().reverse();
+    let ym = pick.ym && yms.indexOf(pick.ym) >= 0 ? pick.ym : thuYM(cur);
+    if (yms.indexOf(ym) < 0) ym = yms[0];
+    pick.ym = ym;
+    const years = [...new Set(yms.map((x) => x.slice(0, 4)))];
+    const months = yms.filter((x) => x.slice(0, 4) === ym.slice(0, 4)).map((x) => x.slice(5, 7)).sort().reverse();
+    // その月の週（木曜日がその月にある週）を、記録のない週も含めて並べる
+    const first = ym + "-01", d0 = dObj(first);
+    let mon = mondayOf(first); if (addD(mon, 3) < first) mon = addD(mon, 7);
+    const weeks = []; for (let m2 = mon; addD(m2, 3).slice(0, 7) === ym; m2 = addD(m2, 7)) weeks.push(m2);
+    const byStart = {}; list.forEach((p) => { byStart[p.start] = p; });
+    el.innerHTML = '<div class="row"><select id="sp-y" class="date-input" aria-label="年">' + years.map((y) => '<option value="' + y + '"' + (y === ym.slice(0, 4) ? " selected" : "") + '>' + y + '年</option>').join("") + '</select>'
+      + '<select id="sp-m" class="date-input" aria-label="月">' + months.map((m2) => '<option value="' + m2 + '"' + (m2 === ym.slice(5, 7) ? " selected" : "") + '>' + Number(m2) + '月</option>').join("") + '</select></div>'
+      + '<div class="pks">' + weeks.map((w, i) => { const p = byStart[w]; return '<button type="button" class="pk' + (p ? "" : " off") + '" data-pk="' + w + '" aria-pressed="' + (w === sumOpen.w) + '" aria-label="' + esc(weekName(w) + "　" + mdJ(w) + "から" + mdJ(addD(w, 6))) + '">第' + (i + 1) + '週<br><small style="font-size:11px">' + Number(w.slice(8)) + '日〜</small></button>'; }).join("") + '</div>';
+  } else {
+    const p = list.find((x) => x.start === cur) || list[0], doc = have[p.start + (p.partial ? "-p" : "")] || have[p.start];
+    const i = list.indexOf(p);
+    const meta = "記録 " + ((doc && doc.count) || p.n) + "日" + (doc && doc.avgMood ? "　平均の調子 " + doc.avgMood : "") + (p.partial ? "　途中まで" : "");
+    let h = '<div class="mnav"><button type="button" class="icon-btn" data-mstep="1" aria-label="前の月"' + (i >= list.length - 1 ? " disabled" : "") + '>‹</button>'
+      + '<button type="button" class="mlabel" data-mgrid aria-expanded="' + pick.grid + '">' + Number(p.start.slice(0, 4)) + '年' + Number(p.start.slice(5, 7)) + '月<small>' + meta + '　押すと年月を選べます</small></button>'
+      + '<button type="button" class="icon-btn" data-mstep="-1" aria-label="次の月"' + (i <= 0 ? " disabled" : "") + '>›</button></div>';
+    if (pick.grid){
+      const years = [...new Set(list.map((x) => x.start.slice(0, 4)))];
+      const gy = pick.gy && years.indexOf(pick.gy) >= 0 ? pick.gy : p.start.slice(0, 4);
+      const has = {}; list.forEach((x) => { has[x.start] = 1; });
+      h += '<select id="sp-gy" class="date-input" aria-label="年">' + years.map((y) => '<option value="' + y + '"' + (y === gy ? " selected" : "") + '>' + y + '年</option>').join("") + '</select>'
+        + '<div class="pks m">' + Array.from({length: 12}, (_, j) => { const st = gy + "-" + String(j + 1).padStart(2, "0") + "-01"; return '<button type="button" class="pk' + (has[st] ? "" : " off") + '" data-pk="' + st + '" aria-pressed="' + (st === p.start) + '">' + (j + 1) + '月</button>'; }).join("") + '</div>';
+    }
+    el.innerHTML = h;
+  }
+}
+$("sum-pick").addEventListener("change", (ev) => {
+  if (ev.target.id === "sp-y"){ const yms = [...new Set(sumPeriods("w").map((p) => thuYM(p.start)))].sort().reverse(); pick.ym = yms.find((x) => x.slice(0, 4) === ev.target.value) || pick.ym; paintSums(); }
+  else if (ev.target.id === "sp-m"){ pick.ym = pick.ym.slice(0, 4) + "-" + ev.target.value; paintSums(); }
+  else if (ev.target.id === "sp-gy"){ pick.gy = ev.target.value; paintSums(); }
+});
+$("sum-pick").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-pk]");
+  if (b){ if (b.classList.contains("off")){ toast(sumKind === "w" ? "この週は記録がありません" : "この月は記録がありません"); return; } pick.grid = false; sumJump(b.dataset.pk); return; }
+  if (ev.target.closest("[data-mgrid]")){ pick.grid = !pick.grid; pick.gy = null; paintSums(); return; }
+  const st = ev.target.closest("[data-mstep]");
+  if (st){ const list = sumPeriods("m"), cur = pick.m || (sumOpen.m && sumOpen.m !== "-" ? sumOpen.m : list[0].start), i = list.findIndex((p) => p.start === cur), n = list[i + Number(st.dataset.mstep)]; if (n) sumJump(n.start); }
 });
 function sumText(x){
   const L = [(x.kind === "w" ? "【週のまとめ】" : "【月のまとめ】") + periodLabel(x.kind, x.start, x.end) + (x.partial ? "（途中まで）" : ""), "記録 " + (x.count || 0) + "日" + (x.avgMood ? "　平均の調子 " + x.avgMood : ""), "", x.story || ""];
@@ -2369,9 +2506,37 @@ function todoHtml(x){
     + '<div><div class="tx">' + esc(x.text) + '</div><div class="meta">' + meta.join("") + '</div></div>'
     + '<button type="button" class="mini" data-todo-del="' + esc(x.id) + '" aria-label="消す">消す</button></div>';
 }
+/* ---------- やることの候補（毎朝、最近の日記からAIが拾う） ---------- */
+let suggs = null;
+async function loadSuggs(){
+  if (!db) return [];
+  try { const s2 = await db.collection("todo_suggest").where("status", "==", "new").orderBy("made", "desc").limit(10).get(); suggs = s2.docs.map((x) => Object.assign({id: x.id}, x.data())); } catch(e){ suggs = suggs || []; }
+  return suggs;
+}
+function suggHtml(list, inMorn){
+  if (!list || !list.length) return "";
+  return (inMorn ? '<h2>これ、やらなくて大丈夫ですか</h2><p class="lead">ここ数日の日記から拾いました。「追加する」を押すとTODOに入ります。</p>' : '<div class="sugg"><h3>これ、やらなくて大丈夫ですか</h3><span class="small">ここ数日の日記から拾いました</span>')
+    + list.map((x) => '<div class="sugg-row" data-sgrow="' + esc(x.id) + '"><span class="tx">' + esc(x.text) + '</span>' + (x.date ? '<span class="q">' + mdJ(x.date) + 'の日記' + (x.quote ? '「' + esc(x.quote) + '」' : '') + 'より</span>' : '')
+      + '<div class="eacts"><button type="button" class="btn" data-sg="add" data-sgid="' + esc(x.id) + '">追加する</button><button type="button" class="mini" data-sg="no" data-sgid="' + esc(x.id) + '">いらない</button></div></div>').join("")
+    + (inMorn ? '' : '</div>');
+}
+function paintSuggTodo(){ $("todo-sugg").innerHTML = suggHtml(suggs, false); }
+document.addEventListener("click", async (ev) => {
+  const b = ev.target.closest("[data-sg]"); if (!b) return;
+  const id = b.dataset.sgid, x = (suggs || []).find((y) => y.id === id); if (!x) return;
+  const add = b.dataset.sg === "add";
+  suggs = suggs.filter((y) => y.id !== id);
+  document.querySelectorAll('[data-sgrow="' + id + '"]').forEach((r) => r.remove());
+  if (!suggs.length){ paintSuggTodo(); if (!$("morn").hidden && mornStep === 3) paintMorn(); }
+  if (add){ await addTodo(x.text, "AIの提案", "sg-" + id, x.date || REAL_TODAY); toast("TODOに追加しました"); renderTodo(); }
+  else toast("この候補は出さないようにしました");
+  try { await db.doc("todo_suggest/" + id).update({status: add ? "added" : "no", decided: new Date().toISOString()}); } catch(e){}
+});
 function renderTodoPaint(){ if (todoCache) todoPaint(todoCache); }
 let todoPaint = () => {};
 async function renderTodo(){
+  if (suggs) paintSuggTodo();
+  loadSuggs().then(paintSuggTodo);
   const paint = todoPaint = (rows) => {
     // 期限のあるものを上に（近い順）、終わったものは終わった日の新しい順
     const open = rows.filter((x) => !x.done).sort((a, b) => (a.due || "9999") < (b.due || "9999") ? -1 : (a.due || "9999") > (b.due || "9999") ? 1 : (a.at < b.at ? 1 : -1));
