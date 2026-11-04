@@ -170,7 +170,25 @@ h2{margin:0;font-size:15px;font-weight:700}
 .morn-chips{display:flex;flex-wrap:wrap;gap:6px}
 .morn-chips button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--text)}
 .morn-chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
-.vis-open-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.vis-open-row{display:flex}
+/* MY COMPASS の入口 */
+.compass-btn{width:100%;display:flex;align-items:center;gap:14px;border:0;border-radius:16px;padding:14px 16px;background:var(--accent);color:var(--onAccent);text-align:left;cursor:pointer}
+.compass-btn .cb-icon{flex:none;width:42px;height:42px;border-radius:50%;border:1.5px solid rgba(255,255,255,.55);display:flex;align-items:center;justify-content:center}
+.compass-btn .cb-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.compass-btn b{font-size:15px;letter-spacing:.18em;font-weight:700}
+.compass-btn small{font-size:12px;opacity:.82;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.compass-btn .cb-arrow{flex:none;opacity:.7}
+/* フューチャーマップの期間の切り替えと見出し */
+.fm-seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;padding:3px;background:var(--line);border-radius:12px}
+.fm-seg button{min-height:40px;border:0;border-radius:9px;background:transparent;font-size:14px;color:var(--sub)}
+.fm-seg button[aria-pressed="true"]{background:var(--accent);color:var(--onAccent);font-weight:700}
+.fm-title{display:flex;flex-direction:column;gap:2px}
+.fm-title .when{font-size:12px;color:var(--sub);letter-spacing:.04em}
+.fm-title .head{font-size:16px;font-weight:700;line-height:1.5;text-wrap:balance}
+.fm-hist{display:flex;flex-direction:column;gap:8px}
+.fm-hist .chips2{display:flex;flex-wrap:wrap;gap:6px}
+.fm-hist .chips2 button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 12px;font-size:12px;color:var(--text)}
+.fm-hist .chips2 button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
 /* iPadやパソコンでは少し広く */
 @media (min-width:820px){
   .wrap{max-width:760px}
@@ -363,7 +381,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
       <button class="link" id="w-change" type="button" style="align-self:center">別の日の分を書く</button>
     </div>
   </div>
-  <div class="vis-open-row"><button type="button" class="mini" id="vis-open"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>MY COMPASS</button><span class="small" id="vis-streak"></span></div>
+  <div class="vis-open-row"><button type="button" class="compass-btn" id="vis-open"><span class="cb-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.2 5-5 2.2 2.2-5z"/><path d="M12 3v1.6M12 19.4V21M3 12h1.6M19.4 12H21"/></svg></span><span class="cb-text"><b>MY COMPASS</b><small id="vis-streak">今日の方角を確かめる</small></span><svg class="cb-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></div>
   <div class="notice" id="w-panel" hidden>
     <div class="group">
       <label class="label" for="w-date" style="padding:0">書く日を選ぶ</label>
@@ -1331,17 +1349,45 @@ function cloverHtml(v){
   h += '<div class="eacts"><button type="button" class="mini" data-vedit="clover">' + (any ? "書き直す" : "書く") + '</button></div>';
   return h;
 }
+// 見出しを「時期」と「ひとこと」に分ける（中黒は使わない）
+function fmTitle(t){
+  const parts = String(t || "").split(/\s*[─—―]{1,}\s*/);
+  const when = (parts.length > 1 ? parts[0] : "").replace(/・/g, "　").trim();
+  const head = (parts.length > 1 ? parts.slice(1).join(" ") : parts[0]).trim();
+  return {when: when, head: head};
+}
+const ymJ = (ym) => Number(ym.slice(0, 4)) + "年" + Number(ym.slice(5, 7)) + "月";
+let monthsCache = null, visMonth = null;
+async function loadMonths(){
+  try { const r = await window.JOURNAL_CALL("db", {op: "query", coll: "compass_months", orderBy: "month", dir: "desc", limit: 60}); monthsCache = (r.docs || []).map((x) => x.data); } catch(e){ monthsCache = monthsCache || []; }
+  if (!$("morn").hidden && mornStep === 1 && visFm === "m1" && !visEditing) paintMorn();
+}
 function fmHtml(v){
-  const m = (v.fm || {})[visFm] || {}, cells = m.cells || {};
-  let h = '<h2>フューチャーマップ</h2><p class="lead">今日の1マスを開いています。ほかのマスも押すと読めます。</p>';
-  h += '<div class="fm-head"><b>' + visEsc(m.title || "") + '</b><span>' + [["y7", "7年後"], ["y1", "1年後"], ["m1", "1か月"]].map(([k, l]) => '<button type="button" class="link" data-vfm="' + k + '" style="' + (k === visFm ? "font-weight:700;text-decoration:underline" : "") + '">' + l + '</button>').join("　") + '</span></div>';
+  const nowYm = mornDay().slice(0, 7);
+  const past = visFm === "m1" && visMonth && visMonth !== nowYm ? (monthsCache || []).find((x) => x.month === visMonth) : null;
+  const m = past || (v.fm || {})[visFm] || {}, cells = m.cells || {};
+  let h = '<h2>フューチャーマップ</h2>';
+  h += '<div class="fm-seg" role="group" aria-label="期間">' + [["y7", "7年後"], ["y1", "1年後"], ["m1", "1か月"]].map(([k, l]) => '<button type="button" data-vfm="' + k + '" aria-pressed="' + (k === visFm) + '">' + l + '</button>').join("") + '</div>';
+  const tt = fmTitle(m.title);
+  const when = visFm === "m1" ? ymJ(past ? past.month : nowYm) + (past ? "（記録）" : "") + (tt.when ? "　" + tt.when : "") : tt.when;
+  h += '<div class="fm-title">' + (when ? '<span class="when">' + visEsc(when) + '</span>' : '') + '<span class="head">' + (visEsc(tt.head) || '<span class="muted" style="font-weight:400;font-size:14px">見出しはまだありません</span>') + '</span></div>';
+  h += '<p class="lead">' + (visFm === "m1" ? (past ? "この月のアクションプランの記録です。" : "今月のアクションプランです。") : "") + '今日の1マスを開いています。ほかのマスも押すと読めます。</p>';
   h += '<div class="fm-grid">' + FM_CELLS.map(([k, l]) => {
     const t = cells[k] || "";
     if (k === "theme") return '<button type="button" class="center" data-vcell="theme">' + visEsc(t || l) + '</button>';
     return '<button type="button" class="' + (t ? "" : "empty") + '" data-vcell="' + k + '" aria-pressed="' + (visCell === k) + '"><span>' + visEsc(l) + (k === todaysArea() ? "（今日）" : "") + '</span><span class="fm-full">' + visEsc(t) + '</span></button>';
   }).join("") + '</div>';
   if (visCell && visCell !== "theme"){ const lab = (FM_CELLS.find((c) => c[0] === visCell) || [])[1]; h += '<div class="fm-detail"><b>' + visEsc(lab) + '</b>' + (visEsc(cells[visCell]) || '<span class="muted">まだ書いていません</span>') + '</div>'; }
-  h += '<div class="eacts"><button type="button" class="mini" data-vedit="fm">書き直す</button></div>';
+  if (!past) h += '<div class="eacts"><button type="button" class="mini" data-vedit="fm">書き直す</button></div>';
+  // 1か月は毎月のアクションプランとして、月ごとに残る
+  if (visFm === "m1"){
+    const list = (monthsCache || []).filter((x) => x.month !== nowYm);
+    h += '<div class="fm-hist"><b style="font-size:13px">これまでの1か月</b>';
+    if (!monthsCache){ h += '<span class="small">読み込んでいます</span>'; loadMonths(); }
+    else if (!list.length) h += '<span class="small">先月までの分が、ここに月ごとにたまっていきます。</span>';
+    else h += '<div class="chips2">' + '<button type="button" data-vmonth="' + nowYm + '" aria-pressed="' + (!past) + '">今月</button>' + list.map((x) => '<button type="button" data-vmonth="' + x.month + '" aria-pressed="' + (past && past.month === x.month) + '">' + ymJ(x.month) + '</button>').join("") + '</div>';
+    h += '</div>';
+  }
   return h;
 }
 function actionHtml(v){
@@ -1401,7 +1447,7 @@ async function paintStreak(){
   let n = 0, d = new Date(mornDay() + "T00:00:00");
   if (!visLog.has(ymd(d))) d.setDate(d.getDate() - 1);
   while (visLog.has(ymd(d))){ n++; d.setDate(d.getDate() - 1); }
-  $("vis-streak").textContent = visLog.has(mornDay()) ? "今日は読みました" + (n > 1 ? "（" + n + "日続いています）" : "") : n ? n + "日続いています" : "";
+  $("vis-streak").textContent = visLog.has(mornDay()) ? "今日は読みました" + (n > 1 ? "（" + n + "日続いています）" : "") : n ? n + "日続いています。今日の方角を確かめる" : "今日の方角を確かめる";
 }
 // その日初めて開いたとき（置いたままのアプリに戻ったときも）に出す
 async function mornCheck(){
@@ -1430,7 +1476,8 @@ $("morn-next").addEventListener("click", async () => {
   paintStreak();
 });
 $("vis-body").addEventListener("click", async (ev) => {
-  const f = ev.target.closest("[data-vfm]"); if (f){ visFm = f.dataset.vfm; paintMorn(); return; }
+  const f = ev.target.closest("[data-vfm]"); if (f){ visFm = f.dataset.vfm; visMonth = null; paintMorn(); return; }
+  const mo = ev.target.closest("[data-vmonth]"); if (mo){ visMonth = mo.dataset.vmonth; paintMorn(); return; }
   const c = ev.target.closest("[data-vcell]"); if (c){ if (c.dataset.vcell !== "theme") visCell = visCell === c.dataset.vcell ? null : c.dataset.vcell; paintMorn(); return; }
   const a = ev.target.closest("[data-marea]"); if (a){ mornSaveText(); mornArea = mornArea === a.dataset.marea ? null : a.dataset.marea; paintMorn(); return; }
   const e = ev.target.closest("[data-vedit]"); if (e){ visEditing = e.dataset.vedit; paintMorn(); return; }
@@ -1450,7 +1497,7 @@ $("vis-body").addEventListener("click", async (ev) => {
     }
     v.updatedAt = new Date().toISOString();
     vision = v; ls.set("journal.vision", v); visEditing = null; paintMorn();
-    try { await db.doc("vision/main").set(v); toast("保存しました"); } catch(e){ toast("保存できませんでした。もう一度押してください"); }
+    try { await db.doc("vision/main").set(v); toast("保存しました"); monthsCache = null; } catch(e){ toast("保存できませんでした。もう一度押してください"); }
   }
 });
 
