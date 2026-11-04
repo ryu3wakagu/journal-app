@@ -2137,19 +2137,17 @@ let bookInfo = {}, bookInfoLoaded = false;
 const bookKey = (t) => String(t || "").replace(/[\s　『』「」]/g, "").toLowerCase().slice(0, 60) || "_";
 async function loadBookInfo(){
   if (bookInfoLoaded) return;
-  try { const s2 = await db.collection("bookinfo").limit(500).get(); s2.docs.forEach((x) => { const d = x.data(); bookInfo[d.key] = d; }); } catch(e){}
+  try { const s2 = await db.collection("bookinfo").limit(500).get(); s2.docs.forEach((x) => { const d = x.data(); if (d.none && !d.v2) return; bookInfo[d.key] = d; }); } catch(e){}
   bookInfoLoaded = true;
 }
 async function lookupBook(title, author){
   const key = bookKey(title);
   try {
-    const q = "intitle:" + title + (author ? "+inauthor:" + author : "");
-    let j = await fetch("https://www.googleapis.com/books/v1/volumes?maxResults=3&printType=books&q=" + encodeURIComponent(q)).then((r) => r.json());
-    if (!j.items || !j.items.length) j = await fetch("https://www.googleapis.com/books/v1/volumes?maxResults=3&printType=books&q=" + encodeURIComponent(title)).then((r) => r.json());
-    const it = (j.items || [])[0];
-    const v = it ? it.volumeInfo || {} : null;
-    const info = v ? {key: key, asked: title, title: v.title + (v.subtitle ? "　" + v.subtitle : ""), authors: v.authors || [], publisher: v.publisher || "", published: v.publishedDate || "", pages: v.pageCount || 0,
-      description: String(v.description || "").slice(0, 600), thumb: ((v.imageLinks || {}).thumbnail || "").replace(/^http:/, "https:"), link: v.infoLink || v.canonicalVolumeLink || "", at: new Date().toISOString()} : {key: key, asked: title, none: true, at: new Date().toISOString()};
+    // サーバーで調べる（Google ブックス、なければ国立国会図書館）
+    const v = await window.JOURNAL_CALL("book_lookup", {title: title, author: author || ""});
+    if (!v || v.error) return;
+    if (v.authors) v.authors = v.authors.map((x) => String(x).replace(/,\s*/, " "));
+    const info = Object.assign({key: key, asked: title, at: new Date().toISOString(), v2: true}, v);
     bookInfo[key] = info;
     await db.doc("bookinfo/" + key).set(info);
   } catch(e){}
@@ -2253,6 +2251,7 @@ function paintSums(){
   const b = $("sum-banner");
   if (sumState && sumState.err === "key" && left){ b.hidden = false; b.textContent = "AIのキーが止まっているため、まだまとめていない期間が" + left + "件あります。設定でキーを入れると、過去の分まで自動でまとめます。"; }
   else if (left){ b.hidden = false; b.textContent = "過去の分を順番にまとめています（あと" + left + "件）。アプリを閉じても進みます。"; }
+  else if (sumState && sumState.left > 0){ b.hidden = false; b.textContent = "まとめを今の作り方で作り直しています（あと" + sumState.left + "件）。アプリを閉じても進みます。"; }
   else b.hidden = true;
 }
 let sumPoll = null;
