@@ -33,6 +33,20 @@ input,textarea,select{font-size:16px!important}
 .cal-grid button.has{background:var(--accent);color:var(--onAccent);font-weight:700}
 .cal-grid button.today{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent)}
 .cal-grid button.pick{outline:3px solid var(--rec);outline-offset:1px}
+.pthumb{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:4px 12px 4px 4px;font-size:12px;color:var(--accentText);cursor:zoom-in}
+.pthumb img{width:38px;height:50px;object-fit:cover;border-radius:6px;background:var(--soft)}
+.eacts.split{justify-content:space-between;align-items:center}
+#ly-card.has-photo #ly-hand{display:none!important}
+.etext.clamp{display:-webkit-box;-webkit-line-clamp:8;-webkit-box-orient:vertical;overflow:hidden}
+.more{border:0;background:none;color:var(--accentText);font-size:13px;font-weight:600;padding:2px 0;align-self:flex-start;cursor:pointer}
+.searchbar{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:0 12px}
+.searchbar input{flex:1;min-width:0;border:0;background:transparent;height:42px;font-size:16px;color:var(--text);outline:none}
+.searchbar svg{color:var(--sub);flex:none}
+.bk-head{display:flex;gap:12px;align-items:flex-start}
+.bk-head img{width:56px;height:80px;object-fit:cover;border-radius:6px;flex:none;background:var(--soft);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.bk-head .bk-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.bk-meta{font-size:12px;color:var(--sub);line-height:1.5}
+.sum-jump{width:100%}
 .cal-legend{display:flex;gap:14px;align-items:center;font-size:12px;color:var(--sub)}
 .cal-legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:4px}
 /* 押したときの手応え */
@@ -463,7 +477,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
 <section id="v-review" class="view" hidden>
   <div class="head"><h1>振り返り</h1></div>
   <div class="mode" role="group" aria-label="振り返りの種類" id="rv-mode">
-    <button type="button" data-rv="years" aria-pressed="true">毎年</button>
+    <button type="button" data-rv="years" aria-pressed="true">日記</button>
     <button type="button" data-rv="sum" aria-pressed="false">まとめ</button>
     <button type="button" data-rv="ideas" aria-pressed="false">IDEA</button>
     <button type="button" data-rv="books" aria-pressed="false">本</button>
@@ -499,6 +513,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
       <button type="button" data-k="w" aria-pressed="true">週のまとめ</button>
       <button type="button" data-k="m" aria-pressed="false">月のまとめ</button>
     </div>
+    <select id="sum-jump" class="date-input sum-jump" aria-label="期間を選んで開く"><option value="">期間を選んで開く</option></select>
     <div class="sum-banner" id="sum-banner" hidden></div>
     <div class="status" id="sum-status" role="status"></div>
     <div class="sums" id="rv-sum"></div>
@@ -506,15 +521,21 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
     <p class="small" style="margin:0;padding:0 4px" id="sum-note">週は月曜から日曜まで。第何週かは、その週の木曜日がある月で数えます。記録のある週と月は、過去の分もすべて自動でまとめます。</p>
   </div>
   <div id="rv-books-pane" class="view" hidden>
-    <p class="small" style="margin:0;padding:0 4px">BOOKに切り替えて書いたものが、本ごとに並びます。</p>
+    <label class="searchbar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="books-q" placeholder="書名、著者、学びでさがす" aria-label="本の記録をさがす"></label>
+    <p class="small" style="margin:0;padding:0 4px">BOOKに切り替えて書いたものが、本ごとに並びます。書名から、著者や出版社、表紙などをインターネットで調べて添えます。</p>
     <div class="list" id="rv-books"></div>
   </div>
   <div id="rv-ideas-pane" class="view" hidden>
-    <p class="small" style="margin:0;padding:0 4px">IDEAに切り替えて書いたものと、JOURNALの中からAIが拾ったものが並びます。</p>
+    <label class="searchbar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="ideas-q" placeholder="言葉でさがす" aria-label="IDEAをさがす"></label>
+    <p class="small" style="margin:0;padding:0 4px" id="ideas-note">IDEAに切り替えて書いたものと、JOURNALの中からAIが拾ったものが並びます。</p>
     <div class="list" id="rv-ideas"></div>
   </div>
   <div id="rv-hayato-pane" class="view" hidden>
-    <p class="small" style="margin:0;padding:0 4px">日記の中から、隼人のことをAIが拾って日付順に並べます。</p>
+    <div class="card cal" id="hy-cal">
+      <div class="cal-head"><button class="icon-btn" id="hy-prev" type="button" aria-label="前の月">‹</button><b id="hy-label"></b><button class="icon-btn" id="hy-next" type="button" aria-label="次の月">›</button></div>
+      <div class="cal-grid" id="hy-grid"></div>
+    </div>
+    <p class="small" style="margin:0;padding:0 4px" id="hy-note">日記の中から、隼人のことをAIが拾って並べます。色のついた日を押すと、その日のところへ飛びます。</p>
     <div class="list" id="rv-hayato"></div>
   </div>
 </section>
@@ -524,7 +545,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
   <div class="head"><h1>TODO</h1></div>
   <div class="group">
     <label class="label" for="todo-in">TODOを追加</label>
-    <div class="todo-add"><input id="todo-in" class="date-input" type="text" placeholder="例：鶴目くんと面談の日を決める" enterkeyhint="done"><button class="btn" id="todo-add" type="button">追加</button></div>
+    <div class="todo-add"><input id="todo-in" class="date-input" type="text" placeholder="やることを書く" enterkeyhint="done"><button class="btn" id="todo-add" type="button">追加</button></div>
     <div class="todo-opts"><label for="todo-due">期限</label><input type="date" id="todo-due" class="date-input" aria-label="期限（なくても大丈夫）"><span>なくても大丈夫です。期限の日の朝にお知らせします</span></div>
     <div class="small">JOURNALに書いた「やる」こと、IDEAの次の一歩、本の1つの行動は、保存すると自動でここに入ります。いらないものは消してください。</div>
     <button class="btn ghost" id="todo-scan" type="button">最近2週間の記録から拾う</button>
@@ -1160,10 +1181,10 @@ function entriesHtml(d){
     const label = e.t ? e.t + (e.src === "voice" ? "　音声" : "") : (e.src === "hand" ? "手書き" : e.src === "typed" ? "iPadで打ち込み" : e.src === "sheet" ? "音声" : "");
     return '<div class="eblock" data-date="' + esc(d.date) + '" data-i="' + i + '">'
       + (label ? '<span class="small">' + esc(label) + '</span>' : '')
-      + '<p class="body etext">' + esc(e.text) + '</p>'
-      + '<div class="eacts">' + (url ? '<button type="button" class="mini" data-ph aria-pressed="false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 16l-5-5-8 8"/></svg>元のページの写真</button>' : '')
-      + '<button type="button" class="mini" data-edit><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>直す</button></div>'
-      + (url ? '<div class="photo-box" hidden><img ' + imgSrc(url) + ' alt="元のページ（押すと大きく見られます）"><div class="zoom-hint">写真を押すと大きく見られます</div></div>' : '') + '</div>';
+      + '<p class="body etext' + ((e.text || "").length > 280 ? ' clamp' : '') + '">' + esc(e.text) + '</p>'
+      + ((e.text || "").length > 280 ? '<button type="button" class="more" data-more>続きを読む</button>' : '')
+      + '<div class="eacts split">' + (url ? '<button type="button" class="pthumb" data-lbsrc aria-label="元のページの写真を大きく見る"><img ' + imgSrc(url) + ' alt="">元のページ</button>' : '<span></span>')
+      + '<button type="button" class="mini" data-edit><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>直す</button></div></div>';
   }).join("");
 }
 
@@ -1182,6 +1203,8 @@ async function loadLastYear(){
   const d = snap.data();
   if (usesSummary(d)) body.textContent = d.ai.summary;
   else body.innerHTML = '<div class="group">' + entriesHtml(d) + '</div>';
+  // 元のページの写真がある日は、下の「この日の手書きのページを見る」を出さない（同じ写真になるため）
+  $("ly-card").classList.toggle("has-photo", /data-lbsrc/.test(body.innerHTML));
   $("ly-date").textContent = jp(lastYearOf()) + (typeof d.mood === "number" ? "　調子 " + d.mood : "");
   if (d.ai && d.ai.insight){ $("ly-insight").hidden = false; $("ly-insight").querySelector("span").textContent = d.ai.insight; }
   $("ly-raw").hidden = !usesSummary(d);
@@ -1908,7 +1931,7 @@ document.addEventListener("click", async (ev) => {
     if (blk.querySelector("textarea")) return;
     const ta = document.createElement("textarea"); ta.value = tEl.textContent; ta.id = "edit-" + date + "-" + i; ta.setAttribute("aria-label", "記録を直す");
     ta.style.minHeight = "140px"; ta.style.border = "1px solid var(--line)";
-    tEl.hidden = true; b.hidden = true;
+    tEl.hidden = true; b.hidden = true; const mr = blk.querySelector("[data-more]"); if (mr) mr.hidden = true;
     const bar = document.createElement("div"); bar.className = "row-between"; bar.dataset.bar = "1";
     bar.innerHTML = '<button type="button" class="link" data-edit-cancel>やめる</button><button type="button" class="btn" data-edit-save style="min-height:44px">保存する</button>';
     (blk.querySelector(".eacts") || tEl).after(ta, bar); ta.focus(); return;
@@ -2071,23 +2094,30 @@ function renderPane(){
   else if (rvPane === "sum") renderSums(); else renderHayato();
 }
 const todoBtn = (text, from) => text ? '<button type="button" class="link" data-todo-add="' + esc(text) + '" data-from="' + from + '">TODOに入れる</button>' : '';
+const qMatch = (q, ...xs) => { q = (q || "").trim().toLowerCase(); if (!q) return true; const t = xs.join(" ").toLowerCase(); return q.split(/\s+/).every((w) => t.indexOf(w) >= 0); };
+$("ideas-q").addEventListener("input", () => renderIdeas());
+$("books-q").addEventListener("input", () => renderBooks());
 async function renderIdeas(){
   const el = $("rv-ideas");
-  const paint = (rows) => { el.innerHTML = rows.length ? rows.map((x) => '<div class="item idea"><div class="row-between"><span class="ttl">' + esc(x.title || "（名前なし）") + '</span><span class="small">' + md2(x.date) + (x.src === "diary" ? "　JOURNALから" : "") + '</span></div>'
+  const paint = (all) => { const q = $("ideas-q").value, rows = all.filter((x) => qMatch(q, x.title || "", x.core || "", x.next || "", x.raw || ""));
+    $("ideas-note").textContent = q.trim() ? all.length + "件のうち" + rows.length + "件" : "IDEAに切り替えて書いたものと、JOURNALの中からAIが拾ったものが並びます。全部で" + all.length + "件。";
+    el.innerHTML = rows.length ? rows.map((x) => '<div class="item idea"><div class="row-between"><span class="ttl">' + esc(x.title || "（名前なし）") + '</span><span class="small">' + md2(x.date) + (x.src === "diary" ? "　JOURNALから" : "") + '</span></div>'
       + (x.core ? '<p class="body">' + esc(x.core) + '</p>' : '') + (x.next ? '<div class="box"><b>次の一歩</b><span>' + esc(x.next) + '</span></div>' : '') + todoBtn(x.next, "IDEA") + '</div>').join("")
-      : '<div class="item"><p class="empty">まだIDEAはありません。今日を書くでIDEAに切り替えて書くと、ここに並びます。</p></div>'; };
+      : '<div class="item"><p class="empty">' + (q.trim() ? "見つかりませんでした。" : "まだIDEAはありません。今日を書くでIDEAに切り替えて書くと、ここに並びます。") + '</p></div>'; };
   if (ideasCache) paint(ideasCache); else el.innerHTML = '<div class="item"><p class="empty">読み込んでいます</p></div>';
   if (!db) return;
   try { const s2 = await db.collection("ideas").orderBy("at", "desc").limit(200).get(); ideasCache = s2.docs.map((x) => x.data()); paint(ideasCache); } catch(e){}
 }
 async function renderBooks(){
   const el = $("rv-books");
-  const paint = (rows) => {
-    if (!rows.length){ el.innerHTML = '<div class="item"><p class="empty">まだ本の記録はありません。今日を書くでBOOKに切り替えて書くと、ここに並びます。</p></div>'; return; }
+  const paint = (all) => {
+    const q = $("books-q").value;
+    const rows = all.filter((x) => { const bi = bookInfo[bookKey(x.title)] || {}; return qMatch(q, x.title || "", x.author || "", x.note || "", x.takeaway || "", x.action || "", bi.title || "", (bi.authors || []).join(" ")); });
+    if (!rows.length){ el.innerHTML = '<div class="item"><p class="empty">' + (q.trim() ? "見つかりませんでした。" : "まだ本の記録はありません。今日を書くでBOOKに切り替えて書くと、ここに並びます。") + '</p></div>'; return; }
     // 本ごとにまとめる。新しく読んだ本が上
     const groups = [];
     rows.forEach((x) => { const k = x.title || "（書名なし）"; let g = groups.find((y) => y.k === k); if (!g){ g = {k: k, author: x.author, list: []}; groups.push(g); } g.list.push(x); });
-    el.innerHTML = groups.map((g) => '<div class="item"><div class="row-between"><span class="ttl" style="font-weight:700">' + esc(g.k) + '</span><span class="small">' + esc(g.author || "") + '　' + g.list.length + '回</span></div>'
+    el.innerHTML = groups.map((g) => bookHead(g) 
       + g.list.slice().reverse().map((x) => '<details class="rawfold"><summary>' + md2(x.date) + (x.takeaway ? '　' + esc(x.takeaway.slice(0, 18)) + (x.takeaway.length > 18 ? "…" : "") : "") + '</summary><div class="group">'
         + (x.note ? '<div class="box"><b>内容</b><span>' + esc(x.note) + '</span></div>' : '')
         + (x.takeaway ? '<div class="box"><b>学び</b><span>' + esc(x.takeaway) + '</span></div>' : '')
@@ -2096,7 +2126,41 @@ async function renderBooks(){
   };
   if (booksCache) paint(booksCache); else el.innerHTML = '<div class="item"><p class="empty">読み込んでいます</p></div>';
   if (!db) return;
-  try { const s2 = await db.collection("books").orderBy("at", "desc").limit(300).get(); booksCache = s2.docs.map((x) => x.data()); paint(booksCache); } catch(e){}
+  try { const s2 = await db.collection("books").orderBy("at", "desc").limit(300).get(); booksCache = s2.docs.map((x) => x.data()); await loadBookInfo(); paint(booksCache); } catch(e){}
+  // まだ調べていない本は、インターネットで調べて添える
+  const need = [...new Set((booksCache || []).map((x) => x.title).filter((t) => t && !bookInfo[bookKey(t)]))].slice(0, 8);
+  for (const t of need){ const x = booksCache.find((y) => y.title === t); await lookupBook(t, x && x.author); }
+  if (need.length) paint(booksCache);
+}
+/* ---------- 本の情報をインターネットで調べる（Google ブックス） ---------- */
+let bookInfo = {}, bookInfoLoaded = false;
+const bookKey = (t) => String(t || "").replace(/[\s　『』「」]/g, "").toLowerCase().slice(0, 60) || "_";
+async function loadBookInfo(){
+  if (bookInfoLoaded) return;
+  try { const s2 = await db.collection("bookinfo").limit(500).get(); s2.docs.forEach((x) => { const d = x.data(); bookInfo[d.key] = d; }); } catch(e){}
+  bookInfoLoaded = true;
+}
+async function lookupBook(title, author){
+  const key = bookKey(title);
+  try {
+    const q = "intitle:" + title + (author ? "+inauthor:" + author : "");
+    let j = await fetch("https://www.googleapis.com/books/v1/volumes?maxResults=3&printType=books&q=" + encodeURIComponent(q)).then((r) => r.json());
+    if (!j.items || !j.items.length) j = await fetch("https://www.googleapis.com/books/v1/volumes?maxResults=3&printType=books&q=" + encodeURIComponent(title)).then((r) => r.json());
+    const it = (j.items || [])[0];
+    const v = it ? it.volumeInfo || {} : null;
+    const info = v ? {key: key, asked: title, title: v.title + (v.subtitle ? "　" + v.subtitle : ""), authors: v.authors || [], publisher: v.publisher || "", published: v.publishedDate || "", pages: v.pageCount || 0,
+      description: String(v.description || "").slice(0, 600), thumb: ((v.imageLinks || {}).thumbnail || "").replace(/^http:/, "https:"), link: v.infoLink || v.canonicalVolumeLink || "", at: new Date().toISOString()} : {key: key, asked: title, none: true, at: new Date().toISOString()};
+    bookInfo[key] = info;
+    await db.doc("bookinfo/" + key).set(info);
+  } catch(e){}
+}
+function bookHead(g){
+  const bi = bookInfo[bookKey(g.k)] || {};
+  const meta = [bi.authors && bi.authors.length ? bi.authors.join("、") : g.author || "", bi.publisher || "", bi.published ? bi.published.slice(0, 4) + "年" : "", bi.pages ? bi.pages + "ページ" : ""].filter(Boolean).join("　");
+  return '<div class="item"><div class="bk-head">' + (bi.thumb ? '<img src="' + esc(bi.thumb) + '" alt="" loading="lazy">' : '')
+    + '<div class="bk-t"><span class="ttl" style="font-weight:700">' + esc(g.k) + '</span>' + (meta ? '<span class="bk-meta">' + esc(meta) + '</span>' : '') + '<span class="bk-meta">記録 ' + g.list.length + '回</span>'
+    + (bi.link ? '<a class="bk-meta" href="' + esc(bi.link) + '" target="_blank" rel="noopener" style="color:var(--accentText)">本の詳しい情報</a>' : '') + '</div></div>'
+    + (bi.description ? '<details class="rawfold"><summary>本の紹介</summary><p class="body" style="font-size:13px">' + esc(bi.description) + '</p></details>' : '');
 }
 
 /* ---------- 週と月のまとめ ---------- */
@@ -2179,6 +2243,10 @@ function paintSums(){
   // 最初に開いておくのは、まとめのある一番新しい終わった期間
   if (!sumOpen[k]){ const f = list.find((p) => !p.partial && have[p.start]); sumOpen[k] = f ? f.start : "-"; }
   const shown = list.slice(0, sumShow[k]);
+  // 期間を選ぶ一覧（月ごとにまとめる）
+  const groups = {};
+  list.forEach((p) => { const g = k === "w" ? dObj(addD(p.start, 3)).getFullYear() + "年" : p.start.slice(0, 4) + "年"; (groups[g] = groups[g] || []).push(p); });
+  $("sum-jump").innerHTML = '<option value="">' + (k === "w" ? "週を選んで開く" : "月を選んで開く") + '</option>' + Object.keys(groups).map((g) => '<optgroup label="' + g + '">' + groups[g].map((p) => '<option value="' + p.start + '">' + esc(k === "w" ? weekName(p.start) + "（" + mdJ(p.start) + "〜" + mdJ(addD(p.start, 6)) + "）" : Number(p.start.slice(5, 7)) + "月") + (p.partial ? "　途中まで" : have[p.start] ? "" : "　まだ") + '</option>').join("") + '</optgroup>').join("");
   el.innerHTML = shown.map((p) => sumCard(p, p.partial ? (have[p.start + "-p"] || null) : (have[p.start] || null), p.start === sumOpen[k])).join("");
   $("sum-more").hidden = list.length <= sumShow[k];
   const left = list.filter((p) => !p.partial && !have[p.start]).length;
@@ -2206,7 +2274,15 @@ async function renderSums(){
   } catch(e){}
 }
 $("sum-more").addEventListener("click", () => { sumShow[sumKind] += 12; paintSums(); });
-$("rv-sum").addEventListener("toggle", (ev) => { const d = ev.target; if (d.classList && d.classList.contains("scard") && d.open) sumOpen[sumKind] = d.dataset.sc; }, true);
+$("rv-sum").addEventListener("toggle", (ev) => { const d = ev.target; if (!d.classList || !d.classList.contains("scard")) return; if (d.open) sumOpen[sumKind] = d.dataset.sc; else if (sumOpen[sumKind] === d.dataset.sc) sumOpen[sumKind] = "-"; }, true);
+$("sum-jump").addEventListener("change", (ev) => {
+  const v = ev.target.value; if (!v) return;
+  const list = sumPeriods(sumKind), i = list.findIndex((p) => p.start === v);
+  if (i >= sumShow[sumKind]) sumShow[sumKind] = i + 1;
+  sumOpen[sumKind] = v; paintSums();
+  const c = document.querySelector('.scard[data-sc="' + v + '"]'); if (c) c.scrollIntoView({behavior: "smooth", block: "start"});
+  ev.target.value = "";
+});
 function sumText(x){
   const L = [(x.kind === "w" ? "【週のまとめ】" : "【月のまとめ】") + periodLabel(x.kind, x.start, x.end) + (x.partial ? "（途中まで）" : ""), "記録 " + (x.count || 0) + "日" + (x.avgMood ? "　平均の調子 " + x.avgMood : ""), "", x.story || ""];
   [["よかったこと", x.good], ["テーマ", x.themes], ["IDEA", x.ideas], ["読んだ本", x.books], ["隼人", x.hayato], [x.kind === "w" ? "来週への問い" : "来月への問い", x.questions]]
@@ -2394,9 +2470,24 @@ document.addEventListener("change", async (ev) => {
   await saving;
 });
 
+let hyMonth = null;
+function paintHyCal(rows){
+  const set = new Set((rows || []).map((d) => d.date));
+  if (!hyMonth){ const last = (rows || [])[0]; const t = last ? dObj(last.date) : new Date(); hyMonth = new Date(t.getFullYear(), t.getMonth(), 1); }
+  const y = hyMonth.getFullYear(), m = hyMonth.getMonth();
+  $("hy-label").textContent = y + "年" + (m + 1) + "月";
+  const first = new Date(y, m, 1).getDay(), last = new Date(y, m + 1, 0).getDate();
+  let h = WD.map((w) => '<div class="wd">' + w + '</div>').join("");
+  for (let i = 0; i < first; i++) h += "<div></div>";
+  for (let d = 1; d <= last; d++){ const ds = y + "-" + pad(m + 1) + "-" + pad(d), has = set.has(ds); h += '<button type="button" ' + (has ? 'class="has" data-hy="' + ds + '"' : 'disabled') + ' aria-label="' + (m + 1) + "月" + d + "日" + (has ? "、隼人の記録あり" : "") + '">' + d + "</button>"; }
+  $("hy-grid").innerHTML = h;
+}
+$("hy-prev").addEventListener("click", () => { hyMonth = new Date(hyMonth.getFullYear(), hyMonth.getMonth() - 1, 1); paintHyCal(hayatoCache); });
+$("hy-next").addEventListener("click", () => { hyMonth = new Date(hyMonth.getFullYear(), hyMonth.getMonth() + 1, 1); paintHyCal(hayatoCache); });
+$("hy-grid").addEventListener("click", (ev) => { const b = ev.target.closest("[data-hy]"); if (!b) return; const c = document.querySelector('[data-hyday="' + b.dataset.hy + '"]'); if (c){ c.scrollIntoView({behavior: "smooth", block: "center"}); c.classList.add("tapped"); setTimeout(() => c.classList.remove("tapped"), 900); } });
 async function renderHayato(){
   const el = $("rv-hayato");
-  const paint = (rows) => { el.innerHTML = rows.length ? rows.map((d) => '<div class="item"><span class="small">' + md2(d.date) + '</span><p class="body">' + esc(d.ai.hayato) + '</p></div>').join("")
+  const paint = (rows) => { paintHyCal(rows); el.innerHTML = rows.length ? rows.map((d) => '<div class="item" data-hyday="' + d.date + '"><span class="small">' + md2(d.date) + '</span><p class="body">' + esc(d.ai.hayato) + '</p></div>').join("")
       : '<div class="item"><p class="empty">日記で隼人のことを話すと、AIが拾ってここに並べます。</p></div>'; };
   if (hayatoCache) paint(hayatoCache); else el.innerHTML = '<div class="item"><p class="empty">読み込んでいます</p></div>';
   if (!db) return;
@@ -2515,6 +2606,10 @@ $("p-font").closest("details").addEventListener("toggle", (ev) => {
 
 /* ---------- 写真：ボタンで開く、押すと大きく ---------- */
 document.addEventListener("click", (ev) => {
+  const mo = ev.target.closest("[data-more]");
+  if (mo){ const t = mo.previousElementSibling; const open = t.classList.toggle("clamp"); mo.textContent = open ? "続きを読む" : "たたむ"; return; }
+  const pt = ev.target.closest("[data-lbsrc]");
+  if (pt){ const im = pt.querySelector("img"); if (im && im.src) openLb(im.src); else toast("写真を読み込んでいます。少し待ってから押してください"); return; }
   const ph = ev.target.closest("[data-ph]");
   if (ph){ const box = ph.closest(".eblock").querySelector(".photo-box"); if (box){ box.hidden = !box.hidden; ph.setAttribute("aria-pressed", String(!box.hidden)); } return; }
   const img = ev.target.closest(".photo-box img, .hand-imgs img");
