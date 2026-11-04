@@ -172,6 +172,10 @@ h2{margin:0;font-size:15px;font-weight:700}
 .morn-chips button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--text)}
 .morn-chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
 .vis-open-row{display:flex}
+.learn-row{display:flex;align-items:center;gap:8px;font-size:13px;padding:8px 0;border-top:1px solid var(--line)}
+.learn-row .lw{flex:1;min-width:0;line-height:1.5}
+.learn-row .lw s{color:var(--sub)}
+.learn-row .ln{font-size:11px;color:var(--sub);white-space:nowrap}
 /* MY COMPASS の入口 */
 .compass-btn{width:100%;display:flex;align-items:center;gap:14px;border:0;border-radius:16px;padding:14px 16px;background:var(--accent);color:var(--onAccent);text-align:left;cursor:pointer}
 .compass-btn .cb-icon{flex:none;width:42px;height:42px;border-radius:50%;border:1.5px solid rgba(255,255,255,.55);display:flex;align-items:center;justify-content:center}
@@ -558,6 +562,10 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
         <div class="dict" id="p-dict"></div>
         <button class="link" id="p-dict-add" type="button">直す言葉を足す</button>
         <div class="small">例：「ぜんかつ」→「前活」。保存とAIの整理の前に置き換えます</div>
+      </div>
+      <div class="pref"><div class="row-between"><span class="t">直した記録から覚えた言葉</span><span class="v" id="p-learn-v"></span></div>
+        <div id="p-learn"></div>
+        <div class="small">音声や手書きの読み取りを直すと、どこをどう直したかがここにたまります。次からの読み取りで、AIがこれを参考にします。よく出る言葉は「辞書へ」を押すと、毎回自動で直るようになります。</div>
       </div>
     </div>
   </div>
@@ -1024,16 +1032,19 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 // 止めたら、AIが聞き間違いだけを直す（言い回しは変えない）。元に戻すこともできる
-let voiceUndo = null;
+let voiceUndo = null, voiceRawFull = null;
 async function polishVoice(){
   const st = $("mic-status");
   const before = entryEl.value, head = before.slice(0, voiceFrom), seg = before.slice(voiceFrom);
+  voiceRawFull = before;
+  await getLearn();
   if (!sample || seg.trim().length < 8){ st.textContent = "止めました。直してから「記録する」を押してください"; return; }
   st.textContent = "AIが聞き間違いを直しています";
   const words = ["隼人"].concat(dict.map((p) => p && p.to).filter(Boolean)).slice(0, 80).join("、");
   const prompt = "次の文章は、iPhoneの音声認識で文字にした日記です。聞き間違い（同じ音の別の漢字、人の名前や固有名詞の誤り、言葉の切れ目の誤り）を、前後の流れから直してください。句読点と改行も整えてください。\n"
     + "話した内容と言い回しは変えないこと。要約、言い換え、内容の追加はしないこと。「えー」「あの」などのつなぎ言葉だけは取ってよい。数字は算用数字。中黒（・）は使わない。\n"
     + "よく出てくる言葉：" + words + "\n"
+    + learnHints("voice", 40)
     + (head.trim() ? "（参考：この前に書いてある文）\n" + head.slice(-600) + "\n" : "")
     + "直した文章だけを返してください。\n\n文章：\n";
   // 長いときは2000字ほどずつに分けて、同時に直す（途中で切れないように）
@@ -1217,7 +1228,8 @@ $("save").addEventListener("click", async () => {
     const entries = (cur.entries || []).slice();
     if (recOn) micStop();
     entries.push(Object.assign({t: hm(), text: applyDict(raw)}, usedVoice ? {src: "voice"} : {}));
-    usedVoice = false; $("mic-status").textContent = "";
+    if (usedVoice && voiceRawFull) recordFix("voice", voiceRawFull, raw, {date: TODAY, where: "音声入力"});
+    voiceRawFull = null; usedVoice = false; $("mic-status").textContent = "";
     const doc = {date: TODAY, md: MD, year: YEAR, entries: entries, mood: (mood ?? cur.mood ?? null), ai: cur.ai || null, updatedAt: new Date().toISOString()};
     await ref.set(doc);
     todayDoc = doc; renderToday();
@@ -1786,7 +1798,7 @@ async function transcribe(p){
       + "・何も書かれていない年は含めないでください。印字（年、曜日、日付）は本文に入れないでください。\n"
       + "・欄からはみ出して次の年の欄にかかっている文は、書き始めた年の欄に含めてください。\n"
       + (p.ocr && Object.keys(p.ocr).length ? "\n参考：このページに埋め込まれていた文字データです。打ち込まれた文章はここに正確に入っているので、そのまま使ってください。手書きの部分は自動認識なので順番や字が崩れています。手書きは画像を見て読み、この文字データは手がかりにだけ使ってください。\n" + Object.keys(p.ocr).map((y) => y + "年: " + p.ocr[y]).join("\n") + "\n" : "")
-      + dictHints() + (await fixHints())
+      + dictHints() + (await fixHints()) + (await getLearn(), learnHints("hand", 40))
       + '返答はJSONのみ: {"entries":[{"year":2025,"text":"..."}]}',
       {images: blob, cache: false, signal: ctl.signal});
     const items = (r && Array.isArray(r.entries)) ? r.entries : [];
@@ -1913,6 +1925,8 @@ document.addEventListener("click", async (ev) => {
       entries[i] = Object.assign({}, entries[i], {text: after, edited: new Date().toISOString()});
       await ref.set(Object.assign({}, cur, {entries: entries}));
       if (entries[i].src === "hand") await db.collection("handfix").add({before: before.slice(0, 600), after: after.slice(0, 600), date: date, at: new Date().toISOString()});
+      const fk = entries[i].src === "hand" || entries[i].src === "typed" ? "hand" : entries[i].src === "voice" || entries[i].src === "sheet" ? "voice" : "";
+      if (fk) recordFix(fk, before, after, {date: date, where: "記録を直す"});
     }
     tEl.textContent = after; ta.remove(); bar.remove(); tEl.hidden = false; blk.querySelector("[data-edit]").hidden = false;
     for (const k in yearsCache) delete yearsCache[k];
@@ -1928,6 +1942,69 @@ async function fixHints(){
       + rows.map((f) => "・" + f.before.slice(0, 160).replace(/\n/g, " ") + " → " + f.after.slice(0, 160).replace(/\n/g, " ")).join("\n") + "\n";
   } catch(e){ return ""; }
 }
+/* ---------- 直した記録から覚える（音声と手書き） ---------- */
+// 2つの文の違いを、言葉のかたまりで取り出す（例：「早と」→「隼人」）
+function diffPairs(a, b){
+  a = String(a || "").slice(0, 800); b = String(b || "").slice(0, 800);
+  const n = a.length, m = b.length; if (!n || !m) return [];
+  const dp = []; for (let i = 0; i <= n; i++) dp.push(new Uint16Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  const out = []; let i = 0, j = 0, fa = "", fb = "";
+  const flush = () => { const x = fa.trim(), y = fb.trim(); if (x && y && x !== y && x.length <= 20 && y.length <= 20 && /[^\s、。，．,.！？!?「」]/.test(x + y)) out.push({from: x, to: y}); fa = ""; fb = ""; };
+  while (i < n && j < m){ if (a[i] === b[j]){ flush(); i++; j++; } else if (dp[i + 1][j] >= dp[i][j + 1]) fa += a[i++]; else fb += b[j++]; }
+  fa += a.slice(i); fb += b.slice(j); flush();
+  return out;
+}
+let learnCache = null;
+async function getLearn(){
+  if (learnCache) return learnCache;
+  try { const s2 = await db.doc("learn/words").get(); learnCache = s2.exists ? s2.data() : {pairs: []}; } catch(e){ learnCache = {pairs: []}; }
+  learnCache.pairs = learnCache.pairs || [];
+  return learnCache;
+}
+// 直した前と後を残し、変わった言葉を数えておく
+async function recordFix(kind, before, after, extra){
+  if (!db) return;
+  before = String(before || ""); after = String(after || "");
+  if (!before.trim() || !after.trim() || before === after) return;
+  const ps = diffPairs(before, after);
+  try { await db.collection("corrections").add(Object.assign({kind: kind, before: before.slice(0, 1500), after: after.slice(0, 1500), pairs: ps, at: new Date().toISOString()}, extra || {})); } catch(e){}
+  if (!ps.length) return;
+  const L = await getLearn(), map = {}, now = new Date().toISOString();
+  L.pairs.forEach((p) => { map[p.from + "\u0000" + p.to] = p; });
+  ps.forEach((p) => { const k = p.from + "\u0000" + p.to; const q = map[k] || (map[k] = {from: p.from, to: p.to, n: 0, kinds: []}); q.n++; q.last = now; if (q.kinds.indexOf(kind) < 0) q.kinds.push(kind); });
+  L.pairs = Object.values(map).sort((x, y) => (y.n - x.n) || (y.last > x.last ? 1 : -1)).slice(0, 500);
+  learnCache = L;
+  try { await db.doc("learn/words").set(L); } catch(e){}
+}
+// AIに渡す「これまでの直し方」
+function learnHints(kind, max){
+  const L = learnCache; if (!L || !L.pairs.length) return "";
+  const ps = L.pairs.filter((p) => !p.ignored && (p.kinds.indexOf(kind) >= 0 || p.n >= 2)).slice(0, max || 40);
+  if (!ps.length) return "";
+  return "\n参考：この人がこれまでに直した言葉です（左が読み取った言葉、右が正しい言葉）。同じ間違いをしないよう、手がかりにしてください。\n" + ps.map((p) => "- " + p.from + " → " + p.to + (p.n > 1 ? "（" + p.n + "回）" : "")).join("\n") + "\n";
+}
+async function renderLearn(){
+  if (!db) return;
+  const L = await getLearn(), list = L.pairs.filter((p) => !p.ignored);
+  $("p-learn-v").textContent = list.length ? list.length + "語" : "まだありません";
+  $("p-learn").innerHTML = list.slice(0, 40).map((p) => {
+    const inDict = dict.some((d) => d.from === p.from && d.to === p.to);
+    return '<div class="learn-row"><span class="lw"><s>' + esc(p.from) + '</s> → <b>' + esc(p.to) + '</b></span><span class="ln">' + p.n + '回' + (p.kinds.indexOf("hand") >= 0 ? "　手書き" : "") + (p.kinds.indexOf("voice") >= 0 ? "　音声" : "") + '</span>'
+      + (inDict ? '<span class="ln">辞書にあり</span>' : '<button type="button" class="mini" data-ldict="' + esc(p.from) + "\u0000" + esc(p.to) + '" style="min-height:30px">辞書へ</button>')
+      + '<button type="button" class="x" data-lignore="' + esc(p.from) + "\u0000" + esc(p.to) + '" aria-label="これは使わない">×</button></div>';
+  }).join("");
+}
+$("p-learn").addEventListener("click", async (ev) => {
+  const a = ev.target.closest("[data-ldict]"), x = ev.target.closest("[data-lignore]");
+  if (!a && !x) return;
+  const [from, to] = (a || x).getAttribute(a ? "data-ldict" : "data-lignore").split("\u0000");
+  const L = await getLearn(), p = L.pairs.find((q) => q.from === from && q.to === to); if (!p) return;
+  if (a){ dict.push({from: from, to: to}); renderDict(); savePrefs(); toast("用語辞書に入れました"); }
+  else { p.ignored = true; try { await db.doc("learn/words").set(L); } catch(e){} toast("この直し方は使わないようにしました"); }
+  renderLearn();
+});
+document.querySelector('nav.tabs button[data-view="prefs"]').addEventListener("click", () => { renderLearn().catch(() => {}); });
 function dictHints(){
   const ps = dict.filter((p) => p.from && p.to);
   return ps.length ? "\nよく使う言葉：" + ps.map((p) => p.to).join("、") + "\n" : "";
