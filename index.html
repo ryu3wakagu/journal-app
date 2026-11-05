@@ -46,6 +46,16 @@ input,textarea,select{font-size:16px!important}
 .bk-head img{width:56px;height:80px;object-fit:cover;border-radius:6px;flex:none;background:var(--soft);box-shadow:0 1px 3px rgba(0,0,0,.15)}
 .bk-head .bk-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .bk-meta{font-size:12px;color:var(--sub);line-height:1.5}
+.bk-badge{display:inline-flex;align-self:flex-start;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--accentText)}
+.bk-rel{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:8px}
+.bk-rel b{font-size:13px}
+.bk-rel-row{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5}
+.bk-rel-row img{width:40px;height:58px;object-fit:cover;border-radius:4px;flex:none;background:var(--soft)}
+.bk-rel-row a{color:var(--accentText)}
+.bk-edit{display:flex;flex-direction:column;gap:8px;background:var(--soft);border-radius:10px;padding:10px 12px}
+.bk-edit label{font-size:12px;color:var(--sub);display:flex;flex-direction:column;gap:4px}
+.bk-edit input,.bk-edit select{height:40px;border:1px solid var(--line);border-radius:8px;padding:0 10px;font-size:16px;background:var(--card);color:var(--text)}
+.bk-edit .row{display:flex;gap:8px;flex-wrap:wrap}
 .sum-jump{width:100%}
 .spick{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:10px}
 .spick .row{display:flex;gap:8px}
@@ -513,7 +523,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
     <button type="button" data-rv="years" aria-pressed="true">日記</button>
     <button type="button" data-rv="sum" aria-pressed="false">まとめ</button>
     <button type="button" data-rv="ideas" aria-pressed="false">IDEA</button>
-    <button type="button" data-rv="books" aria-pressed="false">本</button>
+    <button type="button" data-rv="books" aria-pressed="false">本と学び</button>
     <button type="button" data-rv="hayato" aria-pressed="false">隼人</button>
   </div>
   <div id="rv-years-pane" class="view">
@@ -554,8 +564,8 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
     <p class="small" style="margin:0;padding:0 4px" id="sum-note">選んだ週や月のまとめが、すぐ下に出ます。週は月曜から日曜まで。第何週かは、その週の木曜日がある月で数えます。薄いボタンは記録のない週や月です。記録のある週と月は、過去の分もすべて自動でまとめます。</p>
   </div>
   <div id="rv-books-pane" class="view" hidden>
-    <label class="searchbar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="books-q" placeholder="書名、著者、学びでさがす" aria-label="本の記録をさがす"></label>
-    <p class="small" style="margin:0;padding:0 4px">BOOKに切り替えて書いたものが、本ごとに並びます。書名から、著者や出版社、表紙などをインターネットで調べて添えます。</p>
+    <label class="searchbar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="books-q" placeholder="書名、勉強会、著者、学びでさがす" aria-label="本と学びの記録をさがす"></label>
+    <p class="small" style="margin:0;padding:0 4px">BOOKに切り替えて書いたものが、本や勉強会ごとに並びます。本は著者や出版社、表紙をインターネットで調べて添えます。勉強会やセミナーには、関係する本を添えます。違っていたら「直す」で直せます。</p>
     <div class="list" id="rv-books"></div>
   </div>
   <div id="rv-ideas-pane" class="view" hidden>
@@ -2083,7 +2093,7 @@ document.querySelector(".mode[aria-label='書く種類']").addEventListener("cli
   writeMode = b.dataset.mode;
   b.parentElement.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
   const isIdea = writeMode === "idea", isBook = writeMode === "book";
-  $("entry-label").textContent = isIdea ? "NEW IDEA" : isBook ? "READING NOTE" : (TODAY === REAL_TODAY ? "TODAY'S JOURNAL" : "JOURNAL OF THE DAY");
+  $("entry-label").textContent = isIdea ? "NEW IDEA" : isBook ? "LEARNING NOTE" : (TODAY === REAL_TODAY ? "TODAY'S JOURNAL" : "JOURNAL OF THE DAY");
   entryEl.placeholder = isIdea ? "思いついたことをそのまま。AIが中身と次の一歩に整理します" : isBook ? "書名から書き始めてください。AIが内容、学び、1つの行動に整理します" : "思いついた順でかまいません";
   $("save").textContent = isIdea ? "IDEAを残す" : isBook ? "本の記録を残す" : "記録する";
 });
@@ -2111,14 +2121,22 @@ async function saveBook(raw){
   await ref.set({date: TODAY, at: new Date().toISOString(), title: "", author: "", note: "", takeaway: raw, action: "", raw: raw, src: "direct"});
   entryEl.value = ""; ls.set("journal.draft", ""); booksCache = null;
   backupRows([[TODAY, hm(), "BOOK", "", raw, new Date().toISOString()]]);
-  st.textContent = "本の記録を残しました";
+  st.textContent = "学びの記録を残しました";
   if (!sample) return;
   try {
-    const r = await sample.json("次のメモは、本を読んだあとの記録です。書名、著者、内容（本に書いてあったこと）、学び（本人が感じたこと）、1つの行動（この本から明日TODO1つ）に分けてください。著者が分からなければ空。書かれていない内容は足さないこと。数字は算用数字。\n返答はJSONのみ: {\"title\":\"\",\"author\":\"\",\"note\":\"\",\"takeaway\":\"\",\"action\":\"\"}\n\nメモ:\n" + raw.slice(0, 12000), {cache: false, modelTier: "quick"});
-    await ref.update({title: String(r.title || ""), author: String(r.author || ""), note: String(r.note || ""), takeaway: String(r.takeaway || raw), action: String(r.action || "")});
+    const r = await sample.json("次のメモは、本を読んだ、または勉強会やセミナー、動画などで学んだあとの記録です。次の形に分けてください。\n"
+      + "kind: 本なら book。勉強会、セミナー、講座、研修、講演なら study。動画、記事、ポッドキャストなら media。\n"
+      + "title: 本なら書名。本以外なら会や動画の名前（例：識学の勉強会）。\n"
+      + "author: 本の著者。本以外は空。分からなければ空。\n"
+      + "org: 本以外のときの主催、講師、発信者（例：株式会社識学）。分からなければ空。\n"
+      + "note: 内容（本や会で語られていたこと）。takeaway: 学び（本人が感じたこと）。action: 1つの行動（明日やるTODO1つ）。\n"
+      + "書かれていない内容は足さないこと。数字は算用数字。中黒（・）は使わない。\n"
+      + "返答はJSONのみ: {\"kind\":\"book\",\"title\":\"\",\"author\":\"\",\"org\":\"\",\"note\":\"\",\"takeaway\":\"\",\"action\":\"\"}\n\nメモ:\n" + raw.slice(0, 12000), {cache: false, modelTier: "quick"});
+    const kind = ["book", "study", "media"].indexOf(r.kind) >= 0 ? r.kind : "book";
+    await ref.update({kind: kind, title: String(r.title || ""), author: String(r.author || ""), org: String(r.org || ""), note: String(r.note || ""), takeaway: String(r.takeaway || raw), action: String(r.action || "")});
     booksCache = null;
     if (r.action) await addTodo(r.action, "本", "b-" + id, TODAY);
-    st.textContent = "本の記録を残しました：" + (r.title || "") + (r.action ? "（1つの行動をTODOに入れました）" : "");
+    st.textContent = "学びの記録を残しました：" + (r.title || "") + (r.action ? "（1つの行動をTODOに入れました）" : "");
   } catch(e){}
 }
 
@@ -2167,23 +2185,38 @@ async function renderBooks(){
     if (!rows.length){ el.innerHTML = '<div class="item"><p class="empty">' + (q.trim() ? "見つかりませんでした。" : "まだ本の記録はありません。今日を書くでBOOKに切り替えて書くと、ここに並びます。") + '</p></div>'; return; }
     // 本ごとにまとめる。新しく読んだ本が上
     const groups = [];
-    rows.forEach((x) => { const k = x.title || "（書名なし）"; let g = groups.find((y) => y.k === k); if (!g){ g = {k: k, author: x.author, list: []}; groups.push(g); } g.list.push(x); });
+    rows.forEach((x) => { const k = x.title || "（書名なし）"; let g = groups.find((y) => y.k === k); if (!g){ g = {k: k, author: x.author, org: x.org || "", kind: x.kind || "book", list: []}; groups.push(g); } if (x.kind && x.kind !== "book") g.kind = x.kind; if (!g.org && x.org) g.org = x.org; g.list.push(x); });
     lastBookGroups = groups;
     el.innerHTML = groups.map((g) => {
+      if (bookEdit === bookKey(g.k)) return bookEditHtml(g) + '</div>';
       const ses = g.list.slice().reverse();   // 読んだ順（1回目が上）
       const one = (x, i) => '<div class="bk-ses"><span class="when">' + (ses.length > 1 ? (i + 1) + "回目　" : "") + md2(x.date) + (x.at ? "　" + atHM(x.at) : "") + '</span>'
         + (x.takeaway ? '<div><span class="lbl">感じたこと</span>' + esc(x.takeaway) + '</div>' : '')
         + (x.action ? '<div><span class="lbl">行動</span>' + esc(x.action) + '</div>' + todoBtn(x.action, "本") : '')
-        + (x.note ? '<details class="rawfold"><summary>本の内容のメモを開く</summary><p class="body" style="font-size:13px">' + esc(x.note) + '</p></details>' : '') + '</div>';
+        + (x.note ? '<details class="rawfold"><summary>' + (g.kind === "book" ? "本の内容のメモを開く" : "内容のメモを開く") + '</summary><p class="body" style="font-size:13px">' + esc(x.note) + '</p></details>' : '') + '</div>';
       return bookHead(g) + ses.slice(0, 2).map(one).join("")
         + (ses.length > 2 ? '<details class="rawfold"><summary>残り' + (ses.length - 2) + '回分を見る</summary>' + ses.slice(2).map((x, i) => one(x, i + 2)).join("") + '</details>' : '') + '</div>';
     }).join("");
   };
   if (booksCache) paint(booksCache); else el.innerHTML = '<div class="item"><p class="empty">読み込んでいます</p></div>';
   if (!db) return;
-  try { const s2 = await db.collection("books").orderBy("at", "desc").limit(300).get(); booksCache = s2.docs.map((x) => x.data()); await loadBookInfo(); paint(booksCache); } catch(e){}
-  // まだ調べていない本は、インターネットで調べて添える
-  const need = [...new Set((booksCache || []).map((x) => x.title).filter((t) => t && !bookInfo[bookKey(t)]))].slice(0, 8);
+  bookPaint = () => paint(booksCache || []);
+  try { const s2 = await db.collection("books").orderBy("at", "desc").limit(300).get(); booksCache = s2.docs.map((x) => Object.assign({_id: x.id}, x.data())); await loadBookInfo(); paint(booksCache); } catch(e){}
+  // 勉強会やセミナーには、関係する本を添える（実在するか確かめた本だけ）
+  for (const g of (lastBookGroups || []).filter((x) => x.kind !== "book").slice(0, 6)){
+    const key = bookKey(g.k), bi = bookInfo[key] || {};
+    if (bi.related || bookActFail["r" + key]) continue;
+    bookActBusy["r" + key] = 1; paint(booksCache);
+    try {
+      const r = await window.JOURNAL_CALL("related_books", {title: g.k, org: g.org || "", note: g.list.map((x) => (x.note || "") + "\n" + (x.takeaway || "")).join("\n").slice(0, 3000)});
+      if (r && !r.error){ bookInfo[key] = Object.assign({key: key, asked: g.k}, bi, {kind: g.kind, related: r.items || [], v2: true}); await db.doc("bookinfo/" + key).set(bookInfo[key]); }
+      else bookActFail["r" + key] = 1;
+    } catch(e){ bookActFail["r" + key] = 1; }
+    delete bookActBusy["r" + key];
+  }
+  // まだ調べていない本は、インターネットで調べて添える（本のときだけ）
+  const isBookTitle = (t) => !(booksCache || []).some((x) => x.title === t && x.kind && x.kind !== "book");
+  const need = [...new Set((booksCache || []).map((x) => x.title).filter((t) => t && !bookInfo[bookKey(t)] && isBookTitle(t)))].slice(0, 8);
   for (const t of need){ const x = booksCache.find((y) => y.title === t); await lookupBook(t, x && x.author); }
   if (need.length) paint(booksCache);
   // 何回か読んだ本は、それぞれの「行動」の重なりをAIでまとめておく
@@ -2237,8 +2270,50 @@ async function lookupBook(title, author){
     await db.doc("bookinfo/" + key).set(info);
   } catch(e){}
 }
-function bookHead(g){
+const KIND_NAME = {study: "勉強会やセミナー", media: "動画や記事"};
+let bookEdit = null, bookPaint = null;
+function bookEditHtml(g){
   const bi = bookInfo[bookKey(g.k)] || {};
+  return '<div class="item"><div class="bk-edit" data-bkform="' + esc(bookKey(g.k)) + '">'
+    + '<label>種類<select data-f="kind"><option value="book"' + (g.kind === "book" ? " selected" : "") + '>本</option><option value="study"' + (g.kind === "study" ? " selected" : "") + '>勉強会やセミナー</option><option value="media"' + (g.kind === "media" ? " selected" : "") + '>動画や記事</option></select></label>'
+    + '<label>題名（本の書名、または会の名前）<input data-f="title" value="' + esc(g.k) + '"></label>'
+    + '<label>著者、または主催や講師<input data-f="who" value="' + esc(g.kind === "book" ? (g.author || "") : (g.org || "")) + '"></label>'
+    + '<div class="row"><button type="button" class="btn" data-bk="save" style="min-height:44px;flex:1">保存する</button><button type="button" class="mini" data-bk="cancel">やめる</button></div>'
+    + (g.kind === "book" && bi.title ? '<button type="button" class="mini" data-bk="drop" style="align-self:flex-start">調べた本の情報は違うので外す</button>' : '')
+    + '</div>';
+}
+document.addEventListener("click", async (ev) => {
+  const ed = ev.target.closest("[data-bkedit]");
+  if (ed){ bookEdit = ed.dataset.bkedit; if (bookPaint) bookPaint(); return; }
+  const b = ev.target.closest("[data-bk]"); if (!b) return;
+  const form = b.closest("[data-bkform]"), key = form.dataset.bkform, g = (lastBookGroups || []).find((x) => bookKey(x.k) === key);
+  if (b.dataset.bk === "cancel" || !g){ bookEdit = null; if (bookPaint) bookPaint(); return; }
+  if (b.dataset.bk === "drop"){
+    bookInfo[key] = {key: key, asked: g.k, none: true, v2: true, manual: true, at: new Date().toISOString()};
+    try { await db.doc("bookinfo/" + key).set(bookInfo[key]); } catch(e){}
+    bookEdit = null; toast("調べた本の情報を外しました"); if (bookPaint) bookPaint(); return;
+  }
+  const kind = form.querySelector('[data-f="kind"]').value, title = form.querySelector('[data-f="title"]').value.trim(), who = form.querySelector('[data-f="who"]').value.trim();
+  if (!title){ toast("題名を入れてください"); return; }
+  const upd = {kind: kind, title: title, author: kind === "book" ? who : "", org: kind === "book" ? "" : who};
+  for (const x of g.list){ Object.assign(x, upd); if (x._id){ try { await db.doc("books/" + x._id).update(upd); } catch(e){} } }
+  // 題名や種類が変わったら、調べ直す
+  const nk = bookKey(title); if (nk !== key || kind !== g.kind){ const old = bookInfo[nk]; if (old && !old.manual) delete bookInfo[nk]; }
+  bookEdit = null; toast("直しました"); renderBooks();
+});
+function bookHead(g){
+  const bi0 = bookInfo[bookKey(g.k)] || {}, bi = g.kind === "book" ? bi0 : {actSum: bi0.actSum, actN: bi0.actN};
+  const editBtn = '<button type="button" class="mini" data-bkedit="' + esc(bookKey(g.k)) + '" style="align-self:flex-start;min-height:30px">直す</button>';
+  if (g.kind !== "book"){
+    const ds = [...new Set(g.list.map((x) => x.date).filter(Boolean))].sort();
+    const acts = g.list.map((x) => x.action).filter(Boolean), sum = bi.actSum && bi.actN === acts.length ? bi.actSum : acts.length === 1 ? acts : null;
+    const rel = bi0.related || [];
+    return '<div class="item"><div class="bk-head"><div class="bk-t"><span class="bk-badge">' + esc(KIND_NAME[g.kind] || "学び") + '</span><span class="bk-title">' + esc(g.k) + '</span>'
+      + (g.org ? '<span class="bk-meta">' + esc(g.org) + '</span>' : '') + '<span class="bk-meta">' + (ds.length ? mdJ(ds[0]) + (ds.length > 1 ? "〜" + mdJ(ds[ds.length - 1]) : "") : "") + (g.list.length > 1 ? "　記録 " + g.list.length + "回" : "") + '</span>' + editBtn + '</div></div>'
+      + (sum ? '<div class="bk-act"><b>ここから行動すること</b>' + (sum.length > 1 ? sum.map((t, i) => (i + 1) + ". " + esc(t)).join("<br>") : esc(sum[0])) + '</div>' : '')
+      + (rel.length ? '<div class="bk-rel"><b>関係する本</b>' + rel.map((r) => { const cv = coverList(r); return '<div class="bk-rel-row">' + (cv.length ? '<img src="' + esc(cv[0]) + '" data-alt="' + esc(cv.slice(1).join("|")) + '" alt="" loading="lazy">' : '') + '<div><div>' + (r.link ? '<a href="' + esc(r.link) + '" target="_blank" rel="noopener">' + esc(String(r.title).replace(/\s*:\s*/, "　")) + '</a>' : esc(String(r.title).replace(/\s*:\s*/, "　"))) + '</div><div class="bk-meta">' + esc([(r.authors || []).map((x) => String(x).replace(/,\s*/, " ")).join("、"), r.publisher || "", r.published ? String(r.published).slice(0, 4) + "年" : ""].filter(Boolean).join("　")) + '</div></div></div>'; }).join("") + '</div>'
+        : bookActBusy["r" + bookKey(g.k)] ? '<div class="bk-rel"><b>関係する本</b><span class="small">探しています</span></div>' : '');
+  }
   const title = bi.title ? String(bi.title).replace(/\s*:\s*/, "　") : g.k;   // 正式な題名（調べられなければ書いた題名）
   const meta = [bi.authors && bi.authors.length ? bi.authors.join("、") : g.author || "", bi.publisher || "", bi.published ? bi.published.slice(0, 4) + "年" : "", bi.pages ? bi.pages + "ページ" : ""].filter(Boolean).join("　");
   const ds = [...new Set(g.list.map((x) => x.date).filter(Boolean))].sort(), when = ds.length ? mdJ(ds[0]) + (ds.length > 1 ? "〜" + mdJ(ds[ds.length - 1]) : "") : "";
@@ -2246,7 +2321,7 @@ function bookHead(g){
   const cv = coverList(bi);
   return '<div class="item"><div class="bk-head">' + (cv.length ? '<img src="' + esc(cv[0]) + '" data-alt="' + esc(cv.slice(1).join("|")) + '" alt="" loading="lazy">' : '')
     + '<div class="bk-t"><span class="bk-title">' + esc(title) + '</span>' + (meta ? '<span class="bk-meta">' + esc(meta) + '</span>' : '') + '<span class="bk-meta">読んだ記録 ' + g.list.length + '回' + (when ? "　" + when : "") + '</span>'
-    + (bi.link ? '<a class="bk-meta" href="' + esc(bi.link) + '" target="_blank" rel="noopener" style="color:var(--accentText)">本の詳しい情報</a>' : '') + '</div></div>'
+    + (bi.link ? '<a class="bk-meta" href="' + esc(bi.link) + '" target="_blank" rel="noopener" style="color:var(--accentText)">本の詳しい情報</a>' : '') + editBtn + '</div></div>'
     + (sum ? '<div class="bk-act"><b>この本から行動すること</b>' + (sum.length > 1 ? sum.map((t, i) => (i + 1) + ". " + esc(t)).join("<br>") : esc(sum[0])) + '</div>' : acts.length > 1 && bookActBusy[bookKey(g.k)] ? '<div class="bk-act"><b>この本から行動すること</b><span class="small">まとめています</span></div>' : '')
     + (bi.description ? '<details class="rawfold"><summary>本の紹介</summary><p class="body" style="font-size:13px">' + esc(bi.description) + '</p></details>' : '');
 }
