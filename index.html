@@ -2205,7 +2205,7 @@ async function renderBooks(){
   // 勉強会やセミナーには、関係する本を添える（実在するか確かめた本だけ）
   for (const g of (lastBookGroups || []).filter((x) => x.kind !== "book").slice(0, 6)){
     const key = bookKey(g.k), bi = bookInfo[key] || {};
-    if (bi.related || bookActFail["r" + key]) continue;
+    if ((bi.related && (!bi.related.length || bi.related.some((r) => r.role))) || bookActFail["r" + key]) continue;   // 古い形（視点の区別なし）は作り直す
     bookActBusy["r" + key] = 1; paint(booksCache);
     try {
       const r = await window.JOURNAL_CALL("related_books", {title: g.k, org: g.org || "", note: g.list.map((x) => (x.note || "") + "\n" + (x.takeaway || "")).join("\n").slice(0, 3000)});
@@ -2311,8 +2311,10 @@ function bookHead(g){
     return '<div class="item"><div class="bk-head"><div class="bk-t"><span class="bk-badge">' + esc(KIND_NAME[g.kind] || "学び") + '</span><span class="bk-title">' + esc(g.k) + '</span>'
       + (g.org ? '<span class="bk-meta">' + esc(g.org) + '</span>' : '') + '<span class="bk-meta">' + (ds.length ? mdJ(ds[0]) + (ds.length > 1 ? "〜" + mdJ(ds[ds.length - 1]) : "") : "") + (g.list.length > 1 ? "　記録 " + g.list.length + "回" : "") + '</span>' + editBtn + '</div></div>'
       + (sum ? '<div class="bk-act"><b>ここから行動すること</b>' + (sum.length > 1 ? sum.map((t, i) => (i + 1) + ". " + esc(t)).join("<br>") : esc(sum[0])) + '</div>' : '')
-      + (rel.length ? '<div class="bk-rel"><b>関係する本</b>' + rel.map((r) => { const cv = coverList(r); return '<div class="bk-rel-row">' + (cv.length ? '<img src="' + esc(cv[0]) + '" data-alt="' + esc(cv.slice(1).join("|")) + '" alt="" loading="lazy">' : '') + '<div><div>' + (r.link ? '<a href="' + esc(r.link) + '" target="_blank" rel="noopener">' + esc(String(r.title).replace(/\s*:\s*/, "　")) + '</a>' : esc(String(r.title).replace(/\s*:\s*/, "　"))) + '</div><div class="bk-meta">' + esc([(r.authors || []).map((x) => String(x).replace(/,\s*/, " ")).join("、"), r.publisher || "", r.published ? String(r.published).slice(0, 4) + "年" : ""].filter(Boolean).join("　")) + '</div></div></div>'; }).join("") + '</div>'
-        : bookActBusy["r" + bookKey(g.k)] ? '<div class="bk-rel"><b>関係する本</b><span class="small">探しています</span></div>' : '');
+      + (rel.length ? '<div class="bk-rel">' + relHtml(rel) + '</div>' : bookActBusy["r" + bookKey(g.k)] ? '<div class="bk-rel"><b>関係する本</b><span class="small">探しています</span></div>' : '');
+    function relRow(r){ return (() => { const cv = coverList(r); return '<div class="bk-rel-row">' + (cv.length ? '<img src="' + esc(cv[0]) + '" data-alt="' + esc(cv.slice(1).join("|")) + '" alt="" loading="lazy">' : '') + '<div><div>' + (r.link ? '<a href="' + esc(r.link) + '" target="_blank" rel="noopener">' + esc(String(r.title).replace(/\s*:\s*/, "　")) + '</a>' : esc(String(r.title).replace(/\s*:\s*/, "　"))) + '</div><div class="bk-meta">' + esc([(r.authors || []).map((x) => String(x).replace(/,\s*/, " ")).join("、"), r.publisher || "", r.published ? String(r.published).slice(0, 4) + "年" : ""].filter(Boolean).join("　")) + '</div></div></div>'; })(); }
+    function relHtml(list){ const org = list.filter((r) => r.role === "org"), oth = list.filter((r) => r.role !== "org"), has = list.some((r) => r.role);
+      return has ? (org.length ? '<b>主催者や講師の本</b>' + org.map(relRow).join("") : '') + (oth.length ? '<b>別の視点から学べる本</b>' + oth.map(relRow).join("") : '') : '<b>関係する本</b>' + list.map(relRow).join(""); }
   }
   const title = bi.title ? String(bi.title).replace(/\s*:\s*/, "　") : g.k;   // 正式な題名（調べられなければ書いた題名）
   const meta = [bi.authors && bi.authors.length ? bi.authors.join("、") : g.author || "", bi.publisher || "", bi.published ? bi.published.slice(0, 4) + "年" : "", bi.pages ? bi.pages + "ページ" : ""].filter(Boolean).join("　");
