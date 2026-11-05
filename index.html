@@ -98,7 +98,8 @@ input,textarea,select{font-size:16px!important}
 .rawfold .bk-rel{border-top:0;padding-top:0;margin-bottom:12px}
 .bk-filter{display:flex;gap:8px;flex-wrap:wrap}
 .bk-filter button{min-height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:14px;font-family:inherit;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
-.bk-filter button span{font-size:12px;color:var(--sub)}
+.bk-filter button{letter-spacing:.06em;font-weight:700;font-size:13px}
+.bk-filter button span{font-size:12px;color:var(--sub);font-weight:400;letter-spacing:0}
 .bk-filter button[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
 .bk-filter button[aria-pressed="true"] span{color:inherit}
 .sugg{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:2px}
@@ -587,18 +588,16 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
     <div class="status" id="sum-status" role="status"></div>
     <div class="sums" id="rv-sum"></div>
     <button class="btn ghost" id="sum-more" type="button" hidden>もっと前を見る</button>
-    <p class="small" style="margin:0;padding:0 4px" id="sum-note">選んだ週や月のまとめが、すぐ下に出ます。週は月曜から日曜まで。第何週かは、その週の木曜日がある月で数えます。薄いボタンは記録のない週や月です。記録のある週と月は、過去の分もすべて自動でまとめます。</p>
   </div>
   <div id="rv-books-pane" class="view" hidden>
     <label class="searchbar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="books-q" placeholder="書名、勉強会、著者、学びでさがす" aria-label="学びの記録をさがす"></label>
     <div class="bk-filter" id="books-f" role="group" aria-label="種類で絞る"></div>
-    <p class="small" style="margin:0;padding:0 4px">BOOKに切り替えて書いたものが、本や勉強会ごとに並びます。本は表紙や著者をインターネットで調べて添えます。勉強会には、あわせて読みたい本を添えます。違っていたら「直す」で直せます。</p>
     <div class="list" id="rv-books"></div>
   </div>
   <div id="rv-ideas-pane" class="view" hidden>
     <label class="searchbar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="ideas-q" placeholder="言葉でさがす" aria-label="IDEAをさがす"></label>
     <div class="row" style="display:flex;gap:8px"><select id="ideas-y" class="date-input" style="flex:1;min-width:0" aria-label="年"><option value="">すべての年</option></select><select id="ideas-m" class="date-input" style="flex:1;min-width:0" aria-label="月"><option value="">すべての月</option></select></div>
-    <p class="small" style="margin:0;padding:0 4px" id="ideas-note">IDEAに切り替えて書いたものと、JOURNALの中からAIが拾ったものが並びます。</p>
+    <p class="small" style="margin:0;padding:0 4px" id="ideas-note" hidden></p>
     <div class="list" id="rv-ideas"></div>
   </div>
   <div id="rv-hayato-pane" class="view" hidden>
@@ -606,7 +605,6 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
       <div class="cal-head"><button class="icon-btn" id="hy-prev" type="button" aria-label="前の月">‹</button><b id="hy-label"></b><button class="icon-btn" id="hy-next" type="button" aria-label="次の月">›</button></div>
       <div class="cal-grid" id="hy-grid"></div>
     </div>
-    <p class="small" style="margin:0;padding:0 4px" id="hy-note">日記の中から、隼人のことをAIが拾って並べます。色のついた日を押すと、その日のところへ飛びます。</p>
     <div class="list" id="rv-hayato"></div>
   </div>
 </section>
@@ -2196,7 +2194,7 @@ async function renderIdeas(){
     const ms = [...new Set(all.filter((x) => !yv || String(x.date || "").startsWith(yv)).map((x) => String(x.date || "").slice(5, 7)).filter(Boolean))].sort();
     $("ideas-m").innerHTML = '<option value="">すべての月</option>' + ms.map((m2) => '<option value="' + m2 + '"' + (m2 === mv ? " selected" : "") + '>' + Number(m2) + '月</option>').join("");
     const q = $("ideas-q").value, rows = all.filter((x) => (!yv || String(x.date || "").startsWith(yv)) && (!mv || String(x.date || "").slice(5, 7) === mv) && qMatch(q, x.title || "", x.core || "", x.next || "", x.raw || ""));
-    $("ideas-note").textContent = q.trim() || yv || mv ? all.length + "件のうち" + rows.length + "件" : "IDEAに切り替えて書いたものと、JOURNALの中からAIが拾ったものが並びます。全部で" + all.length + "件。";
+    const filt = !!(q.trim() || yv || mv); $("ideas-note").hidden = !filt; $("ideas-note").textContent = filt ? all.length + "件のうち" + rows.length + "件" : "";
     el.innerHTML = rows.length ? rows.map((x) => '<div class="item idea"><div class="row-between"><span class="ttl">' + esc(x.title || "（名前なし）") + '</span><span class="small">' + md2(x.date) + (x.src === "diary" ? "　JOURNALから" : "") + '</span></div>'
       + (x.core ? '<p class="body">' + esc(x.core) + '</p>' : '') + (x.next ? '<div class="box"><b>次の一歩</b><span>' + esc(x.next) + '</span></div>' : '') + todoBtn(x.next, "IDEA") + '</div>').join("")
       : '<div class="item"><p class="empty">' + (q.trim() ? "見つかりませんでした。" : "まだIDEAはありません。今日を書くでIDEAに切り替えて書くと、ここに並びます。") + '</p></div>'; };
@@ -2215,7 +2213,7 @@ async function renderBooks(){
     rows.forEach((x) => { const k = x.title || "（書名なし）"; let g = groups.find((y) => y.k === k); if (!g){ g = {k: k, author: x.author, org: x.org || "", kind: x.kind || "book", list: []}; groups.push(g); } if (x.kind && x.kind !== "book") g.kind = x.kind; if (!g.org && x.org) g.org = x.org; g.list.push(x); });
     lastBookGroups = groups;
     const nB = groups.filter((g) => g.kind === "book").length;
-    $("books-f").innerHTML = [["", "ぜんぶ", groups.length], ["book", "読んだ本", nB], ["study", "勉強会", groups.length - nB]].map((f) => '<button type="button" data-bkf="' + f[0] + '" aria-pressed="' + (bookFilter === f[0]) + '">' + f[1] + '<span>' + f[2] + '</span></button>').join("");
+    $("books-f").innerHTML = [["", "ALL", groups.length], ["book", "BOOKS", nB], ["study", "SEMINARS", groups.length - nB]].map((f) => '<button type="button" data-bkf="' + f[0] + '" aria-pressed="' + (bookFilter === f[0]) + '">' + f[1] + '<span>' + f[2] + '</span></button>').join("");
     const shownG = groups.filter((g) => !bookFilter || (bookFilter === "book" ? g.kind === "book" : g.kind !== "book"));
     if (!shownG.length){ el.innerHTML = '<div class="item"><p class="empty">' + (bookFilter === "book" ? "まだ本の記録はありません。" : "まだ勉強会の記録はありません。") + '</p></div>'; return; }
     el.innerHTML = shownG.map((g) => {
