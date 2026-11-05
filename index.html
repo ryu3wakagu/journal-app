@@ -326,6 +326,7 @@ textarea::placeholder{color:var(--sub)}
 .sum h3{margin:0;font-size:16px}
 /* 音声入力 */
 .mic-row{display:flex;align-items:flex-start;gap:10px}
+.label.en{letter-spacing:.08em;font-weight:700}
 .write-bar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:10px}
 .write-bar .mic{min-height:54px;width:100%}
 .write-bar .btn{width:100%}
@@ -457,7 +458,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
   </article>
 
   <div class="group">
-    <div class="label" id="mood-label">Today's Condition</div>
+    <div class="label en" id="mood-label">TODAY'S CONDITION</div>
     <div class="moods" id="mood" role="group" aria-labelledby="mood-label"></div>
   </div>
 
@@ -467,7 +468,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
       <button type="button" data-mode="idea" aria-pressed="false">IDEA</button>
       <button type="button" data-mode="book" aria-pressed="false">BOOK</button>
     </div>
-    <label class="label" for="entry" id="entry-label">今日のこと</label>
+    <label class="label en" for="entry" id="entry-label">TODAY'S JOURNAL</label>
     <textarea id="entry" placeholder="思いついた順でかまいません"></textarea>
     <div class="write-bar"><button type="button" class="mic" id="mic" aria-pressed="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg><span>話して書く</span></button><button class="btn" id="save" type="button">記録する</button></div>
     <div class="mic-row"><span class="mic-status" id="mic-status" role="status"></span><span class="wcount" id="wcount" aria-live="off"></span></div>
@@ -996,8 +997,8 @@ function paintWriteDate(){
   $("t-date").textContent = m + "月" + d + "日";
   $("ly-title").textContent = isToday ? "1年前の今日" : "1年前のこの日";
   $("ly-date").textContent = jp(lastYearOf());
-  $("mood-label").textContent = isToday ? "Today's Condition" : "Condition";
-  $("entry-label").textContent = isToday ? "今日のこと" : "この日のこと";
+  $("mood-label").textContent = isToday ? "TODAY'S CONDITION" : "CONDITION";
+  $("entry-label").textContent = isToday ? "TODAY'S JOURNAL" : "JOURNAL OF THE DAY";
   $("w-change").hidden = !$("w-panel").hidden;
   $("w-note").textContent = isToday ? "過去の日付を選ぶと、その日の分として記録されます" : m + "月" + d + "日の分として記録されます";
 }
@@ -2082,7 +2083,7 @@ document.querySelector(".mode[aria-label='書く種類']").addEventListener("cli
   writeMode = b.dataset.mode;
   b.parentElement.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
   const isIdea = writeMode === "idea", isBook = writeMode === "book";
-  $("entry-label").textContent = isIdea ? "思いついたこと" : isBook ? "読んだ本のこと" : (TODAY === REAL_TODAY ? "今日のこと" : "この日のこと");
+  $("entry-label").textContent = isIdea ? "NEW IDEA" : isBook ? "READING NOTE" : (TODAY === REAL_TODAY ? "TODAY'S JOURNAL" : "JOURNAL OF THE DAY");
   entryEl.placeholder = isIdea ? "思いついたことをそのまま。AIが中身と次の一歩に整理します" : isBook ? "書名から書き始めてください。AIが内容、学び、1つの行動に整理します" : "思いついた順でかまいません";
   $("save").textContent = isIdea ? "IDEAを残す" : isBook ? "本の記録を残す" : "記録する";
 });
@@ -2421,9 +2422,9 @@ function paintPick(list, have){
     const i = list.indexOf(p);
     const meta = "記録 " + ((doc && doc.count) || p.n) + "日" + (doc && doc.avgMood ? "　平均の調子 " + doc.avgMood : "") + (p.partial ? "　途中まで" : "");
     let h = '<div class="mnav"><button type="button" class="icon-btn" data-mstep="1" aria-label="前の月"' + (i >= list.length - 1 ? " disabled" : "") + '>‹</button>'
-      + '<button type="button" class="mlabel" data-mgrid aria-expanded="' + pick.grid + '">' + Number(p.start.slice(0, 4)) + '年' + Number(p.start.slice(5, 7)) + '月<small>' + meta + '　押すと年月を選べます</small></button>'
+      + '<div class="mlabel">' + Number(p.start.slice(0, 4)) + '年' + Number(p.start.slice(5, 7)) + '月<small>' + meta + '</small></div>'
       + '<button type="button" class="icon-btn" data-mstep="-1" aria-label="次の月"' + (i <= 0 ? " disabled" : "") + '>›</button></div>';
-    if (pick.grid){
+    {
       const years = [...new Set(list.map((x) => x.start.slice(0, 4)))];
       const gy = pick.gy && years.indexOf(pick.gy) >= 0 ? pick.gy : p.start.slice(0, 4);
       const has = {}; list.forEach((x) => { has[x.start] = 1; });
