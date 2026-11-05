@@ -1343,7 +1343,7 @@ async function runAI(){
     + '返答はJSONのみ: {"summary":"","good":"","challenge":"","insight":"","ideas":[{"title":"","core":"","next":""}],"hayato":"","todos":[""]}\n\n'
     + "日記:\n" + rawOf(d).slice(0, 20000);
   try {
-    const r = await sample.json(prompt, {cache: false});
+    const r = await sample.json(prompt, {cache: false, modelTier: "quick"});   // 毎日の整理は軽いAI（Haiku）で十分（2026年11月に比べて決めた）
     const ai = {summary: String(r.summary || ""), good: String(r.good || ""), challenge: String(r.challenge || ""), insight: String(r.insight || ""), hayato: String(r.hayato || ""), at: new Date().toISOString()};
     await db.doc("days/" + d.date).update({ai: ai, hasHayato: !!ai.hayato});
     const ideas = Array.isArray(r.ideas) ? r.ideas.filter((x) => x && (x.title || x.core)).slice(0, 5) : [];
