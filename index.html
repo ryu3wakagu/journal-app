@@ -752,7 +752,7 @@ async function call(action, payload){
 window.JOURNAL_CALL = call;
 const clone = (x) => x === undefined || x === null ? x : JSON.parse(JSON.stringify(x));
 // 一覧は前に読んだ分をすぐ返し、裏で新しくする。書き込んだらそのコレクションの分は捨てる
-const CK = "jc:", NOCACHE = {summaries: 1, settings: 1, push: 1};
+const CK = "jc:", NOCACHE = {summaries: 1, settings: 1, push: 1, bookinfo: 1, todo_suggest: 1};
 function cget(k){ try { return JSON.parse(localStorage.getItem(CK + k)); } catch(e){ return null; } }
 function cset(k, v){ try { const s = JSON.stringify(v); if (s.length < 1500000) localStorage.setItem(CK + k, s); } catch(e){} }
 const CGEN = {};
