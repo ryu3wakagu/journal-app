@@ -2193,7 +2193,8 @@ async function renderBooks(){
       const one = (x, i) => '<div class="bk-ses"><span class="when">' + (ses.length > 1 ? (i + 1) + "回目　" : "") + md2(x.date) + (x.at ? "　" + atHM(x.at) : "") + '</span>'
         + (x.takeaway ? '<div><span class="lbl">感じたこと</span>' + esc(x.takeaway) + '</div>' : '')
         + (x.action ? '<div><span class="lbl">行動</span>' + esc(x.action) + '</div>' + todoBtn(x.action, "本") : '')
-        + (x.note ? '<details class="rawfold"><summary>' + (g.kind === "book" ? "本の内容のメモを開く" : "内容のメモを開く") + '</summary><p class="body" style="font-size:13px">' + esc(x.note) + '</p></details>' : '') + '</div>';
+        + (x.note ? '<details class="rawfold"><summary>' + (g.kind === "book" ? "本の内容のメモを開く" : "内容のメモを開く") + '</summary><p class="body" style="font-size:13px">' + esc(x.note) + '</p></details>' : '')
+        + (x.raw && x.raw.trim() !== String(x.takeaway || "").trim() ? '<details class="rawfold"><summary>自分で書いたメモを開く</summary><p class="body" style="font-size:13px;white-space:pre-wrap">' + esc(x.raw) + '</p></details>' : '') + '</div>';
       return bookHead(g) + ses.slice(0, 2).map(one).join("")
         + (ses.length > 2 ? '<details class="rawfold"><summary>残り' + (ses.length - 2) + '回分を見る</summary>' + ses.slice(2).map((x, i) => one(x, i + 2)).join("") + '</details>' : '') + '</div>';
     }).join("");
