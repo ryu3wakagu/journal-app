@@ -411,6 +411,11 @@ details.rawfold[open]>summary::after{transform:rotate(-135deg);margin-bottom:-4p
 .fold summary .v{margin-left:auto}
 .fold:not([open]){padding-bottom:14px}
 .date-input{height:46px;border:1px solid var(--line);border-radius:max(4px,calc(var(--r) - 6px));background:var(--card);padding:0 12px;min-width:0;width:100%}
+/* iPhoneの日付の欄は、そのままだと枠からはみ出すので、幅を枠に合わせる */
+input[type="date"]{-webkit-appearance:none;appearance:none;display:block;min-width:0;max-width:100%;color:var(--text);font-family:inherit;font-size:16px;line-height:44px}
+input[type="date"]::-webkit-date-and-time-value{text-align:center;margin:0}
+input,select,textarea{max-width:100%}
+.todo-opts .date-input{flex:0 1 auto;min-width:9.5em}
 .range{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center}
 .hand-add{display:flex;flex-direction:column;gap:6px;margin-top:6px}
 .eblock{display:flex;flex-direction:column;gap:4px;padding:10px 0;border-top:1px solid var(--line)}
