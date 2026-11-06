@@ -141,6 +141,10 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .recv-stop .fill{position:absolute;inset:0;background:rgba(0,0,0,.28);transform:scaleX(0);transform-origin:left;pointer-events:none}
 .recv-stop.holding .fill{transform:scaleX(1);transition:transform .9s linear}
 .recv-stop span{position:relative}
+.recv-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.recv-btns .recv-stop{font-size:16px;padding:0 8px}
+.recv-stop.sub{background:transparent;color:var(--rec);box-shadow:inset 0 0 0 2px var(--rec)}
+.recv-stop.sub .fill{background:var(--rec);opacity:.2}
 .recv-resume{min-height:64px;border:0;border-radius:999px;background:var(--accent);color:var(--onAccent);font-size:17px;font-weight:700}
 .lb{position:fixed;inset:0;z-index:40;background:rgba(10,14,20,.96);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
 .lb-bar{display:flex;justify-content:space-between;gap:8px;padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
@@ -454,7 +458,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
   <div class="recv-text" id="recv-text"></div>
   <div class="recv-note" id="recv-note">画面は消えないようにしています。ほかの場所を押しても止まりません。</div>
   <button type="button" class="recv-resume" id="recv-resume" hidden>続きを話す</button>
-  <button type="button" class="recv-stop" id="recv-stop"><i class="fill"></i><span id="recv-stop-label">長押しで止める</span></button>
+  <div class="recv-btns"><button type="button" class="recv-stop sub" id="recv-stop"><i class="fill"></i><span>長押しで止める</span></button><button type="button" class="recv-stop" id="recv-save"><i class="fill"></i><span>長押しで記録する</span></button></div>
 </div>
 <div class="lb" id="lb" hidden role="dialog" aria-label="写真を大きく見る"><div class="lb-bar"><button type="button" id="lb-zoom">拡大</button><button type="button" id="lb-close">閉じる</button></div><div class="lb-scroll"><img id="lb-img" alt="手書きのページ"></div></div>
 <div class="wrap">
@@ -1096,15 +1100,28 @@ function recvPause(msg){
   $("recv").classList.add("paused"); $("recv-state").textContent = "止まっています";
   $("recv-note").textContent = msg; $("recv-resume").hidden = false;
 }
-// 長押しで止める（0.9秒）。軽く触れただけでは止まらない
-(function(){
-  const b = $("recv-stop"); let t = null;
-  const down = (ev) => { ev.preventDefault(); b.classList.add("holding"); $("recv-stop-label").textContent = "そのまま押し続けて"; t = setTimeout(() => { b.classList.remove("holding"); micStop(); }, 900); };
-  const up = () => { if (t){ clearTimeout(t); t = null; } b.classList.remove("holding"); $("recv-stop-label").textContent = "長押しで止める"; };
+// 長押し（0.9秒）してから離すと動く。軽く触れただけでは動かない
+// 離したあとの「押した」が下の画面（振り返りのタブなど）に届かないよう、少しのあいだ止める
+let clickGuard = 0;
+document.addEventListener("click", (ev) => { if (Date.now() < clickGuard){ ev.preventDefault(); ev.stopPropagation(); } }, true);
+function holdBtn(b, label, ready, done){
+  const sp = b.querySelector("span"); let t = null, fired = false;
+  const down = (ev) => { ev.preventDefault(); fired = false; b.classList.add("holding"); sp.textContent = "そのまま押し続けて"; t = setTimeout(() => { t = null; fired = true; sp.textContent = ready; try { navigator.vibrate && navigator.vibrate(30); } catch(e){} }, 900); };
+  const up = () => { if (t){ clearTimeout(t); t = null; } b.classList.remove("holding"); sp.textContent = label; if (fired){ fired = false; clickGuard = Date.now() + 900; done(); } };
   b.addEventListener("pointerdown", down);
   ["pointerup", "pointercancel", "pointerleave"].forEach((e) => b.addEventListener(e, up));
   b.addEventListener("contextmenu", (ev) => ev.preventDefault());
-})();
+}
+holdBtn($("recv-stop"), "長押しで止める", "離すと止めます", () => micStop());
+holdBtn($("recv-save"), "長押しで記録する", "離すと記録します", () => micStopAndSave());
+// 止めて、聞き間違いを直してから、そのまま記録する
+async function micStopAndSave(){
+  recOn = false; recPaused = false; try { rec && rec.stop(); } catch(e){}
+  micPaint(); recvClose();
+  if (usedVoice) await polishVoice();
+  await new Promise((r) => setTimeout(r, Math.max(0, clickGuard - Date.now() + 50)));
+  $("save").click();
+}
 $("recv-resume").addEventListener("click", () => { recResume(); });
 function recResume(){
   if (!rec) return;
