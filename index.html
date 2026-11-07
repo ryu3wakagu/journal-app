@@ -206,6 +206,17 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .pg-cell:active{background:var(--soft)}
 .pg-cell.sel{background:color-mix(in srgb,var(--accent) 10%,transparent);box-shadow:inset 0 0 0 1.5px var(--accentText)}
 .pg-cell.sel:empty::after{content:"ここに入れます";font-size:12px;font-weight:500;color:var(--accentText);padding:8px 10px}
+/* 追加欄：時間の欄と予定の欄の高さと見た目をそろえる（iPhoneの時間の欄は形が崩れやすい） */
+.sc-add{grid-template-columns:84px minmax(0,1fr) auto}
+.tbox{position:relative;display:block;min-width:0}
+.tbox span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--sub);pointer-events:none}
+.tbox.has span{display:none}
+.tbox:not(.has) input{color:transparent}
+.tbox input::-webkit-calendar-picker-indicator{display:none}
+.sc-add input[type="time"]{-webkit-appearance:none;appearance:none;display:block;width:100%;min-width:0;height:44px;line-height:42px;padding:0 4px;font-size:16px;font-family:inherit;color:var(--text);background:var(--card);text-align:center;box-sizing:border-box}
+.sc-add input[type="time"]::-webkit-date-and-time-value{text-align:center;margin:0}
+.sc-add input[type="text"]{height:44px;line-height:normal;font-size:16px;min-width:0;box-sizing:border-box}
+.sc-add .mini{min-height:44px}
 .recv-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .recv-btns .recv-stop{font-size:16px;padding:0 8px}
 .recv-stop.sub{background:transparent;color:var(--rec);box-shadow:inset 0 0 0 2px var(--rec)}
@@ -2516,7 +2527,7 @@ function dayList(day){
   return {must: must, time: all.filter((x) => tShow(x.t)).sort((a, b) => tMin(a.t) - tMin(b.t))};
 }
 const scCk = (x, day) => '<button type="button" class="sc-ck' + (x.done ? " on" : "") + '" data-scdone="' + esc(x.key) + '" data-scday="' + day + '" aria-pressed="' + x.done + '"><i></i><span>' + esc(x.text) + '</span>' + sideTag(x) + '</button>';
-function schedAddHtml(day){ return '<div class="sc-add"><input type="time" class="date-input" aria-label="時間（なくてもよい）"><input type="text" class="date-input" placeholder="予定を追加" aria-label="予定（時間がなければMUST DOに入ります）" enterkeyhint="done"><button type="button" class="mini" data-scadd="' + day + '">追加</button></div>'; }
+function schedAddHtml(day){ return '<div class="sc-add"><label class="tbox"><input type="time" class="date-input" aria-label="時間（なくてもよい）"><span>時間</span></label><input type="text" class="date-input" placeholder="予定を追加" aria-label="予定（時間がなければMUST DOに入ります）" enterkeyhint="done"><button type="button" class="mini" data-scadd="' + day + '">追加</button></div>'; }
 // 毎朝のMY COMPASSの4番目
 function schedHtml(day){
   const L = dayList(day), d = dObj(day);
@@ -2564,7 +2575,16 @@ function paintPlan(){
   if (!foot.querySelector(".sc-add")) foot.innerHTML = schedAddHtml(planDay);
   foot.querySelector("[data-scadd]").dataset.scadd = planDay;
 }
-$("plan-close").addEventListener("click", () => { $("plan").hidden = true; repaintSched(); });
+$("plan-close").addEventListener("click", () => { const el = $("plan"); el.hidden = true; el.style.top = el.style.height = el.style.bottom = ""; repaintSched(); });
+// 時間が入っていないときだけ「時間」と出す
+function tboxMark(root){ (root || document).querySelectorAll(".tbox").forEach((b) => b.classList.toggle("has", !!b.querySelector("input").value)); }
+["input", "change"].forEach((e) => document.addEventListener(e, (ev) => { const b = ev.target.closest && ev.target.closest(".tbox"); if (b) b.classList.toggle("has", !!ev.target.value); }));
+// キーボードが出ても、下の追加欄が隠れないように、見えている高さに合わせる
+function planFit(){
+  const el = $("plan"), vv = window.visualViewport; if (!vv || el.hidden) return;
+  el.style.top = vv.offsetTop + "px"; el.style.height = vv.height + "px"; el.style.bottom = "auto";
+}
+if (window.visualViewport){ visualViewport.addEventListener("resize", planFit); visualViewport.addEventListener("scroll", planFit); }
 const planMove = async (n) => { planDay = addD(planDay, n); planSel = null; planMustOpen = false; paintPlan(); const ws = weekStart(planDay); await Promise.all(Array.from({length: 7}, (_, i) => loadSched(addD(ws, i)))); paintPlan(); };
 $("plan-prev").addEventListener("click", () => planMove(-7));
 $("plan-next").addEventListener("click", () => planMove(7));
@@ -2613,7 +2633,7 @@ document.addEventListener("click", async (ev) => {
     const day = a.dataset.scadd, box = a.closest(".sc-add"), text = box.querySelector('input[type="text"]').value.trim(), t = box.querySelector('input[type="time"]').value;
     if (!text){ toast("予定を書いてください"); box.querySelector('input[type="text"]').focus(); return; }
     const s2 = await loadSched(day); s2.items = (s2.items || []).concat([{id: Date.now().toString(36), t: tShow(t), text: text}]);
-    if (box.closest("#plan-foot")){ box.querySelector('input[type="text"]').value = ""; box.querySelector('input[type="time"]').value = ""; planSel = null; }
+    if (box.closest("#plan-foot")){ box.querySelector('input[type="text"]').value = ""; box.querySelector('input[type="time"]').value = ""; tboxMark(box); planSel = null; }
     repaintSched(); saveSched(day); toast(tShow(t) ? tShow(t) + "に入れました" : "MUST DOに入れました"); return;
   }
   const del = ev.target.closest("[data-scdel]");
@@ -2624,7 +2644,7 @@ document.addEventListener("click", async (ev) => {
   if (pg && !ev.target.closest(".pr")){
     // 押したマスの時間を下の追加欄に入れて、すぐ書けるようにする（画面は動かさない）
     const foot = $("plan-foot"), tx = foot.querySelector('input[type="text"]');
-    foot.querySelector('input[type="time"]').value = tInput(pg.dataset.pgt); tx.focus({preventScroll: true});
+    foot.querySelector('input[type="time"]').value = tInput(pg.dataset.pgt); tboxMark(foot); tx.focus({preventScroll: true});
     planSel = pg.dataset.pgt; document.querySelectorAll("#plan-body .pg-cell.sel").forEach((e2) => e2.classList.remove("sel")); pg.classList.add("sel"); return;
   }
   if (!ev.target.closest("#brd")) return;
