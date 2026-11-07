@@ -141,6 +141,54 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .recv-stop .fill{position:absolute;inset:0;background:rgba(0,0,0,.28);transform:scaleX(0);transform-origin:left;pointer-events:none}
 .recv-stop.holding .fill{transform:scaleX(1);transition:transform .9s linear}
 .recv-stop span{position:relative}
+/* スケジュール（SEIZE THE WEEK SHEETと同じ作り） */
+.plan{z-index:46}
+.sc-card{background:var(--card);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.sc-lb{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--sub)}
+.sc-ck{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;border:0;background:none;padding:2px 0;text-align:left;color:var(--text);font-size:15px;font-family:inherit;cursor:pointer}
+.sc-ck i{width:20px;height:20px;border:2px solid var(--line);border-radius:6px;flex:none;position:relative}
+.sc-ck.on i{background:var(--accent);border-color:var(--accent)}
+.sc-ck.on i::after{content:"";position:absolute;left:5px;top:1px;width:5px;height:10px;border:solid var(--onAccent);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.sc-ck span{flex:1;min-width:0;line-height:1.5}
+.sc-ck.on span{color:var(--sub);text-decoration:line-through}
+.sc-ck em,.pr em{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--sub);border:1px solid var(--line);border-radius:6px;padding:1px 5px;flex:none}
+.sc-t{display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;gap:6px}
+.sc-t .tm,.pg-row .tm{font-size:13px;color:var(--sub);font-variant-numeric:tabular-nums}
+.sc-add{display:grid;grid-template-columns:100px minmax(0,1fr) auto;gap:8px;align-items:center}
+.sc-add .date-input{height:44px;line-height:42px;padding:0 10px}
+.sc-links{display:flex;gap:8px;flex-wrap:wrap}
+.plan-nav{display:flex;align-items:center;gap:8px}
+.plan-nav b{font-size:15px;min-width:7.5em;text-align:center}
+.plan-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.plan-days button{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:6px 0;display:flex;flex-direction:column;align-items:center;gap:1px;color:var(--text);font-family:inherit;cursor:pointer;min-width:0}
+.plan-days span{font-size:11px;color:var(--sub)}
+.plan-days b{font-size:17px}
+.plan-days i{font-style:normal;font-size:10px;color:var(--accentText);min-height:14px}
+.plan-days button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+.plan-days button[aria-pressed="true"] span,.plan-days button[aria-pressed="true"] i{color:inherit}
+.plan-grid{gap:0}
+.pg-row{display:grid;grid-template-columns:44px minmax(0,1fr);border-top:1px solid var(--line);min-height:40px}
+.pg-row.half{border-top-style:dashed}
+.pg-row .tm{padding-top:9px}
+.pg-cell{display:flex;flex-direction:column;gap:4px;padding:4px 0;cursor:pointer;min-width:0}
+.pr{display:flex;align-items:center;gap:8px;background:var(--soft);border-radius:8px;padding:4px 4px 4px 10px;min-height:36px;font-size:14px}
+.pr .tx{flex:1;min-width:0;line-height:1.5}
+.pr .tm2{font-size:12px;color:var(--sub)}
+.pr em{margin-right:6px}
+.pr .x{border:0;background:none;color:var(--sub);font-size:18px;width:32px;height:32px;flex:none;cursor:pointer}
+.seg2{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--soft);border-radius:12px;padding:4px}
+.seg2 button{border:0;background:none;border-radius:9px;min-height:40px;font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--sub);font-family:inherit;cursor:pointer}
+.seg2 button[aria-pressed="true"]{background:var(--card);color:var(--text)}
+.brd-list{background:var(--card);border-radius:var(--r);overflow:hidden}
+.brd-row{display:flex;align-items:center;gap:10px;width:100%;border:0;border-top:1px solid var(--line);background:none;padding:11px 16px;text-align:left;color:var(--text);font-family:inherit;cursor:pointer}
+.brd-row:first-child{border-top:0}
+.brd-row span{flex:1;min-width:0;display:flex;flex-direction:column}
+.brd-row b{font-weight:500;font-size:15px;line-height:1.5}
+.brd-row small{font-size:12px;color:var(--sub);line-height:1.5}
+.brd-row i{font-style:normal;color:var(--sub);font-size:20px}
+.brd-add{width:100%;border:0;border-top:1px solid var(--line);background:none;min-height:48px;color:var(--accentText);font-size:15px;font-weight:500;font-family:inherit;cursor:pointer}
+.brd-form{display:flex;flex-direction:column;gap:14px;background:var(--card);border-radius:var(--r);padding:16px}
+.brd-form label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--sub)}
 .recv-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .recv-btns .recv-stop{font-size:16px;padding:0 8px}
 .recv-stop.sub{background:transparent;color:var(--rec);box-shadow:inset 0 0 0 2px var(--rec)}
@@ -458,6 +506,14 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
   <div class="morn-body" id="vis-body"></div>
   <div class="morn-foot" id="morn-foot"><button type="button" class="mini" id="morn-back">戻る</button><button type="button" class="btn" id="morn-next">次へ</button></div>
 </div>
+<div class="morn plan" id="plan" hidden role="dialog" aria-label="週の予定">
+  <div class="morn-top"><div class="plan-nav"><button type="button" class="mini" id="plan-prev" aria-label="前の週">‹</button><b id="plan-range"></b><button type="button" class="mini" id="plan-next" aria-label="次の週">›</button></div><button type="button" class="mini" id="plan-close">閉じる</button></div>
+  <div class="morn-body" id="plan-body"></div>
+</div>
+<div class="morn plan" id="brd" hidden role="dialog" aria-label="WORK BOARDとLIFE BOARD">
+  <div class="morn-top"><b>繰り返しのやること</b><button type="button" class="mini" id="brd-close">閉じる</button></div>
+  <div class="morn-body" id="brd-body"></div>
+</div>
 <div class="recv" id="recv" hidden role="dialog" aria-label="音声入力">
   <div class="recv-top"><i class="recv-dot"></i><b id="recv-state">聞いています</b><span id="recv-time">0:00</span><span id="recv-count">0字</span></div>
   <div class="recv-text" id="recv-text"></div>
@@ -658,6 +714,10 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
         <input type="range" class="lenbar" id="p-len" min="0" max="6" step="1" aria-label="まとめの長さ">
         <div class="scale" style="padding:0"><span>自動</span><span>100</span><span>150</span><span>200</span><span>250</span><span>300</span><span>400</span></div>
         <details class="rawfold"><summary>見本を見る</summary><div class="lenprev"><div class="small" id="p-len-note">見本を読み込んでいます</div><p class="body" id="p-len-sample"></p></div></details></div>
+      <div class="pref"><div class="row-between"><span class="t">WORK BOARD と LIFE BOARD</span><button type="button" class="mini" data-brd>開く</button></div>
+        <div class="small">毎週や毎月の繰り返しのやること。SEIZE THE WEEK SHEETと同じ中身で、どちらで直しても同じになります</div></div>
+      <div class="pref"><div class="row-between"><span class="t">週の予定</span><button type="button" class="mini" data-plan="">開く</button></div>
+        <div class="small">1週間分の予定をまとめて入れます。毎朝のMY COMPASSの4番目に、その日の分が出ます</div></div>
       <div class="pref"><div class="row-between"><span class="t">用語辞書</span><span class="v">言い間違いを自動で直す</span></div>
         <div class="dict" id="p-dict"></div>
         <button class="link" id="p-dict-add" type="button">直す言葉を足す</button>
@@ -1548,7 +1608,7 @@ function editHtml(kind){
   return h;
 }
 let mornSugg = false;
-const mornLast = () => (mornSugg ? 3 : 2);
+const mornLast = () => (mornSugg ? 4 : 3);
 function paintMorn(){
   const el = $("vis-body");
   if (!vision){ el.innerHTML = '<p class="empty">読み込んでいます</p>'; return; }
@@ -1556,7 +1616,7 @@ function paintMorn(){
   $("morn-dots").innerHTML = Array.from({length: mornLast() + 1}, (_, i) => '<i class="' + (i <= mornStep ? "on" : "") + '"></i>').join("");
   $("morn-foot").hidden = !!visEditing;
   if (visEditing){ el.innerHTML = editHtml(visEditing); $("morn").scrollTop = 0; return; }
-  el.innerHTML = mornStep === 0 ? cloverHtml(vision) : mornStep === 1 ? fmHtml(vision) : mornStep === 2 ? actionHtml(vision) : suggHtml(suggs, true) || '<p class="lead">候補はすべて決めました。</p>';
+  el.innerHTML = mornStep === 0 ? cloverHtml(vision) : mornStep === 1 ? fmHtml(vision) : mornStep === 2 ? actionHtml(vision) : mornStep === 3 ? schedHtml(mornDay()) : suggHtml(suggs, true) || '<p class="lead">候補はすべて決めました。</p>';
   $("morn-back").style.visibility = mornStep === 0 ? "hidden" : "visible";
   $("morn-next").textContent = mornStep === mornLast() ? "今日はこれでよし" : "次へ";
 }
@@ -1565,6 +1625,7 @@ function mornOpen(auto){
   $("morn").hidden = false; paintMorn();
   ls.set("journal.mornShown", mornDay());
   mornSugg = !!(suggs && suggs.length);
+  Promise.all([loadBoard(), loadSched(mornDay(), true)]).then(repaintSched).catch(() => {});
   loadSuggs().then(() => { if (mornStep < 2) mornSugg = !!(suggs && suggs.length); if (!$("morn").hidden && !visEditing) paintMorn(); });
 }
 function mornClose(){ $("morn").hidden = true; visEditing = null; }
@@ -2391,6 +2452,170 @@ function bookTail(g){
   return h;
 }
 
+/* ---------- スケジュール（SEIZE THE WEEK SHEETと同じ作り） ---------- */
+// 繰り返し：board/main {items:[{side:"work"|"life", freq:"毎週"|"第1週"〜"第5週"|"最終週"|"日付", when:"月"|"20"|"末日", task, time:"13:30"|"", memo}]}
+// その日だけの予定：sched/YYYY-MM-DD {date, items:[{id, t:"13:30"|"", text}], done:{key:true}}
+const FREQS = ["毎週", "第1週", "第2週", "第3週", "第4週", "第5週", "最終週", "日付"];
+let board = ls.get("journal.board") || null, schedCache = {}, planDay = null, brdSide = "work", brdEdit = null;
+const tMin = (t) => { const m = /^(\d{1,2}):(\d{2})/.exec(String(t || "")); return m ? Number(m[1]) * 60 + Number(m[2]) : 9999; };
+const tShow = (t) => { const v = tMin(t); return v === 9999 ? "" : Math.floor(v / 60) + ":" + String(v % 60).padStart(2, "0"); };
+const tInput = (t) => { const v = tMin(t); return v === 9999 ? "" : String(Math.floor(v / 60)).padStart(2, "0") + ":" + String(v % 60).padStart(2, "0"); };
+const mdS = (s2) => Number(s2.slice(5, 7)) + "/" + Number(s2.slice(8, 10));
+const sideTag = (x) => x.side ? '<em>' + (x.side === "work" ? "WORK" : "LIFE") + '</em>' : '';
+// その日に当たる繰り返し（第何週は日付を7で割って数える。日付が月にない日は末日に寄せる）
+function boardHits(day){
+  const d = dObj(day), dow = d.getDay(), dd = d.getDate(), last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  return ((board && board.items) || []).filter((x) => {
+    const f = x.freq, w = String(x.when ?? "").trim();
+    if (f === "日付"){ if (w === "末日" || w === "最終日") return dd === last; const n = Number(w); return n ? (n > last ? dd === last : dd === n) : false; }
+    if (!w || WD.indexOf(w) !== dow) return false;
+    if (f === "毎週") return true;
+    if (f === "最終週") return dd + 7 > last;
+    const m = /^第(\d)週$/.exec(f || ""); return m ? Math.ceil(dd / 7) === Number(m[1]) : false;
+  });
+}
+async function loadBoard(){
+  if (!db) return board;
+  // シートが書き換えられていたら取り込む（MY COMPASSと同じ）
+  if (!loadBoard.syncing){ loadBoard.syncing = true; window.JOURNAL_CALL("board_sync", {}).then(async (r) => { if (r && r.changed){ try { const s3 = await db.doc("board/main").get(); if (s3.exists){ board = s3.data(); ls.set("journal.board", board); repaintSched(); } } catch(e){} } }).catch(() => {}).finally(() => { setTimeout(() => { loadBoard.syncing = false; }, 30000); }); }
+  try { const s2 = await db.doc("board/main").get(); if (s2.exists){ board = s2.data(); ls.set("journal.board", board); } else if (!board) board = {items: []}; } catch(e){ if (!board) board = {items: []}; }
+  return board;
+}
+async function loadSched(day, force){
+  if (schedCache[day] && !force) return schedCache[day];
+  try { const s2 = await db.doc("sched/" + day).get(); schedCache[day] = s2.exists ? Object.assign({items: [], done: {}}, s2.data()) : {date: day, items: [], done: {}}; }
+  catch(e){ schedCache[day] = schedCache[day] || {date: day, items: [], done: {}}; }
+  return schedCache[day];
+}
+async function saveSched(day){ const s2 = schedCache[day]; if (!s2 || !db) return; try { await db.doc("sched/" + day).set(Object.assign({}, s2, {date: day, updatedAt: new Date().toISOString()})); } catch(e){ toast("保存できませんでした"); } }
+function dayList(day){
+  const s2 = schedCache[day] || {items: [], done: {}}, done = s2.done || {};
+  const rec = boardHits(day).map((x) => ({key: "b:" + x.side + ":" + x.task, text: x.task, t: x.time || "", side: x.side, rec: true}));
+  const one = (s2.items || []).map((x) => ({key: "s:" + x.id, id: x.id, text: x.text, t: x.t || "", rec: false}));
+  const all = rec.concat(one).map((x) => Object.assign(x, {done: !!done[x.key]}));
+  const must = all.filter((x) => !tShow(x.t)), so = {life: 0, work: 1};
+  must.sort((a, b) => (a.rec ? so[a.side] ?? 2 : 3) - (b.rec ? so[b.side] ?? 2 : 3));
+  return {must: must, time: all.filter((x) => tShow(x.t)).sort((a, b) => tMin(a.t) - tMin(b.t))};
+}
+const scCk = (x, day) => '<button type="button" class="sc-ck' + (x.done ? " on" : "") + '" data-scdone="' + esc(x.key) + '" data-scday="' + day + '" aria-pressed="' + x.done + '"><i></i><span>' + esc(x.text) + '</span>' + sideTag(x) + '</button>';
+function schedAddHtml(day){ return '<div class="sc-add"><input type="time" class="date-input" aria-label="時間（なくてもよい）"><input type="text" class="date-input" placeholder="予定を追加" aria-label="予定（時間がなければMUST DOに入ります）" enterkeyhint="done"><button type="button" class="mini" data-scadd="' + day + '">追加</button></div>'; }
+// 毎朝のMY COMPASSの4番目
+function schedHtml(day){
+  const L = dayList(day), d = dObj(day);
+  let h = "<h2>TODAY'S SCHEDULE</h2><p class=\"lead\">" + (d.getMonth() + 1) + "月" + d.getDate() + "日（" + WD[d.getDay()] + "）の予定です。時間を決めていないものはMUST DOに入ります。</p>";
+  h += '<div class="sc-card"><div class="sc-lb">MUST DO</div>' + (L.must.length ? L.must.map((x) => scCk(x, day)).join("") : '<span class="small">ありません</span>') + '</div>';
+  h += '<div class="sc-card"><div class="sc-lb">TIME</div>' + (L.time.length ? L.time.map((x) => '<div class="sc-t"><span class="tm">' + tShow(x.t) + '</span>' + scCk(x, day) + '</div>').join("") : '<span class="small">時間の決まった予定はありません</span>') + '</div>';
+  h += schedAddHtml(day);
+  h += '<div class="sc-links"><button type="button" class="mini" data-plan="' + day + '">週の予定を入れる</button><button type="button" class="mini" data-brd>繰り返しを直す</button></div>';
+  return h;
+}
+function repaintSched(){
+  if (!$("morn").hidden && mornStep === 3 && !visEditing) paintMorn();
+  if (!$("plan").hidden) paintPlan();
+  if (!$("brd").hidden) paintBrd();
+}
+/* 週の予定（日曜から土曜。シートのWEEKと同じ並び） */
+function weekStart(day){ const d = dObj(day); d.setDate(d.getDate() - d.getDay()); return ymd(d); }
+async function planOpen(day){
+  planDay = day || mornDay(); $("plan").hidden = false; paintPlan();
+  await loadBoard(); const ws = weekStart(planDay);
+  await Promise.all(Array.from({length: 7}, (_, i) => loadSched(addD(ws, i)))); paintPlan();
+}
+const planRow = (x, inGrid) => '<div class="pr"><span class="tx">' + (inGrid && tMin(x.t) % 30 ? '<span class="tm2">' + tShow(x.t) + '　</span>' : '') + esc(x.text) + '</span>' + (x.rec ? sideTag(x) : '<button type="button" class="x" data-scdel="' + esc(x.id) + '" data-scday="' + planDay + '" aria-label="消す">×</button>') + '</div>';
+function paintPlan(){
+  const ws = weekStart(planDay), days = Array.from({length: 7}, (_, i) => addD(ws, i));
+  $("plan-range").textContent = mdS(ws) + "〜" + mdS(days[6]);
+  let h = '<div class="plan-days">' + days.map((d) => { const n = dayList(d), c = n.must.length + n.time.length; return '<button type="button" data-pday="' + d + '" aria-pressed="' + (d === planDay) + '"><span>' + WD[dObj(d).getDay()] + '</span><b>' + dObj(d).getDate() + '</b><i>' + (c || "") + '</i></button>'; }).join("") + '</div>';
+  const L = dayList(planDay);
+  h += '<div class="sc-card"><div class="sc-lb">MUST DO</div>' + (L.must.length ? L.must.map((x) => planRow(x)).join("") : '<span class="small">ありません</span>') + '</div>';
+  h += schedAddHtml(planDay);
+  h += '<div class="sc-card plan-grid"><div class="sc-lb" style="padding-bottom:6px">TIME　空いているマスを押すと、その時間で追加できます</div>';
+  for (let m = 5 * 60; m <= 23 * 60; m += 30){
+    const t = Math.floor(m / 60) + ":" + String(m % 60).padStart(2, "0");
+    const here = L.time.filter((x) => { const v = tMin(x.t); return v >= m && v < m + 30; });
+    h += '<div class="pg-row' + (m % 60 ? " half" : "") + '"><span class="tm">' + (m % 60 ? "" : t) + '</span><div class="pg-cell" data-pgt="' + t + '">' + here.map((x) => planRow(x, true)).join("") + '</div></div>';
+  }
+  const late = L.time.filter((x) => tMin(x.t) < 5 * 60 || tMin(x.t) >= 23 * 60 + 30);
+  if (late.length) h += '<div class="pg-row"><span class="tm">ほか</span><div class="pg-cell">' + late.map((x) => planRow(x, true)).join("") + '</div></div>';
+  $("plan-body").innerHTML = h + '</div>';
+}
+$("plan-close").addEventListener("click", () => { $("plan").hidden = true; repaintSched(); });
+const planMove = async (n) => { planDay = addD(planDay, n); paintPlan(); const ws = weekStart(planDay); await Promise.all(Array.from({length: 7}, (_, i) => loadSched(addD(ws, i)))); paintPlan(); };
+$("plan-prev").addEventListener("click", () => planMove(-7));
+$("plan-next").addEventListener("click", () => planMove(7));
+/* WORK BOARDとLIFE BOARD（繰り返しのやること） */
+const whenLabel = (x) => x.freq === "日付" ? "毎月 " + (x.when === "末日" || x.when === "最終日" ? "末日" : x.when + "日") : x.freq + " " + x.when;
+async function brdOpen(){ $("brd").hidden = false; brdEdit = null; paintBrd(); await loadBoard(); paintBrd(); }
+function paintBrd(){
+  const items = (board && board.items) || [];
+  let h = '<div class="seg2">' + [["work", "WORK BOARD"], ["life", "LIFE BOARD"]].map(([k, l]) => '<button type="button" data-bside="' + k + '" aria-pressed="' + (brdSide === k) + '">' + l + '</button>').join("") + '</div>';
+  if (brdEdit){ $("brd-body").innerHTML = h + brdFormHtml(brdEdit); return; }
+  const list = items.map((x, i) => [x, i]).filter(([x]) => x.side === brdSide);
+  h += '<div class="brd-list">' + list.map(([x, i]) => '<button type="button" class="brd-row" data-bedit="' + i + '"><span><b>' + esc(x.task) + '</b><small>' + esc(whenLabel(x)) + (tShow(x.time) ? "　" + tShow(x.time) + "から" : "") + '</small></span><i aria-hidden="true">›</i></button>').join("")
+    + '<button type="button" class="brd-add" data-bedit="new">＋ 追加</button></div>';
+  $("brd-body").innerHTML = h;
+}
+function brdFormHtml(ed){
+  const x = ed.x, chip = (attr, v, cur, label) => '<button type="button" ' + attr + '="' + v + '" aria-pressed="' + (String(cur) === v) + '">' + (label || v) + '</button>';
+  let h = '<div class="brd-form">';
+  h += '<label>やること<input type="text" id="bf-task" class="date-input" value="' + esc(x.task) + '"></label>';
+  h += '<div><div class="sc-lb" style="margin-bottom:6px">いつ</div><div class="morn-chips">' + FREQS.map((f) => chip("data-bfreq", f, x.freq, f === "日付" ? "毎月の日付" : f)).join("") + '</div></div>';
+  if (x.freq === "日付") h += '<label>日付<select id="bf-day" class="date-input">' + Array.from({length: 31}, (_, i) => String(i + 1)).concat(["末日"]).map((v) => '<option value="' + v + '"' + (String(x.when) === v || (v === "末日" && x.when === "最終日") ? " selected" : "") + '>' + (v === "末日" ? "末日" : v + "日") + '</option>').join("") + '</select></label>';
+  else h += '<div><div class="sc-lb" style="margin-bottom:6px">曜日</div><div class="morn-chips">' + WD.map((w) => chip("data-bdow", w, x.when)).join("") + '</div></div>';
+  h += '<label>時間（なくてもよい。なければMUST DOに入ります）<input type="time" id="bf-time" class="date-input" value="' + tInput(x.time) + '"></label>';
+  h += '<label>メモ<input type="text" id="bf-memo" class="date-input" value="' + esc(x.memo || "") + '"></label>';
+  h += '<div class="eacts"><button type="button" class="btn" data-bsave style="flex:1">保存する</button><button type="button" class="mini" data-bcancel>やめる</button></div>';
+  if (ed.i !== "new") h += '<button type="button" class="mini" data-bdel style="align-self:flex-start;color:var(--rec)">' + (ed.sure ? "もう一度押すと消えます" : "このやることを消す") + '</button>';
+  return h + '</div>';
+}
+function brdGrab(){
+  if (!brdEdit) return; const x = brdEdit.x, g = (id) => { const e2 = $(id); return e2 ? e2.value : null; };
+  if (g("bf-task") !== null) x.task = g("bf-task"); if (g("bf-time") !== null) x.time = g("bf-time"); if (g("bf-memo") !== null) x.memo = g("bf-memo"); if (g("bf-day") !== null) x.when = g("bf-day");
+}
+async function brdSave(items){
+  board = Object.assign({}, board || {}, {items: items, updatedAt: new Date().toISOString(), from: "app"}); ls.set("journal.board", board);
+  try { await db.doc("board/main").set(board); toast("保存しました。シートにも入ります"); } catch(e){ toast("保存できませんでした"); }
+  repaintSched();
+}
+$("brd-close").addEventListener("click", () => { $("brd").hidden = true; brdEdit = null; repaintSched(); });
+document.addEventListener("click", async (ev) => {
+  const p = ev.target.closest("[data-plan]"); if (p){ planOpen(p.dataset.plan || null); return; }
+  if (ev.target.closest("[data-brd]")){ brdOpen(); return; }
+  const c = ev.target.closest("[data-scdone]");
+  if (c){ const day = c.dataset.scday, s2 = await loadSched(day); s2.done = s2.done || {}; const k = c.dataset.scdone; if (s2.done[k]) delete s2.done[k]; else s2.done[k] = true; repaintSched(); saveSched(day); return; }
+  const a = ev.target.closest("[data-scadd]");
+  if (a){
+    const day = a.dataset.scadd, box = a.closest(".sc-add"), text = box.querySelector('input[type="text"]').value.trim(), t = box.querySelector('input[type="time"]').value;
+    if (!text){ toast("予定を書いてください"); box.querySelector('input[type="text"]').focus(); return; }
+    const s2 = await loadSched(day); s2.items = (s2.items || []).concat([{id: Date.now().toString(36), t: tShow(t), text: text}]);
+    repaintSched(); saveSched(day); toast(tShow(t) ? tShow(t) + "に入れました" : "MUST DOに入れました"); return;
+  }
+  const del = ev.target.closest("[data-scdel]");
+  if (del){ const day = del.dataset.scday, s2 = await loadSched(day); s2.items = (s2.items || []).filter((x) => x.id !== del.dataset.scdel); repaintSched(); saveSched(day); return; }
+  const pd = ev.target.closest("[data-pday]"); if (pd){ planDay = pd.dataset.pday; paintPlan(); return; }
+  const pg = ev.target.closest("[data-pgt]");
+  if (pg && !ev.target.closest(".pr")){ const box = $("plan-body").querySelector(".sc-add"); if (!box) return; box.querySelector('input[type="time"]').value = tInput(pg.dataset.pgt); const tx = box.querySelector('input[type="text"]'); box.scrollIntoView({block: "center", behavior: "smooth"}); setTimeout(() => tx.focus(), 300); return; }
+  if (!ev.target.closest("#brd")) return;
+  const sd = ev.target.closest("[data-bside]"); if (sd){ brdSide = sd.dataset.bside; brdEdit = null; paintBrd(); return; }
+  const e = ev.target.closest("[data-bedit]");
+  if (e){ const i = e.dataset.bedit; brdEdit = {i: i, x: i === "new" ? {side: brdSide, freq: "毎週", when: "月", task: "", time: "", memo: ""} : Object.assign({}, board.items[Number(i)])}; paintBrd(); $("brd").scrollTop = 0; return; }
+  const f = ev.target.closest("[data-bfreq]");
+  if (f){ brdGrab(); const was = brdEdit.x.freq === "日付"; brdEdit.x.freq = f.dataset.bfreq; if (was !== (brdEdit.x.freq === "日付")) brdEdit.x.when = brdEdit.x.freq === "日付" ? "1" : "月"; paintBrd(); return; }
+  const w = ev.target.closest("[data-bdow]"); if (w){ brdGrab(); brdEdit.x.when = w.dataset.bdow; paintBrd(); return; }
+  if (ev.target.closest("[data-bcancel]")){ brdEdit = null; paintBrd(); return; }
+  if (ev.target.closest("[data-bdel]")){
+    if (!brdEdit.sure){ brdGrab(); brdEdit.sure = true; paintBrd(); return; }
+    const items = (board.items || []).slice(); items.splice(Number(brdEdit.i), 1); brdEdit = null; await brdSave(items); paintBrd(); return;
+  }
+  if (ev.target.closest("[data-bsave]")){
+    brdGrab(); const x = brdEdit.x; x.task = String(x.task || "").trim();
+    if (!x.task){ toast("やることを書いてください"); return; }
+    x.time = tShow(x.time); x.memo = String(x.memo || "").trim(); delete x.sure;
+    const items = ((board && board.items) || []).slice(); if (brdEdit.i === "new") items.push(x); else items[Number(brdEdit.i)] = x;
+    brdEdit = null; await brdSave(items); paintBrd(); return;
+  }
+});
+
 /* ---------- 週と月のまとめ ---------- */
 let sumKind = "w", sumCache = {}, sumBusy = false;
 const dObj = (s2) => { const [y, m, d] = s2.split("-").map(Number); return new Date(y, m - 1, d); };
@@ -2694,7 +2919,7 @@ document.addEventListener("click", async (ev) => {
   const add = b.dataset.sg === "add";
   suggs = suggs.filter((y) => y.id !== id);
   document.querySelectorAll('[data-sgrow="' + id + '"]').forEach((r) => r.remove());
-  if (!suggs.length){ paintSuggTodo(); if (!$("morn").hidden && mornStep === 3) paintMorn(); }
+  if (!suggs.length){ paintSuggTodo(); if (!$("morn").hidden && mornStep === 4) paintMorn(); }
   if (add){ await addTodo(x.text, "AIの提案", "sg-" + id, x.date || REAL_TODAY); toast("TODOに追加しました"); renderTodo(); }
   else toast("この候補は出さないようにしました");
   try { await db.doc("todo_suggest/" + id).update({status: add ? "added" : "no", decided: new Date().toISOString()}); } catch(e){}
