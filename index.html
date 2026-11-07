@@ -189,6 +189,23 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .brd-add{width:100%;border:0;border-top:1px solid var(--line);background:none;min-height:48px;color:var(--accentText);font-size:15px;font-weight:500;font-family:inherit;cursor:pointer}
 .brd-form{display:flex;flex-direction:column;gap:14px;background:var(--card);border-radius:var(--r);padding:16px}
 .brd-form label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--sub)}
+/* WORKは青、LIFEは赤、自分で入れた予定はグレー */
+:root{--work:#2F6FB5;--life:#C8473B}
+.pr{border-left:3px solid var(--line);border-radius:0 8px 8px 0}
+.pr.w{border-left-color:var(--work);background:color-mix(in srgb,var(--work) 13%,var(--card))}
+.pr.l{border-left-color:var(--life);background:color-mix(in srgb,var(--life) 13%,var(--card))}
+.pr em.w,.sc-ck em.w{color:var(--work);border-color:color-mix(in srgb,var(--work) 50%,transparent)}
+.pr em.l,.sc-ck em.l{color:var(--life);border-color:color-mix(in srgb,var(--life) 50%,transparent)}
+.morn-top.plan-top{flex-direction:column;align-items:stretch;justify-content:flex-start;gap:8px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.plan-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.plan-foot{position:sticky;bottom:0;z-index:2;background:var(--bg);border-top:1px solid var(--line);padding:10px 0 calc(env(safe-area-inset-bottom,0px) + 10px);max-width:760px;width:100%;margin:0 auto}
+.row-lb{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sc-more{border:0;background:none;color:var(--accentText);font-size:13px;font-weight:500;min-height:36px;text-align:left;font-family:inherit;cursor:pointer;padding:0;letter-spacing:0}
+.pg-row{min-height:48px}
+.pg-cell{border-radius:8px;touch-action:manipulation}
+.pg-cell:active{background:var(--soft)}
+.pg-cell.sel{background:color-mix(in srgb,var(--accent) 10%,transparent);box-shadow:inset 0 0 0 1.5px var(--accentText)}
+.pg-cell.sel:empty::after{content:"ここに入れます";font-size:12px;font-weight:500;color:var(--accentText);padding:8px 10px}
 .recv-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .recv-btns .recv-stop{font-size:16px;padding:0 8px}
 .recv-stop.sub{background:transparent;color:var(--rec);box-shadow:inset 0 0 0 2px var(--rec)}
@@ -507,8 +524,9 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
   <div class="morn-foot" id="morn-foot"><button type="button" class="mini" id="morn-back">戻る</button><button type="button" class="btn" id="morn-next">次へ</button></div>
 </div>
 <div class="morn plan" id="plan" hidden role="dialog" aria-label="週の予定">
-  <div class="morn-top"><div class="plan-nav"><button type="button" class="mini" id="plan-prev" aria-label="前の週">‹</button><b id="plan-range"></b><button type="button" class="mini" id="plan-next" aria-label="次の週">›</button></div><button type="button" class="mini" id="plan-close">閉じる</button></div>
+  <div class="morn-top plan-top"><div class="plan-row"><div class="plan-nav"><button type="button" class="mini" id="plan-prev" aria-label="前の週">‹</button><b id="plan-range"></b><button type="button" class="mini" id="plan-next" aria-label="次の週">›</button></div><button type="button" class="mini" id="plan-close">閉じる</button></div><div class="plan-days" id="plan-days"></div></div>
   <div class="morn-body" id="plan-body"></div>
+  <div class="plan-foot" id="plan-foot"></div>
 </div>
 <div class="morn plan" id="brd" hidden role="dialog" aria-label="WORK BOARDとLIFE BOARD">
   <div class="morn-top"><b>繰り返しのやること</b><button type="button" class="mini" id="brd-close">閉じる</button></div>
@@ -2461,7 +2479,7 @@ const tMin = (t) => { const m = /^(\d{1,2}):(\d{2})/.exec(String(t || "")); retu
 const tShow = (t) => { const v = tMin(t); return v === 9999 ? "" : Math.floor(v / 60) + ":" + String(v % 60).padStart(2, "0"); };
 const tInput = (t) => { const v = tMin(t); return v === 9999 ? "" : String(Math.floor(v / 60)).padStart(2, "0") + ":" + String(v % 60).padStart(2, "0"); };
 const mdS = (s2) => Number(s2.slice(5, 7)) + "/" + Number(s2.slice(8, 10));
-const sideTag = (x) => x.side ? '<em>' + (x.side === "work" ? "WORK" : "LIFE") + '</em>' : '';
+const sideTag = (x) => x.side ? '<em class="' + (x.side === "work" ? "w" : "l") + '">' + (x.side === "work" ? "WORK" : "LIFE") + '</em>' : '';
 // その日に当たる繰り返し（第何週は日付を7で割って数える。日付が月にない日は末日に寄せる）
 function boardHits(day){
   const d = dObj(day), dow = d.getDay(), dd = d.getDate(), last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
@@ -2517,30 +2535,37 @@ function repaintSched(){
 /* 週の予定（日曜から土曜。シートのWEEKと同じ並び） */
 function weekStart(day){ const d = dObj(day); d.setDate(d.getDate() - d.getDay()); return ymd(d); }
 async function planOpen(day){
-  planDay = day || mornDay(); $("plan").hidden = false; paintPlan();
+  planDay = day || mornDay(); planSel = null; planMustOpen = false; $("plan").hidden = false; paintPlan();
   await loadBoard(); const ws = weekStart(planDay);
   await Promise.all(Array.from({length: 7}, (_, i) => loadSched(addD(ws, i)))); paintPlan();
 }
-const planRow = (x, inGrid) => '<div class="pr"><span class="tx">' + (inGrid && tMin(x.t) % 30 ? '<span class="tm2">' + tShow(x.t) + '　</span>' : '') + esc(x.text) + '</span>' + (x.rec ? sideTag(x) : '<button type="button" class="x" data-scdel="' + esc(x.id) + '" data-scday="' + planDay + '" aria-label="消す">×</button>') + '</div>';
+let planMustOpen = false, planSel = null;
+const planRow = (x, inGrid) => '<div class="pr ' + (x.side === "work" ? "w" : x.side === "life" ? "l" : "o") + '"><span class="tx">' + (inGrid && tMin(x.t) % 30 ? '<span class="tm2">' + tShow(x.t) + '　</span>' : '') + esc(x.text) + '</span>' + (x.rec ? sideTag(x) : '<button type="button" class="x" data-scdel="' + esc(x.id) + '" data-scday="' + planDay + '" aria-label="消す">×</button>') + '</div>';
 function paintPlan(){
   const ws = weekStart(planDay), days = Array.from({length: 7}, (_, i) => addD(ws, i));
   $("plan-range").textContent = mdS(ws) + "〜" + mdS(days[6]);
-  let h = '<div class="plan-days">' + days.map((d) => { const n = dayList(d), c = n.must.length + n.time.length; return '<button type="button" data-pday="' + d + '" aria-pressed="' + (d === planDay) + '"><span>' + WD[dObj(d).getDay()] + '</span><b>' + dObj(d).getDate() + '</b><i>' + (c || "") + '</i></button>'; }).join("") + '</div>';
-  const L = dayList(planDay);
-  h += '<div class="sc-card"><div class="sc-lb">MUST DO</div>' + (L.must.length ? L.must.map((x) => planRow(x)).join("") : '<span class="small">ありません</span>') + '</div>';
-  h += schedAddHtml(planDay);
+  $("plan-days").innerHTML = days.map((d) => { const n = dayList(d), c = n.must.length + n.time.length; return '<button type="button" data-pday="' + d + '" aria-pressed="' + (d === planDay) + '"><span>' + WD[dObj(d).getDay()] + '</span><b>' + dObj(d).getDate() + '</b><i>' + (c || "") + '</i></button>'; }).join("");
+  // MUST DOは4件まで出し、多い日は「ほか○件」でたたむ
+  const L = dayList(planDay), many = L.must.length > 4, shown = many && !planMustOpen ? L.must.slice(0, 4) : L.must;
+  let h = '<div class="sc-card"><div class="sc-lb row-lb"><span>MUST DO' + (L.must.length ? "　" + L.must.length : "") + '</span>' + (many && planMustOpen ? '<button type="button" class="sc-more" data-pmore>たたむ</button>' : '') + '</div>'
+    + (L.must.length ? shown.map((x) => planRow(x)).join("") : '<span class="small">ありません</span>')
+    + (many && !planMustOpen ? '<button type="button" class="sc-more" data-pmore>ほか' + (L.must.length - 4) + '件を見る</button>' : '') + '</div>';
   h += '<div class="sc-card plan-grid"><div class="sc-lb" style="padding-bottom:6px">TIME　空いているマスを押すと、その時間で追加できます</div>';
   for (let m = 5 * 60; m <= 23 * 60; m += 30){
     const t = Math.floor(m / 60) + ":" + String(m % 60).padStart(2, "0");
     const here = L.time.filter((x) => { const v = tMin(x.t); return v >= m && v < m + 30; });
-    h += '<div class="pg-row' + (m % 60 ? " half" : "") + '"><span class="tm">' + (m % 60 ? "" : t) + '</span><div class="pg-cell" data-pgt="' + t + '">' + here.map((x) => planRow(x, true)).join("") + '</div></div>';
+    h += '<div class="pg-row' + (m % 60 ? " half" : "") + '"><span class="tm">' + (m % 60 ? "" : t) + '</span><div class="pg-cell' + (planSel === t ? " sel" : "") + '" data-pgt="' + t + '">' + here.map((x) => planRow(x, true)).join("") + '</div></div>';
   }
   const late = L.time.filter((x) => tMin(x.t) < 5 * 60 || tMin(x.t) >= 23 * 60 + 30);
   if (late.length) h += '<div class="pg-row"><span class="tm">ほか</span><div class="pg-cell">' + late.map((x) => planRow(x, true)).join("") + '</div></div>';
   $("plan-body").innerHTML = h + '</div>';
+  // 追加欄は下に固定（書きかけが消えないよう、作るのは最初の1回だけ）
+  const foot = $("plan-foot");
+  if (!foot.querySelector(".sc-add")) foot.innerHTML = schedAddHtml(planDay);
+  foot.querySelector("[data-scadd]").dataset.scadd = planDay;
 }
 $("plan-close").addEventListener("click", () => { $("plan").hidden = true; repaintSched(); });
-const planMove = async (n) => { planDay = addD(planDay, n); paintPlan(); const ws = weekStart(planDay); await Promise.all(Array.from({length: 7}, (_, i) => loadSched(addD(ws, i)))); paintPlan(); };
+const planMove = async (n) => { planDay = addD(planDay, n); planSel = null; planMustOpen = false; paintPlan(); const ws = weekStart(planDay); await Promise.all(Array.from({length: 7}, (_, i) => loadSched(addD(ws, i)))); paintPlan(); };
 $("plan-prev").addEventListener("click", () => planMove(-7));
 $("plan-next").addEventListener("click", () => planMove(7));
 /* WORK BOARDとLIFE BOARD（繰り返しのやること） */
@@ -2588,13 +2613,20 @@ document.addEventListener("click", async (ev) => {
     const day = a.dataset.scadd, box = a.closest(".sc-add"), text = box.querySelector('input[type="text"]').value.trim(), t = box.querySelector('input[type="time"]').value;
     if (!text){ toast("予定を書いてください"); box.querySelector('input[type="text"]').focus(); return; }
     const s2 = await loadSched(day); s2.items = (s2.items || []).concat([{id: Date.now().toString(36), t: tShow(t), text: text}]);
+    if (box.closest("#plan-foot")){ box.querySelector('input[type="text"]').value = ""; box.querySelector('input[type="time"]').value = ""; planSel = null; }
     repaintSched(); saveSched(day); toast(tShow(t) ? tShow(t) + "に入れました" : "MUST DOに入れました"); return;
   }
   const del = ev.target.closest("[data-scdel]");
   if (del){ const day = del.dataset.scday, s2 = await loadSched(day); s2.items = (s2.items || []).filter((x) => x.id !== del.dataset.scdel); repaintSched(); saveSched(day); return; }
-  const pd = ev.target.closest("[data-pday]"); if (pd){ planDay = pd.dataset.pday; paintPlan(); return; }
+  const pd = ev.target.closest("[data-pday]"); if (pd){ planDay = pd.dataset.pday; planSel = null; planMustOpen = false; paintPlan(); $("plan").scrollTop = 0; return; }
+  if (ev.target.closest("[data-pmore]")){ planMustOpen = !planMustOpen; paintPlan(); return; }
   const pg = ev.target.closest("[data-pgt]");
-  if (pg && !ev.target.closest(".pr")){ const box = $("plan-body").querySelector(".sc-add"); if (!box) return; box.querySelector('input[type="time"]').value = tInput(pg.dataset.pgt); const tx = box.querySelector('input[type="text"]'); box.scrollIntoView({block: "center", behavior: "smooth"}); setTimeout(() => tx.focus(), 300); return; }
+  if (pg && !ev.target.closest(".pr")){
+    // 押したマスの時間を下の追加欄に入れて、すぐ書けるようにする（画面は動かさない）
+    const foot = $("plan-foot"), tx = foot.querySelector('input[type="text"]');
+    foot.querySelector('input[type="time"]').value = tInput(pg.dataset.pgt); tx.focus({preventScroll: true});
+    planSel = pg.dataset.pgt; document.querySelectorAll("#plan-body .pg-cell.sel").forEach((e2) => e2.classList.remove("sel")); pg.classList.add("sel"); return;
+  }
   if (!ev.target.closest("#brd")) return;
   const sd = ev.target.closest("[data-bside]"); if (sd){ brdSide = sd.dataset.bside; brdEdit = null; paintBrd(); return; }
   const e = ev.target.closest("[data-bedit]");
