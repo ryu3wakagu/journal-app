@@ -202,6 +202,16 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .plan-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .plan-foot{position:sticky;bottom:0;z-index:2;background:var(--bg);border-top:1px solid var(--line);padding:10px 0 calc(env(safe-area-inset-bottom,0px) + 10px);max-width:760px;width:100%;margin:0 auto}
 .row-lb{display:flex;justify-content:space-between;align-items:center;gap:8px}
+/* 予定のタブ：メールで届いた予定の候補 */
+.tab-dot{position:absolute;top:6px;left:calc(50% + 8px);width:8px;height:8px;border-radius:50%;background:var(--life)}
+.mc-card{background:var(--card);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:10px;border:1.5px solid color-mix(in srgb,#C9862A 60%,transparent)}
+.mc-item{display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid var(--line)}
+.mc-when{font-size:13px;color:var(--sub)}
+.mc-item .date-input{height:44px;line-height:42px;padding:0 10px;font-size:15px}
+.mc-sub{font-size:12px;color:var(--sub);line-height:1.5}
+.mc-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mc-btns .btn{min-height:44px;font-size:15px}
+.mc-btns .mc-add{background:var(--gcal);color:#fff}
 .sc-more{border:0;background:none;color:var(--accentText);font-size:13px;font-weight:500;min-height:36px;text-align:left;font-family:inherit;cursor:pointer;padding:0;letter-spacing:0}
 .pg-row{min-height:48px}
 .pg-cell{border-radius:8px;touch-action:manipulation}
@@ -554,8 +564,8 @@ input,select,textarea{max-width:100%}
 .ntime-in::-webkit-date-and-time-value{text-align:center;margin:0}
 .ntime select{min-height:40px;border:1px solid var(--line);border-radius:max(4px,calc(var(--r) - 6px));background:var(--card);color:var(--text);font:inherit;padding:0 10px}
 /* 下のタブ */
-nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--bar);border-top:1px solid var(--line);padding:6px max(0px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(0px,env(safe-area-inset-left,0px))}
-nav.tabs button{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:50px;justify-content:center;font-size:11px;color:var(--sub)}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:var(--bar);border-top:1px solid var(--line);padding:6px max(0px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(0px,env(safe-area-inset-left,0px))}
+nav.tabs button{position:relative;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:50px;justify-content:center;font-size:11px;color:var(--sub)}
 nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
 @media (prefers-reduced-motion:no-preference){.seg button,.chip,.dot{transition:background .15s,box-shadow .15s}}
 </style>
@@ -746,6 +756,13 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
   </div>
 </section>
 
+<!-- 予定 -->
+<section id="v-sched" class="view" hidden>
+  <div class="head"><h1>予定</h1></div>
+  <div id="mc-box" hidden></div>
+  <div id="sched-tab" style="display:flex;flex-direction:column;gap:12px"></div>
+</section>
+
 <!-- TODO -->
 <section id="v-todo" class="view" hidden>
   <div class="head"><h1>TODO</h1></div>
@@ -891,6 +908,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
 
 <nav class="tabs" aria-label="画面切り替え">
   <button type="button" data-view="today" aria-current="page"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>今日を書く</button>
+  <button type="button" data-view="sched"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>予定<i class="tab-dot" id="mc-dot" hidden></i></button>
   <button type="button" data-view="review"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>振り返り</button>
   <button type="button" data-view="todo"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12l3 3 5-6"/></svg>TODO</button>
   <button type="button" data-view="prefs"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>設定</button>
@@ -2629,8 +2647,57 @@ function paintHomeSched(){
     + (L.time.length ? L.time.map((x) => '<div class="sc-t"><span class="tm">' + tShow(x.t) + '</span>' + scCk(x, day) + '</div>').join("") : '')
     + (L.must.length ? (L.time.length ? '<div class="sc-lb" style="margin-top:6px">MUST DO</div>' : '') + L.must.map((x) => scCk(x, day)).join("") : '') + '</div>';
 }
+// 下のタブの「予定」：今日の予定をすぐ見られる。上にはメールで届いた予定の候補
+function paintSchedTab(){
+  const el = $("sched-tab"); if (!el || $("v-sched").hidden) return;
+  const day = mornDay(), L = dayList(day), d = dObj(day);
+  el.innerHTML = '<div class="sc-card"><div class="sc-lb row-lb"><span>TODAY\'S SCHEDULE　' + (d.getMonth() + 1) + '/' + d.getDate() + ' (' + WD[d.getDay()] + ')</span></div>'
+    + (L.time.length ? L.time.map((x) => '<div class="sc-t"><span class="tm">' + tShow(x.t) + '</span>' + scCk(x, day) + '</div>').join("") : '')
+    + (L.must.length ? '<div class="sc-lb" style="margin-top:6px">MUST DO</div>' + L.must.map((x) => scCk(x, day)).join("") : '')
+    + (!L.time.length && !L.must.length ? '<span class="small">今日の予定はまだありません</span>' : '') + '</div>'
+    + schedAddHtml(day)
+    + '<div class="sc-links"><button type="button" class="mini" data-plan="' + day + '">週の予定を見る</button><button type="button" class="mini" data-brd>繰り返しを直す</button></div>';
+}
+async function schedTabOpen(){
+  paintSchedTab(); loadMailCand();
+  await Promise.all([loadBoard(), loadSched(mornDay(), true), loadCal(weekStart(mornDay()))]).catch(() => {});
+  paintSchedTab();
+}
+let mailCand = null;
+async function loadMailCand(){
+  try { const r = await window.JOURNAL_CALL("mailcand_list", {}); if (r && !r.error) mailCand = r.items || []; } catch(e){}
+  paintMailCand();
+}
+function paintMailCand(){
+  const el = $("mc-box"), list = mailCand || [];
+  $("mc-dot").hidden = !list.length;
+  if (!list.length){ el.hidden = true; el.innerHTML = ""; return; }
+  el.hidden = false;
+  el.innerHTML = '<div class="mc-card"><div class="sc-lb">メールで届いた予定　' + list.length + '件</div>' + list.map((x) => {
+    const d = dObj(x.date), when = (d.getMonth() + 1) + "/" + d.getDate() + " (" + WD[d.getDay()] + ")　" + (x.start ? x.start + (x.end ? "〜" + x.end : "") : "時刻なし（終日で入れます）");
+    return '<div class="mc-item" data-mcid="' + esc(x.id) + '"><div class="mc-when">' + when + (x.place ? "　" + esc(x.place) : "") + '</div>'
+      + '<input type="text" class="date-input mc-title" value="' + esc(x.title) + '" aria-label="題名（ここで直せます）" enterkeyhint="done">'
+      + (x.subject ? '<div class="mc-sub">メール：' + esc(x.subject) + '</div>' : '')
+      + '<div class="mc-btns"><button type="button" class="btn mc-add" data-mcact="add">入れる</button><button type="button" class="btn ghost" data-mcact="skip">入れない</button></div></div>';
+  }).join("") + '</div>';
+}
+document.addEventListener("click", async (ev) => {
+  const b = ev.target.closest("[data-mcact]"); if (!b) return;
+  const it = b.closest("[data-mcid]"), id = it.dataset.mcid, act = b.dataset.mcact, title = it.querySelector(".mc-title").value.trim();
+  if (act === "add" && !title){ toast("題名を入れてください"); return; }
+  it.querySelectorAll("button").forEach((x) => { x.disabled = true; });
+  try {
+    const r = await window.JOURNAL_CALL("mailcand_act", {id: id, act: act, title: title});
+    if (!r || r.error) throw new Error((r && r.error) || "");
+    mailCand = (mailCand || []).filter((x) => x.id !== id); paintMailCand();
+    if (act === "add"){
+      toast("Googleカレンダーに入れました");
+      if (r.day){ const ws = weekStart(r.day); await loadCal(ws, true); repaintSched(); }
+    } else toast("入れないことにしました");
+  } catch(e){ toast("できませんでした。もう一度押してください"); it.querySelectorAll("button").forEach((x) => { x.disabled = false; }); }
+});
 function repaintSched(){
-  paintHomeSched();
+  paintHomeSched(); paintSchedTab();
   if (!$("morn").hidden && mornStep === 3 && !visEditing) paintMorn();
   if (!$("plan").hidden) paintPlan();
   if (!$("brd").hidden) paintBrd();
@@ -3296,7 +3363,8 @@ document.querySelector("nav.tabs").addEventListener("click", (ev) => {
   if (v === currentView) return;           // 開いているタブはそのまま
   currentView = v;
   document.querySelectorAll("nav.tabs button").forEach((x) => { if (x === b) x.setAttribute("aria-current", "page"); else x.removeAttribute("aria-current"); });
-  ["today","review","todo","prefs"].forEach((k) => { $("v-" + k).hidden = v !== k; });
+  ["today","sched","review","todo","prefs"].forEach((k) => { $("v-" + k).hidden = v !== k; });
+  if (v === "sched") schedTabOpen();
   window.scrollTo(0, 0);
   if (v === "review") renderPane();
   if (v === "todo") renderTodo();
@@ -3400,6 +3468,8 @@ renderToday();
   // 終わった週と月のまとめを、まだなければ作る（少し待ってから）
   setTimeout(() => { ensureSummaries(); }, 4000);
   if (location.hash === "#todo") document.querySelector('nav.tabs button[data-view="todo"]').click();
+  if (location.hash === "#sched") document.querySelector('nav.tabs button[data-view="sched"]').click();
+  else setTimeout(() => { loadMailCand(); }, 2500);
   if (location.hash === "#sum"){ document.querySelector('nav.tabs button[data-view="review"]').click(); document.querySelector('[data-rv="sum"]').click(); }
 })();
 function showBanner(){
