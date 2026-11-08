@@ -547,6 +547,9 @@ input,select,textarea{max-width:100%}
 .login-box{width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px}
 .login-box h1{margin:0;font-size:28px;letter-spacing:.08em}
 .ntime{display:flex;align-items:center;gap:8px}
+/* 時刻はiPhoneの時計と同じ回す形で選ぶ */
+.ntime-in{-webkit-appearance:none;appearance:none;width:92px;min-height:40px;border:1px solid var(--line);border-radius:max(4px,calc(var(--r) - 6px));background:var(--card);color:var(--text);font:inherit;font-size:16px;text-align:center;padding:0 8px;box-sizing:border-box}
+.ntime-in::-webkit-date-and-time-value{text-align:center;margin:0}
 .ntime select{min-height:40px;border:1px solid var(--line);border-radius:max(4px,calc(var(--r) - 6px));background:var(--card);color:var(--text);font:inherit;padding:0 10px}
 /* 下のタブ */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--bar);border-top:1px solid var(--line);padding:6px max(0px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(0px,env(safe-area-inset-left,0px))}
@@ -807,12 +810,12 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
         <button class="link" id="n-test" type="button" hidden>テストのお知らせを送る</button>
         <div class="status" id="n-status" role="status" style="text-align:left"></div>
       </div>
-      <div class="pref"><div class="row-between"><span class="t">朝の「1年前の今日」</span><span class="ntime"><select id="n-morning" aria-label="朝のお知らせの時刻"></select><span class="chips" id="n-morning-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></span></div></div>
-      <div class="pref"><div class="row-between"><span class="t">夜、書いていない日に</span><span class="ntime"><select id="n-night" aria-label="夜のお知らせの時刻"></select><span class="chips" id="n-night-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></span></div></div>
+      <div class="pref"><div class="row-between"><span class="t">朝の「1年前の今日」</span><span class="ntime"><input type="time" id="n-morning" class="ntime-in" aria-label="朝のお知らせの時刻"><span class="chips" id="n-morning-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></span></div></div>
+      <div class="pref"><div class="row-between"><span class="t">夜、書いていない日に</span><span class="ntime"><input type="time" id="n-night" class="ntime-in" aria-label="夜のお知らせの時刻"><span class="chips" id="n-night-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></span></div></div>
       <div class="pref"><div class="row-between"><span class="t">週のまとめ（月曜の朝）</span><span class="chips" id="n-week-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></div></div>
       <div class="pref"><div class="row-between"><span class="t">月のまとめ（1日の朝）</span><span class="chips" id="n-month-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></div></div>
       <div class="pref"><div class="row-between"><span class="t">TODOの期限（朝）</span><span class="chips" id="n-todo-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></div></div>
-      <div class="pref"><div class="row-between"><span class="t">朝、今日の予定を確認する合図</span><span class="ntime"><select id="n-sched" aria-label="今日の予定を知らせる時刻"></select><span class="chips" id="n-sched-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></span></div></div>
+      <div class="pref"><div class="row-between"><span class="t">朝、今日の予定を確認する合図</span><span class="ntime"><input type="time" id="n-sched" class="ntime-in" aria-label="今日の予定を確認する合図の時刻"><span class="chips" id="n-sched-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></span></div></div>
       <div class="pref"><div class="row-between"><span class="t">MY COMPASSを終えたら、今日の予定を送る</span><span class="chips" id="n-done-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></div></div>
       <div class="pref"><div class="row-between"><span class="t">時間の決まった予定の前に</span><span class="ntime"><select id="n-pre" aria-label="何分前に知らせるか"></select><span class="chips" id="n-pre-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></span></div></div>
     </div>
@@ -1856,9 +1859,11 @@ function renderPrefs(){
   $("p-len").value = LEN_STEPS.indexOf(prefs.len);
   paintLen();
   const hours = (sel) => Array.from({length: 24}, (_, h) => '<option value="' + h + '"' + (h === sel ? ' selected' : '') + '>' + h + '時</option>').join("");
-  $("n-morning").innerHTML = hours(Number(prefs.nMorning)); $("n-night").innerHTML = hours(Number(prefs.nNight));
+  // 時刻は「6:30」の形で持つ（前の「6」のような時だけの形も読める）
+  const hm = (v, d) => { const t = typeof v === "number" ? v + ":00" : String(v || d); const m = /^(\d{1,2}):(\d{2})/.exec(t); return m ? String(Number(m[1])).padStart(2, "0") + ":" + m[2] : d; };
+  $("n-morning").value = hm(prefs.nMorning, "06:00"); $("n-night").value = hm(prefs.nNight, "21:00");
   // 今日の予定：朝の時刻（30分ごと）と、予定の何分前に知らせるか
-  $("n-sched").innerHTML = Array.from({length: 13}, (_, i) => { const t = (4 + Math.floor(i / 2)) + ":" + (i % 2 ? "30" : "00"); return '<option value="' + t + '"' + (t === (prefs.nSched || "6:00") ? " selected" : "") + '>' + t + '</option>'; }).join("");
+  $("n-sched").value = hm(prefs.nSched, "06:00");
   $("n-pre").innerHTML = [5, 10, 15, 30, 60].map((m) => '<option value="' + m + '"' + (m === Number(prefs.nPre || 10) ? " selected" : "") + '>' + m + '分前</option>').join("");
   ["Morning","Night","Week","Month","Todo","Sched","Pre","Done"].forEach((k) => { const key = "n" + k + "On"; $("n-" + k.toLowerCase() + "-on").innerHTML = chip(prefs[key] !== false, "送る", 'data-p="' + key + '" data-v="1"') + chip(prefs[key] === false, "なし", 'data-p="' + key + '" data-v="0"'); });
   $("p-showhand").innerHTML = chip(prefs.showHand, "する", 'data-p="showHand" data-v="1"') + chip(!prefs.showHand, "しない", 'data-p="showHand" data-v="0"');
@@ -3347,8 +3352,7 @@ $("n-test").addEventListener("click", async () => {
   const st = $("n-status"); st.textContent = "送っています";
   try { await window.JOURNAL_PUSH.test(); st.textContent = "送りました。数秒で届きます。"; } catch(e){ st.textContent = "送れませんでした。"; }
 });
-["n-morning","n-night"].forEach((id) => $(id).addEventListener("change", (ev) => { prefs[id === "n-morning" ? "nMorning" : "nNight"] = Number(ev.target.value); savePrefs(); }));
-$("n-sched").addEventListener("change", (ev) => { prefs.nSched = ev.target.value; savePrefs(); });
+[["n-morning", "nMorning"], ["n-night", "nNight"], ["n-sched", "nSched"]].forEach(([id, key]) => $(id).addEventListener("change", (ev) => { const m = /^(\d{1,2}):(\d{2})/.exec(ev.target.value || ""); if (!m) return; prefs[key] = Number(m[1]) + ":" + m[2]; savePrefs(); }));
 $("n-pre").addEventListener("change", (ev) => { prefs.nPre = Number(ev.target.value); savePrefs(); });
 
 /* ---------- 起動 ---------- */
