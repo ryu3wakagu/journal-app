@@ -209,6 +209,12 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .mc-when{font-size:13px;color:var(--sub)}
 .mc-item .date-input{height:44px;line-height:42px;padding:0 10px;font-size:15px}
 .mc-sub{font-size:12px;color:var(--sub);line-height:1.5}
+.mc-more summary{font-size:13px;color:var(--accentText);font-weight:500;min-height:32px;display:flex;align-items:center;cursor:pointer;list-style:none}
+.mc-more summary::-webkit-details-marker{display:none}
+.mc-more summary::after{content:"▾";margin-left:6px;font-size:11px}
+.mc-more[open] summary::after{content:"▴"}
+.mc-detail{display:flex;flex-direction:column;gap:8px;background:var(--soft);border-radius:max(4px,calc(var(--r) - 6px));padding:10px 12px;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+.mc-detail a{color:var(--accentText)}
 .mc-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .mc-btns .btn{min-height:44px;font-size:15px}
 .mc-btns .mc-add{background:var(--gcal);color:#fff}
@@ -2664,6 +2670,8 @@ async function schedTabOpen(){
   paintSchedTab();
 }
 let mailCand = null;
+// メモの中のURLは押せるようにする
+const linkify = (t) => esc(t).replace(/https?:\/\/[^\s<]+/g, (u) => '<a href="' + u + '" target="_blank" rel="noopener">' + u + '</a>').replace(/\n/g, "<br>");
 async function loadMailCand(){
   try { const r = await window.JOURNAL_CALL("mailcand_list", {}); if (r && !r.error) mailCand = r.items || []; } catch(e){}
   paintMailCand();
@@ -2677,7 +2685,10 @@ function paintMailCand(){
     const d = dObj(x.date), when = (d.getMonth() + 1) + "/" + d.getDate() + " (" + WD[d.getDay()] + ")　" + (x.start ? x.start + (x.end ? "〜" + x.end : "") : "時刻なし（終日で入れます）");
     return '<div class="mc-item" data-mcid="' + esc(x.id) + '"><div class="mc-when">' + when + (x.place ? "　" + esc(x.place) : "") + '</div>'
       + '<input type="text" class="date-input mc-title" value="' + esc(x.title) + '" aria-label="題名（ここで直せます）" enterkeyhint="done">'
-      + (x.subject ? '<div class="mc-sub">メール：' + esc(x.subject) + '</div>' : '')
+      + '<details class="mc-more"><summary>メールの内容を見る</summary><div class="mc-detail">'
+      + (x.subject ? '<div><b>件名</b><br>' + esc(x.subject) + '</div>' : '')
+      + (x.memo ? '<div>' + linkify(x.memo) + '</div>' : '')
+      + '<a href="https://mail.google.com/mail/u/0/#all/' + encodeURIComponent(String(x.id).replace(/-\d+$/, "")) + '" target="_blank" rel="noopener">Gmailで元のメールを開く</a></div></details>'
       + '<div class="mc-btns"><button type="button" class="btn mc-add" data-mcact="add">入れる</button><button type="button" class="btn ghost" data-mcact="skip">入れない</button></div></div>';
   }).join("") + '</div>';
 }
