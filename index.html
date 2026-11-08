@@ -217,6 +217,10 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .sc-add input[type="time"]::-webkit-date-and-time-value{text-align:center;margin:0}
 .sc-add input[type="text"]{height:44px;line-height:normal;font-size:16px;min-width:0;box-sizing:border-box}
 .sc-add .mini{min-height:44px}
+/* 「時間」と「予定を入力」は、どちらも左寄せ */
+.tbox span{justify-content:flex-start;padding-left:12px}
+.sc-add input[type="time"]{text-align:left;padding:0 10px 0 12px}
+.sc-add input[type="time"]::-webkit-date-and-time-value{text-align:left}
 /* 「時間」と「予定を入力」の薄さをそろえる */
 .sc-add input::placeholder{color:var(--sub);opacity:1}
 .tbox span{font-size:16px;color:var(--sub)}
@@ -341,6 +345,8 @@ h2{margin:0;font-size:15px;font-weight:700}
 .vis .muted{color:var(--sub)}
 .vis-edit{display:flex;flex-direction:column;gap:10px}
 .vis-edit label{font-size:12px;color:var(--sub);display:flex;flex-direction:column;gap:4px}
+.ve-item{display:flex;flex-direction:column;gap:6px}
+.ve-lab{font-size:13px;font-weight:700;color:var(--accentText);border:1px dashed var(--line);border-radius:8px;padding:6px 10px;background:var(--card);font-family:inherit;min-width:0}
 .vis-edit textarea{min-height:64px;font-size:16px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg);color:var(--text);font-family:inherit;line-height:1.6}
 /* 朝の画面 */
 .morn{position:fixed;inset:0;z-index:44;background:var(--bg);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
@@ -1500,7 +1506,7 @@ async function runAI(){
   const prompt = "あなたは日記の整理を手伝う役です。以下は" + jp(d.date) + "の日記です。音声入力を文字にしたものを含むため、言い間違いや話し言葉が混ざっています。\n"
     + "書いた本人が1年後の同じ日に読み返すことを想定して、次の項目を日本語で作ってください。\n"
     + (hasVoice(d)
-      ? "summary: その日の出来事、感じていたこと、考えていたことが流れで分かる文章。" + len + "。本人の目線で、「〜した」「〜と感じた」のような常体で書く。\n"
+      ? "summary: その日の出来事、感じていたこと、考えていたことが流れで分かる文章。" + len + "。本人が話した言葉と口調（言い回し、語尾）をできるだけそのまま使い、書き言葉に直しすぎない。「えー」「なんか」などのつなぎ言葉、言い直し、同じことの繰り返しは省くが、本人らしさが消えるほど削らない。\n"
       : "summary: 空文字にする（本文をそのまま読み返すため要約は不要）。\n")
     + "good: よかったこと。1〜3文。\n"
     + "challenge: うまくいかなかったことや課題。1〜3文。\n"
@@ -1580,13 +1586,23 @@ const FM_CELLS = [["live", "④ 居住環境"], ["learn", "⑧ 学び"], ["play"
 const FM_AREAS = FM_CELLS.filter((c) => c[0] !== "theme");
 const CLOVER = [["be", "Be 人格、能力"], ["do", "Do/Enjoy やりたいこと"], ["have", "Have/Get 得たいもの"], ["contribute", "Contribute 貢献"]];
 const CLOVER_ROOT = [["resource", "Resource 持っている能力、資源"], ["experience", "Experience 経験"]];
+// 項目の名前（番号も含む）は自分で書き直せる。vision/labels に保存し、番号（①〜⑨や1〜9）の順に並べる
+let visLabels = ls.get("journal.vlabels") || {};
+const CIRC = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫";
+const labNum = (l) => { const s2 = String(l || "").trim(), c = CIRC.indexOf(s2.charAt(0)); if (c >= 0) return c + 1; const m = /^(\d+)/.exec(s2); return m ? Number(m[1]) : 99; };
+const byNum = (list) => list.map((x, i) => [x, i]).sort((a, b) => (labNum(a[0][1]) - labNum(b[0][1])) || (a[1] - b[1])).map((x) => x[0]);
+const labOf = (grp, k, def) => ((visLabels[grp] || {})[k] || def);
+function fmAreasL(){ return byNum(FM_CELLS.filter((c) => c[0] !== "theme").map(([k, l]) => [k, labOf("fm", k, l)])); }
+function fmCellsL(){ const a = fmAreasL(), th = FM_CELLS.find((c) => c[0] === "theme"); return a.slice(0, 4).concat([[th[0], labOf("fm", "theme", th[1])]], a.slice(4)); }
+function cloverL(){ return byNum(CLOVER.map(([k, l]) => [k, labOf("clover", k, l)])); }
+function cloverRootL(){ return byNum(CLOVER_ROOT.map(([k, l]) => [k, labOf("clover", k, l)])); }
 const MORN_HOUR = 5;
 let vision = ls.get("journal.vision") || null, visFm = "y1", visCell = null, visEditing = null, mornStep = 0, mornArea = null, mornAction = "";
 function visEsc(t){ return esc(t || ""); }
 // 朝5時で日が変わる
 function mornDay(){ const d = new Date(Date.now() - MORN_HOUR * 3600000); return ymd(d); }
 function dayIndex(){ return Math.floor(new Date(mornDay() + "T00:00:00").getTime() / 86400000); }
-function todaysArea(){ return FM_AREAS[((dayIndex() % FM_AREAS.length) + FM_AREAS.length) % FM_AREAS.length][0]; }
+function todaysArea(){ const A = fmAreasL(); return A[((dayIndex() % A.length) + A.length) % A.length][0]; }
 function cloverHtml(v){
   const c = v.clover || {}, fm1 = ((v.fm || {}).y1 || {}).cells || {};
   const any = CLOVER.concat(CLOVER_ROOT).some(([k]) => c[k]) || c.mission;
@@ -1596,8 +1612,8 @@ function cloverHtml(v){
   h += '<div class="morn-big">' + (visEsc(core) || '<span class="muted" style="font-size:14px;font-weight:400">使命はまだありません</span>') + (c.feeling ? '<div style="font-size:13px;font-weight:400;color:var(--sub);margin-top:8px">得たい感情：' + visEsc(c.feeling) + '</div>' : '') + '</div>';
   if (!any) h += '<p class="lead">ドリームクローバーはまだ空です。今はフューチャーマップ（1年後）の真ん中の言葉を出しています。「書く」から埋められます。</p>';
   else {
-    h += '<div class="clover">' + CLOVER.map(([k, l]) => '<div class="leaf"><b>' + l + '</b>' + (visEsc(c[k]) || '<span class="muted">まだ</span>') + '</div>').join("") + '</div>';
-    h += '<div class="clover-root">' + CLOVER_ROOT.map(([k, l]) => '<div><b>' + l + '</b>' + (visEsc(c[k]) || '<span class="muted">まだ</span>') + '</div>').join("") + '</div>';
+    h += '<div class="clover">' + cloverL().map(([k, l]) => '<div class="leaf"><b>' + visEsc(l) + '</b>' + (visEsc(c[k]) || '<span class="muted">まだ</span>') + '</div>').join("") + '</div>';
+    h += '<div class="clover-root">' + cloverRootL().map(([k, l]) => '<div><b>' + visEsc(l) + '</b>' + (visEsc(c[k]) || '<span class="muted">まだ</span>') + '</div>').join("") + '</div>';
   }
   h += '<div class="eacts"><button type="button" class="mini" data-vedit="clover">' + (any ? "書き直す" : "書く") + '</button></div>';
   return h;
@@ -1625,12 +1641,12 @@ function fmHtml(v){
   const when = visFm === "m1" ? ymJ(past ? past.month : nowYm) + (past ? "（記録）" : "") + (tt.when ? "　" + tt.when : "") : tt.when;
   h += '<div class="fm-title">' + (when ? '<span class="when">' + visEsc(when) + '</span>' : '') + '<span class="head">' + (visEsc(tt.head) || '<span class="muted" style="font-weight:400;font-size:14px">見出しはまだありません</span>') + '</span></div>';
   h += '<p class="lead">' + (visFm === "m1" ? (past ? "この月のアクションプランの記録です。" : "今月のアクションプランです。") : "") + '今日の1マスを開いています。ほかのマスも押すと読めます。</p>';
-  h += '<div class="fm-grid">' + FM_CELLS.map(([k, l]) => {
+  h += '<div class="fm-grid">' + fmCellsL().map(([k, l]) => {
     const t = cells[k] || "";
     if (k === "theme") return '<button type="button" class="center" data-vcell="theme">' + visEsc(t || l) + '</button>';
     return '<button type="button" class="' + (t ? "" : "empty") + '" data-vcell="' + k + '" aria-pressed="' + (visCell === k) + '"><span>' + visEsc(l) + (k === todaysArea() ? "（今日）" : "") + '</span><span class="fm-full">' + visEsc(t) + '</span></button>';
   }).join("") + '</div>';
-  if (visCell && visCell !== "theme"){ const lab = (FM_CELLS.find((c) => c[0] === visCell) || [])[1]; h += '<div class="fm-detail"><b>' + visEsc(lab) + '</b>' + (visEsc(cells[visCell]) || '<span class="muted">まだ書いていません</span>') + '</div>'; }
+  if (visCell && visCell !== "theme"){ const lab = (fmCellsL().find((c) => c[0] === visCell) || [])[1]; h += '<div class="fm-detail"><b>' + visEsc(lab) + '</b>' + (visEsc(cells[visCell]) || '<span class="muted">まだ書いていません</span>') + '</div>'; }
   if (!past) h += '<div class="eacts"><button type="button" class="mini" data-vedit="fm">書き直す</button></div>';
   // 1か月は毎月のアクションプランとして、月ごとに残る
   if (visFm === "m1"){
@@ -1647,7 +1663,7 @@ function actionHtml(v){
   const fmx = v.fm || {}, m1 = (fmx.m1 || {}).cells || {}, useM1 = Object.keys(m1).some((k) => k !== "theme" && m1[k]);
   const cells = useM1 ? m1 : ((fmx.y1 || {}).cells || {});
   let h = '<h2>今日の一歩</h2><p class="lead">' + (useM1 ? "1か月のマップ" : "1年後のマップ（1か月はまだ空です）") + 'から、今日やることを1つ決めましょう。TODOにも入ります。書かずに終えても大丈夫です。</p>';
-  h += '<div class="morn-chips">' + FM_AREAS.map(([k, l]) => '<button type="button" data-marea="' + k + '" aria-pressed="' + (mornArea === k) + '">' + visEsc(l.replace(/^[①-⑨]\s*/, "")) + '</button>').join("") + '</div>';
+  h += '<div class="morn-chips">' + fmAreasL().map(([k, l]) => '<button type="button" data-marea="' + k + '" aria-pressed="' + (mornArea === k) + '">' + visEsc(l) + '</button>').join("") + '</div>';
   if (mornArea && cells[mornArea]) h += '<div class="fm-detail" style="font-size:13px">' + visEsc(cells[mornArea]) + '</div>';
   h += '<textarea id="morn-action" class="date-input" rows="2" style="height:auto;min-height:64px" placeholder="例：理想の家の条件を3つ書き出す">' + visEsc(mornAction) + '</textarea>';
   return h;
@@ -1655,16 +1671,19 @@ function actionHtml(v){
 function editHtml(kind){
   const v = vision, c = v.clover || {}, m = (v.fm || {})[visFm] || {}, cells = m.cells || {};
   const ta = (id, label, val, rows) => '<label>' + label + '<textarea id="' + id + '" rows="' + (rows || 3) + '">' + visEsc(val) + '</textarea></label>';
+  // 項目の名前（上の枠）と中身（下の枠）を両方書き直せる
+  const ta2 = (grp, k, l, val, rows) => '<div class="ve-item"><input type="text" class="ve-lab" id="ve-l-' + grp + '-' + k + '" value="' + visEsc(l) + '" aria-label="項目の名前"><textarea id="ve-' + (grp === "fm" ? "fm" : "c") + '-' + k + '" rows="' + (rows || 3) + '" aria-label="' + visEsc(l) + '">' + visEsc(val) + '</textarea></div>';
+  const note = '<p class="small" style="margin:0">上の点線の枠は項目の名前です。番号（①や1）も書き直せて、番号の順に並びます。</p>';
   let h = '<div class="vis-edit">';
   if (kind === "clover"){
     h += '<h2>ドリームクローバーを書く</h2>';
     h += ta("ve-mission", "一番上に小さく出す言葉（使命など）", v.mission, 1);
     h += ta("ve-c-mission", "Affirmation 使命（真ん中に大きく出ます）", c.mission || v.affirm, 3) + ta("ve-c-feeling", "Feeling 得たい感情", c.feeling, 2);
-    CLOVER.concat(CLOVER_ROOT).forEach(([k, l]) => { h += ta("ve-c-" + k, l, c[k], 3); });
+    h += note; cloverL().concat(cloverRootL()).forEach(([k, l]) => { h += ta2("clover", k, l, c[k], 3); });
   } else {
     h += '<h2>フューチャーマップ（' + (({y7: "7年後", y1: "1年後", m1: "1か月"})[visFm] || "") + '）を書き直す</h2>';
     h += ta("ve-fm-title", "見出し", m.title, 1);
-    FM_CELLS.forEach(([k, l]) => { h += ta("ve-fm-" + k, l, cells[k], k === "theme" ? 3 : 4); });
+    h += note; fmCellsL().forEach(([k, l]) => { h += ta2("fm", k, l, cells[k], k === "theme" ? 3 : 4); });
   }
   h += '<div class="eacts"><button type="button" class="btn" data-vsave="' + kind + '" style="flex:1">保存する</button><button type="button" class="mini" data-vcancel>やめる</button></div></div>';
   return h;
@@ -1695,6 +1714,7 @@ async function loadVision(){
   if (!db) return;
   // ドライブのシート「MY COMPASS」が書き換えられていたら、取り込んでから出し直す
   if (!loadVision.syncing){ loadVision.syncing = true; window.JOURNAL_CALL("compass_sync", {}).then((r) => { if (r && r.changed) loadVision(); }).catch(() => {}).finally(() => { setTimeout(() => { loadVision.syncing = false; }, 30000); }); }
+  try { const s3 = await db.doc("vision/labels").get(); if (s3.exists){ visLabels = s3.data() || {}; ls.set("journal.vlabels", visLabels); } } catch(e){}
   try { const s2 = await db.doc("vision/main").get(); if (s2.exists){ vision = s2.data(); ls.set("journal.vision", vision); } else if (!vision) vision = {mission: "", affirm: "", fm: {}, clover: {}}; } catch(e){ if (!vision) vision = {mission: "", affirm: "", fm: {}, clover: {}}; }
   if (!$("morn").hidden && !visEditing) paintMorn();
   paintStreak();
@@ -1730,7 +1750,7 @@ $("morn-next").addEventListener("click", async () => {
   const day = mornDay(), text = mornAction.trim(), area = mornArea;
   mornClose(); mornAction = "";
   try { await db.doc("vision_log/" + day).set({date: day, at: new Date().toISOString(), action: text, area: area || ""}); } catch(e){}
-  if (text){ const lab = ((FM_AREAS.find((c) => c[0] === area) || [])[1] || "").replace(/^[①-⑨]\s*/, ""); await addTodo(text, "MY COMPASS" + (lab ? "（" + lab + "）" : ""), null, REAL_TODAY, REAL_TODAY); toast("今日の一歩をTODOに入れました"); }
+  if (text){ const lab = ((fmAreasL().find((c) => c[0] === area) || [])[1] || "").replace(/^[①-⑨]\s*/, ""); await addTodo(text, "MY COMPASS" + (lab ? "（" + lab + "）" : ""), null, REAL_TODAY, REAL_TODAY); toast("今日の一歩をTODOに入れました"); }
   else toast("今日もいってらっしゃい");
   paintStreak();
 });
@@ -1755,6 +1775,12 @@ $("vis-body").addEventListener("click", async (ev) => {
       m.title = g("ve-fm-title"); FM_CELLS.forEach(([k]) => { m.cells[k] = g("ve-fm-" + k); });
     }
     v.updatedAt = new Date().toISOString();
+    // 項目の名前も保存する
+    const grp = sv.dataset.vsave === "clover" ? "clover" : "fm", keys = grp === "clover" ? CLOVER.concat(CLOVER_ROOT) : FM_CELLS, L2 = JSON.parse(JSON.stringify(visLabels || {}));
+    L2[grp] = L2[grp] || {}; keys.forEach(([k, l]) => { const nv = g("ve-l-" + grp + "-" + k); if (nv !== undefined){ if (nv && nv !== l) L2[grp][k] = nv; else delete L2[grp][k]; } });
+    const labChanged = JSON.stringify(L2) !== JSON.stringify(visLabels || {});
+    visLabels = L2; ls.set("journal.vlabels", L2);
+    if (labChanged){ try { await db.doc("vision/labels").set(L2); } catch(e){} }
     vision = v; ls.set("journal.vision", v); visEditing = null; paintMorn();
     try { await db.doc("vision/main").set(v); toast("保存しました"); monthsCache = null; } catch(e){ toast("保存できませんでした。もう一度押してください"); }
   }
