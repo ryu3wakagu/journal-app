@@ -602,6 +602,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
     </div>
   </div>
   <div class="vis-open-row"><button type="button" class="compass-btn" id="vis-open"><span class="cb-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.2 5-5 2.2 2.2-5z"/><path d="M12 3v1.6M12 19.4V21M3 12h1.6M19.4 12H21"/></svg></span><span class="cb-text"><b>MY COMPASS</b><small id="vis-streak">今日の方角を確かめる</small></span><svg class="cb-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></div>
+  <div id="home-sched" hidden></div>
   <div class="notice" id="w-panel" hidden>
     <div class="group">
       <label class="label" for="w-date" style="padding:0">書く日を選ぶ</label>
@@ -811,7 +812,8 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
       <div class="pref"><div class="row-between"><span class="t">週のまとめ（月曜の朝）</span><span class="chips" id="n-week-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></div></div>
       <div class="pref"><div class="row-between"><span class="t">月のまとめ（1日の朝）</span><span class="chips" id="n-month-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></div></div>
       <div class="pref"><div class="row-between"><span class="t">TODOの期限（朝）</span><span class="chips" id="n-todo-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></div></div>
-      <div class="pref"><div class="row-between"><span class="t">今日の予定（朝にまとめて）</span><span class="ntime"><select id="n-sched" aria-label="今日の予定を知らせる時刻"></select><span class="chips" id="n-sched-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></span></div></div>
+      <div class="pref"><div class="row-between"><span class="t">朝、今日の予定を確認する合図</span><span class="ntime"><select id="n-sched" aria-label="今日の予定を知らせる時刻"></select><span class="chips" id="n-sched-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></span></div></div>
+      <div class="pref"><div class="row-between"><span class="t">MY COMPASSを終えたら、今日の予定を送る</span><span class="chips" id="n-done-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></div></div>
       <div class="pref"><div class="row-between"><span class="t">時間の決まった予定の前に</span><span class="ntime"><select id="n-pre" aria-label="何分前に知らせるか"></select><span class="chips" id="n-pre-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></span></div></div>
     </div>
   </details>
@@ -1112,7 +1114,7 @@ const ALLF = {}; FONTS.forEach((g) => Object.assign(ALLF, g.items));
 const SHAPES = {sharp:{label:"角ばる",r:4,pill:6}, mid:{label:"標準",r:14,pill:30}, round:{label:"まるい",r:24,pill:30}};
 const SIZES = {s:{label:"小さめ",fs:14}, m:{label:"標準",fs:15}, l:{label:"大きめ",fs:17}};
 const LEN_STEPS = ["auto","100","150","200","250","300","400"];
-const DEFAULTS = {nTodoOn:true, nMorning:6, nNight:21, nMorningOn:true, nNightOn:true, nWeekOn:true, nMonthOn:true, nSched:"6:00", nSchedOn:true, nPre:10, nPreOn:true, bg:"sky", color:"kon", shade:3, font:"noto", shape:"mid", size:"m", len:"auto", lenV:2, auto:true, showHand:false};
+const DEFAULTS = {nTodoOn:true, nMorning:6, nNight:21, nMorningOn:true, nNightOn:true, nWeekOn:true, nMonthOn:true, nSched:"6:00", nSchedOn:true, nDoneOn:true, nPre:10, nPreOn:true, bg:"sky", color:"kon", shade:3, font:"noto", shape:"mid", size:"m", len:"auto", lenV:2, auto:true, showHand:false};
 function fixPrefs(p){
   const o = Object.assign({}, DEFAULTS, p || {});
   if (o.lenV !== 2){ o.len = "auto"; o.lenV = 2; }
@@ -1858,7 +1860,7 @@ function renderPrefs(){
   // 今日の予定：朝の時刻（30分ごと）と、予定の何分前に知らせるか
   $("n-sched").innerHTML = Array.from({length: 13}, (_, i) => { const t = (4 + Math.floor(i / 2)) + ":" + (i % 2 ? "30" : "00"); return '<option value="' + t + '"' + (t === (prefs.nSched || "6:00") ? " selected" : "") + '>' + t + '</option>'; }).join("");
   $("n-pre").innerHTML = [5, 10, 15, 30, 60].map((m) => '<option value="' + m + '"' + (m === Number(prefs.nPre || 10) ? " selected" : "") + '>' + m + '分前</option>').join("");
-  ["Morning","Night","Week","Month","Todo","Sched","Pre"].forEach((k) => { const key = "n" + k + "On"; $("n-" + k.toLowerCase() + "-on").innerHTML = chip(prefs[key] !== false, "送る", 'data-p="' + key + '" data-v="1"') + chip(prefs[key] === false, "なし", 'data-p="' + key + '" data-v="0"'); });
+  ["Morning","Night","Week","Month","Todo","Sched","Pre","Done"].forEach((k) => { const key = "n" + k + "On"; $("n-" + k.toLowerCase() + "-on").innerHTML = chip(prefs[key] !== false, "送る", 'data-p="' + key + '" data-v="1"') + chip(prefs[key] === false, "なし", 'data-p="' + key + '" data-v="0"'); });
   $("p-showhand").innerHTML = chip(prefs.showHand, "する", 'data-p="showHand" data-v="1"') + chip(!prefs.showHand, "しない", 'data-p="showHand" data-v="0"');
   renderDict();
   $("p-store").textContent = db ? "スプレッドシート「JOURNALアプリのデータ」と「控え」" : "未接続";
@@ -2602,7 +2604,18 @@ function schedHtml(day){
   h += '<div class="sc-links"><button type="button" class="mini" data-plan="' + day + '">週の予定を入れる</button><button type="button" class="mini" data-brd>繰り返しを直す</button></div>';
   return h;
 }
+// 今日を書くの画面にも、今日の予定を出す（チェックもここでできる）
+function paintHomeSched(){
+  const el = $("home-sched"); if (!el) return;
+  const day = mornDay(), L = dayList(day);
+  if (!L.must.length && !L.time.length){ el.hidden = true; el.innerHTML = ""; return; }
+  el.hidden = false;
+  el.innerHTML = '<div class="sc-card"><div class="sc-lb row-lb"><span>TODAY\'S SCHEDULE</span><button type="button" class="sc-more" data-plan="' + day + '">予定を直す</button></div>'
+    + (L.time.length ? L.time.map((x) => '<div class="sc-t"><span class="tm">' + tShow(x.t) + '</span>' + scCk(x, day) + '</div>').join("") : '')
+    + (L.must.length ? (L.time.length ? '<div class="sc-lb" style="margin-top:6px">MUST DO</div>' : '') + L.must.map((x) => scCk(x, day)).join("") : '') + '</div>';
+}
 function repaintSched(){
+  paintHomeSched();
   if (!$("morn").hidden && mornStep === 3 && !visEditing) paintMorn();
   if (!$("plan").hidden) paintPlan();
   if (!$("brd").hidden) paintBrd();
@@ -3358,6 +3371,7 @@ renderToday();
   } catch(e){}
   watchDay();
   loadVision().then(mornCheck).catch(() => {});
+  Promise.all([loadBoard(), loadSched(mornDay(), true)]).then(paintHomeSched).catch(() => {});
   loadLastYear().catch(() => { $("ly-body").innerHTML = '<span class="empty">読み込めませんでした。</span>'; });
   loadOlder().catch(() => {});
   // 写真の一覧が届いたら、写真へのリンク付きで描き直す
