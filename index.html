@@ -451,6 +451,8 @@ textarea::placeholder{color:var(--sub)}
 .dict{display:flex;flex-direction:column;gap:8px}
 .dict-row{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) 44px;gap:6px;align-items:center}
 .dict-row input{min-width:0;height:44px;border:1px solid var(--line);border-radius:max(4px,calc(var(--r) - 6px));background:var(--bg);padding:0 10px}
+.dict-add{width:100%;min-height:44px;border:1px dashed var(--line);border-radius:max(4px,calc(var(--r) - 6px));background:var(--bg);color:var(--accentText);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer}
+.dict-add:active{background:var(--soft)}
 .dict-row .x{width:44px;height:44px;border:0;background:transparent;color:var(--sub);font-size:18px}
 .moods{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
 .moods button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:56px;padding:6px 2px;border:1.5px solid var(--line);border-radius:var(--r);background:var(--card)}
@@ -778,7 +780,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
         <div class="small">1週間分の予定をまとめて入れます。毎朝のMY COMPASSの4番目に、その日の分が出ます</div></div>
       <div class="pref"><div class="row-between"><span class="t">用語辞書</span><span class="v">言い間違いを自動で直す</span></div>
         <div class="dict" id="p-dict"></div>
-        <button class="link" id="p-dict-add" type="button">直す言葉を足す</button>
+        <button class="dict-add" id="p-dict-add" type="button">＋ 言葉を追加</button>
         <div class="small">例：「ぜんかつ」→「前活」。保存とAIの整理の前に置き換えます</div>
       </div>
       <div class="pref" hidden><div class="row-between"><span class="t">直した記録から覚えた言葉</span><span class="v" id="p-learn-v"></span></div>
