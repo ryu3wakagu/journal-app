@@ -143,6 +143,10 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .recv-stop span{position:relative}
 /* スケジュール（SEIZE THE WEEK SHEETと同じ作り） */
 .plan{z-index:46}
+/* 下のタブの「予定」では、週の予定をそのまま出す（下のタブは見えたまま） */
+.plan.as-tab{bottom:var(--navh,80px);z-index:4}
+.plan.as-tab #plan-close{display:none}
+.plan.as-tab .plan-foot{padding-bottom:10px}
 .sc-card{background:var(--card);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:6px}
 .sc-lb{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--sub)}
 .sc-ck{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;border:0;background:none;padding:2px 0;text-align:left;color:var(--text);font-size:15px;font-family:inherit;cursor:pointer}
@@ -765,8 +769,6 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
 <!-- 予定 -->
 <section id="v-sched" class="view" hidden>
   <div class="head"><h1>予定</h1></div>
-  <div id="mc-box" hidden></div>
-  <div id="sched-tab" style="display:flex;flex-direction:column;gap:12px"></div>
 </section>
 
 <!-- TODO -->
@@ -914,8 +916,8 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
 
 <nav class="tabs" aria-label="画面切り替え">
   <button type="button" data-view="today" aria-current="page"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>今日を書く</button>
-  <button type="button" data-view="sched"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>予定<i class="tab-dot" id="mc-dot" hidden></i></button>
   <button type="button" data-view="review"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>振り返り</button>
+  <button type="button" data-view="sched"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>予定<i class="tab-dot" id="mc-dot" hidden></i></button>
   <button type="button" data-view="todo"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12l3 3 5-6"/></svg>TODO</button>
   <button type="button" data-view="prefs"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>設定</button>
 </nav>
@@ -2653,21 +2655,10 @@ function paintHomeSched(){
     + (L.time.length ? L.time.map((x) => '<div class="sc-t"><span class="tm">' + tShow(x.t) + '</span>' + scCk(x, day) + '</div>').join("") : '')
     + (L.must.length ? (L.time.length ? '<div class="sc-lb" style="margin-top:6px">MUST DO</div>' : '') + L.must.map((x) => scCk(x, day)).join("") : '') + '</div>';
 }
-// 下のタブの「予定」：今日の予定をすぐ見られる。上にはメールで届いた予定の候補
-function paintSchedTab(){
-  const el = $("sched-tab"); if (!el || $("v-sched").hidden) return;
-  const day = mornDay(), L = dayList(day), d = dObj(day);
-  el.innerHTML = '<div class="sc-card"><div class="sc-lb row-lb"><span>TODAY\'S SCHEDULE　' + (d.getMonth() + 1) + '/' + d.getDate() + ' (' + WD[d.getDay()] + ')</span></div>'
-    + (L.time.length ? L.time.map((x) => '<div class="sc-t"><span class="tm">' + tShow(x.t) + '</span>' + scCk(x, day) + '</div>').join("") : '')
-    + (L.must.length ? '<div class="sc-lb" style="margin-top:6px">MUST DO</div>' + L.must.map((x) => scCk(x, day)).join("") : '')
-    + (!L.time.length && !L.must.length ? '<span class="small">今日の予定はまだありません</span>' : '') + '</div>'
-    + schedAddHtml(day)
-    + '<div class="sc-links"><button type="button" class="mini" data-plan="' + day + '">週の予定を見る</button><button type="button" class="mini" data-brd>繰り返しを直す</button></div>';
-}
-async function schedTabOpen(){
-  paintSchedTab(); loadMailCand();
-  await Promise.all([loadBoard(), loadSched(mornDay(), true), loadCal(weekStart(mornDay()))]).catch(() => {});
-  paintSchedTab();
+// 下のタブの「予定」：週の予定（今日を選んだ状態）をそのまま出す。上にはメールで届いた予定の候補
+function paintSchedTab(){}
+function schedTabOpen(){
+  $("plan").classList.add("as-tab"); planOpen(mornDay()); loadMailCand();
 }
 let mailCand = null;
 // メモの中のURLは押せるようにする
@@ -2677,11 +2668,13 @@ async function loadMailCand(){
   paintMailCand();
 }
 function paintMailCand(){
-  const el = $("mc-box"), list = mailCand || [];
-  $("mc-dot").hidden = !list.length;
-  if (!list.length){ el.hidden = true; el.innerHTML = ""; return; }
-  el.hidden = false;
-  el.innerHTML = '<div class="mc-card"><div class="sc-lb">メールで届いた予定　' + list.length + '件</div>' + list.map((x) => {
+  $("mc-dot").hidden = !(mailCand || []).length;
+  if (!$("plan").hidden && $("plan").classList.contains("as-tab")) paintPlan();
+}
+function mcHtml(){
+  const list = mailCand || [];
+  if (!list.length) return "";
+  return '<div class="mc-card"><div class="sc-lb">メールで届いた予定　' + list.length + '件</div>' + list.map((x) => {
     const d = dObj(x.date), when = (d.getMonth() + 1) + "/" + d.getDate() + " (" + WD[d.getDay()] + ")　" + (x.start ? x.start + (x.end ? "〜" + x.end : "") : "時刻なし（終日で入れます）");
     return '<div class="mc-item" data-mcid="' + esc(x.id) + '"><div class="mc-when">' + when + (x.place ? "　" + esc(x.place) : "") + '</div>'
       + '<input type="text" class="date-input mc-title" value="' + esc(x.title) + '" aria-label="題名（ここで直せます）" enterkeyhint="done">'
@@ -2742,7 +2735,8 @@ function paintPlan(){
   }
   const late = L.time.filter((x) => tMin(x.t) < 5 * 60 || tMin(x.t) >= 23 * 60 + 30);
   if (late.length) h += '<div class="pg-row"><span class="tm">ほか</span><div class="pg-cell">' + late.map((x) => planRow(x, true)).join("") + '</div></div>';
-  $("plan-body").innerHTML = h + '</div>';
+  const asTab = $("plan").classList.contains("as-tab");
+  $("plan-body").innerHTML = (asTab ? mcHtml() : '') + h + '</div>' + (asTab ? '<div class="sc-links"><button type="button" class="mini" data-brd>繰り返しを直す</button></div>' : '');
   // 追加欄は下に固定（書きかけが消えないよう、作るのは最初の1回だけ）
   const foot = $("plan-foot");
   if (!foot.querySelector(".sc-add")) foot.innerHTML = schedAddHtml(planDay);
@@ -2755,6 +2749,8 @@ function tboxMark(root){ (root || document).querySelectorAll(".tbox").forEach((b
 // キーボードが出ても、下の追加欄が隠れないように、見えている高さに合わせる
 function planFit(){
   const el = $("plan"), vv = window.visualViewport; if (!vv || el.hidden) return;
+  // 予定のタブでキーボードが出ていないときは、下のタブの上までにする
+  if (el.classList.contains("as-tab") && vv.height > window.innerHeight - 80){ el.style.top = el.style.height = el.style.bottom = ""; return; }
   el.style.top = vv.offsetTop + "px"; el.style.height = vv.height + "px"; el.style.bottom = "auto";
 }
 if (window.visualViewport){ visualViewport.addEventListener("resize", planFit); visualViewport.addEventListener("scroll", planFit); }
@@ -3372,6 +3368,7 @@ document.querySelector("nav.tabs").addEventListener("click", (ev) => {
   const b = ev.target.closest("button[data-view]"); if (!b) return;
   const v = b.dataset.view;
   if (v === currentView) return;           // 開いているタブはそのまま
+  if (currentView === "sched"){ const pl = $("plan"); pl.hidden = true; pl.classList.remove("as-tab"); pl.style.top = pl.style.height = pl.style.bottom = ""; }
   currentView = v;
   document.querySelectorAll("nav.tabs button").forEach((x) => { if (x === b) x.setAttribute("aria-current", "page"); else x.removeAttribute("aria-current"); });
   ["today","sched","review","todo","prefs"].forEach((k) => { $("v-" + k).hidden = v !== k; });
