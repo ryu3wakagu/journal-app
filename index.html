@@ -203,7 +203,22 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .pr em.w,.sc-ck em.w{color:var(--work);border-color:color-mix(in srgb,var(--work) 50%,transparent)}
 .pr em.l,.sc-ck em.l{color:var(--life);border-color:color-mix(in srgb,var(--life) 50%,transparent)}
 .morn-top.plan-top{flex-direction:column;align-items:stretch;justify-content:flex-start;gap:8px;border-bottom:1px solid var(--line);padding-bottom:10px}
-.plan-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.plan-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+/* 1日と1週間の切りかえ */
+.plan-mode{padding:3px}
+.plan-mode button{min-height:32px}
+/* 1週間の表示 */
+.wk-day{gap:6px}
+.wk-day.today{border:1.5px solid var(--accent)}
+.wk-head{display:flex;align-items:center;gap:8px;border:0;background:none;padding:0 0 4px;font:inherit;color:var(--text);cursor:pointer;text-align:left;width:100%;min-height:32px}
+.wk-head b{font-size:15px}
+.wk-head em{font-style:normal;font-size:11px;font-weight:700;color:var(--onAccent);background:var(--accent);border-radius:6px;padding:1px 6px}
+.wk-head span{margin-left:auto;font-size:12px;color:var(--accentText)}
+.wk-row{display:flex;align-items:center;gap:8px}
+.wk-row .tm{width:3.2em;flex:none;font-size:13px;color:var(--sub)}
+.wk-row .pr{flex:1;min-width:0}
+.wk-must{font-size:12.5px;color:var(--sub);line-height:1.6;padding-top:2px}
+.wk-must b{font-size:11px;letter-spacing:.06em;margin-right:6px}
 .plan-foot{position:sticky;bottom:0;z-index:2;background:var(--bg);border-top:1px solid var(--line);padding:10px 0 calc(env(safe-area-inset-bottom,0px) + 10px);max-width:760px;width:100%;margin:0 auto}
 .row-lb{display:flex;justify-content:space-between;align-items:center;gap:8px}
 /* 予定のタブ：メールで届いた予定の候補 */
@@ -597,7 +612,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
   <div class="morn-foot" id="morn-foot"><button type="button" class="mini" id="morn-back">戻る</button><button type="button" class="btn" id="morn-next">次へ</button></div>
 </div>
 <div class="morn plan" id="plan" hidden role="dialog" aria-label="週の予定">
-  <div class="morn-top plan-top"><div class="plan-row"><div class="plan-nav"><button type="button" class="mini" id="plan-prev" aria-label="前の週">‹</button><b id="plan-range"></b><button type="button" class="mini" id="plan-next" aria-label="次の週">›</button></div><button type="button" class="mini" id="plan-close">閉じる</button></div><div class="plan-days" id="plan-days"></div></div>
+  <div class="morn-top plan-top"><div class="plan-row"><div class="plan-nav"><button type="button" class="mini" id="plan-prev" aria-label="前の週">‹</button><b id="plan-range"></b><button type="button" class="mini" id="plan-next" aria-label="次の週">›</button></div><button type="button" class="mini" id="plan-close">閉じる</button></div><div class="seg2 plan-mode" id="plan-mode"><button type="button" data-pmode="day">1日</button><button type="button" data-pmode="week">1週間</button></div><div class="plan-days" id="plan-days"></div></div>
   <div class="morn-body" id="plan-body"></div>
   <div class="plan-foot" id="plan-foot"></div>
 </div>
@@ -2722,6 +2737,10 @@ function paintPlan(){
   $("plan-range").innerHTML = '<small>' + th.getFullYear() + "年 " + (th.getMonth() + 1) + "月 第" + Math.ceil(th.getDate() / 7) + "週" + '</small>'
     + (d0.getMonth() + 1) + "月" + d0.getDate() + "日 (日) 〜 " + (d6.getMonth() !== d0.getMonth() ? (d6.getMonth() + 1) + "月" : "") + d6.getDate() + "日 (土)";
   $("plan-days").innerHTML = days.map((d) => { const n = dayList(d), c = n.must.length + n.time.length; return '<button type="button" data-pday="' + d + '" aria-pressed="' + (d === planDay) + '"><span>' + WD[dObj(d).getDay()] + '</span><b>' + dObj(d).getDate() + '</b><i>' + (c || "") + '</i></button>'; }).join("");
+  document.querySelectorAll("#plan-mode button").forEach((b) => b.setAttribute("aria-pressed", String((b.dataset.pmode === "week") === planWeek)));
+  $("plan-days").hidden = planWeek;
+  if (planWeek){ paintPlanWeek(days); return; }
+  $("plan-foot").hidden = false;
   // MUST DOは4件まで出し、多い日は「ほか○件」でたたむ
   const L = dayList(planDay), many = L.must.length > 4, shown = many && !planMustOpen ? L.must.slice(0, 4) : L.must;
   let h = '<div class="sc-card"><div class="sc-lb row-lb"><span>MUST DO' + (L.must.length ? "　" + L.must.length : "") + '</span>' + (many && planMustOpen ? '<button type="button" class="sc-more" data-pmore>たたむ</button>' : '') + '</div>'
@@ -2742,6 +2761,25 @@ function paintPlan(){
   if (!foot.querySelector(".sc-add")) foot.innerHTML = schedAddHtml(planDay);
   foot.querySelector("[data-scadd]").dataset.scadd = planDay;
 }
+// 1週間をまとめて見る（日付を押すと、その日の1日の表示に切りかわる）
+let planWeek = ls.get("journal.planWeek") === true;
+function paintPlanWeek(days){
+  const today = mornDay(), asTab = $("plan").classList.contains("as-tab");
+  const row = (x) => '<div class="wk-row"><span class="tm">' + tShow(x.t) + '</span><div class="pr ' + (x.side === "work" ? "w" : x.side === "life" ? "l" : x.side === "cal" ? "g" : "o") + '"><span class="tx">' + esc(x.text) + '</span>' + (x.rec ? sideTag(x) : '') + '</div></div>';
+  const h = days.map((d) => {
+    const L = dayList(d), dt = dObj(d);
+    return '<div class="sc-card wk-day' + (d === today ? ' today' : '') + '"><button type="button" class="wk-head" data-pday="' + d + '"><b>' + (dt.getMonth() + 1) + '/' + dt.getDate() + ' (' + WD[dt.getDay()] + ')</b>' + (d === today ? '<em>今日</em>' : '') + '<span>この日を開く ›</span></button>'
+      + L.time.map(row).join("")
+      + (L.must.length ? '<div class="wk-must"><b>MUST DO</b>' + L.must.map((x) => esc(x.text)).join("、") + '</div>' : '')
+      + (!L.time.length && !L.must.length ? '<span class="small">予定なし</span>' : '') + '</div>';
+  }).join("");
+  $("plan-body").innerHTML = (asTab ? mcHtml() : '') + h + (asTab ? '<div class="sc-links"><button type="button" class="mini" data-brd>繰り返しを直す</button></div>' : '');
+  $("plan-foot").hidden = true;
+}
+$("plan-mode").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-pmode]"); if (!b) return;
+  planWeek = b.dataset.pmode === "week"; ls.set("journal.planWeek", planWeek); paintPlan(); $("plan").scrollTop = 0;
+});
 $("plan-close").addEventListener("click", () => { const el = $("plan"); el.hidden = true; el.style.top = el.style.height = el.style.bottom = ""; repaintSched(); });
 // 時間が入っていないときだけ「時間」と出す
 function tboxMark(root){ (root || document).querySelectorAll(".tbox").forEach((b) => b.classList.toggle("has", !!b.querySelector("input").value)); }
@@ -2807,7 +2845,7 @@ document.addEventListener("click", async (ev) => {
   }
   const del = ev.target.closest("[data-scdel]");
   if (del){ const day = del.dataset.scday, s2 = await loadSched(day); s2.items = (s2.items || []).filter((x) => x.id !== del.dataset.scdel); repaintSched(); saveSched(day); return; }
-  const pd = ev.target.closest("[data-pday]"); if (pd){ planDay = pd.dataset.pday; planSel = null; planMustOpen = false; paintPlan(); $("plan").scrollTop = 0; return; }
+  const pd = ev.target.closest("[data-pday]"); if (pd){ if (planWeek){ planWeek = false; ls.set("journal.planWeek", false); } planDay = pd.dataset.pday; planSel = null; planMustOpen = false; paintPlan(); $("plan").scrollTop = 0; return; }
   if (ev.target.closest("[data-pmore]")){ planMustOpen = !planMustOpen; paintPlan(); return; }
   const pg = ev.target.closest("[data-pgt]");
   if (pg && !ev.target.closest(".pr")){
