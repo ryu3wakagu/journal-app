@@ -190,7 +190,9 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .brd-form{display:flex;flex-direction:column;gap:14px;background:var(--card);border-radius:var(--r);padding:16px}
 .brd-form label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--sub)}
 /* WORKは青、LIFEは赤、自分で入れた予定はグレー */
-:root{--work:#2F6FB5;--life:#C8473B}
+:root{--work:#2F6FB5;--life:#C8473B;--gcal:#2E8B62}
+.pr.g{border-left-color:var(--gcal);background:color-mix(in srgb,var(--gcal) 12%,var(--card))}
+.pr em.g,.sc-ck em.g{color:var(--gcal);border-color:color-mix(in srgb,var(--gcal) 50%,transparent)}
 .pr{border-left:3px solid var(--line);border-radius:0 8px 8px 0}
 .pr.w{border-left-color:var(--work);background:color-mix(in srgb,var(--work) 13%,var(--card))}
 .pr.l{border-left-color:var(--life);background:color-mix(in srgb,var(--life) 13%,var(--card))}
@@ -1713,7 +1715,7 @@ function mornOpen(auto){
   $("morn").hidden = false; paintMorn();
   ls.set("journal.mornShown", mornDay());
   mornSugg = !!(suggs && suggs.length);
-  Promise.all([loadBoard(), loadSched(mornDay(), true)]).then(repaintSched).catch(() => {});
+  Promise.all([loadBoard(), loadSched(mornDay(), true), loadCal(weekStart(mornDay()), true)]).then(repaintSched).catch(() => {});
   loadSuggs().then(() => { if (mornStep < 2) mornSugg = !!(suggs && suggs.length); if (!$("morn").hidden && !visEditing) paintMorn(); });
 }
 function mornClose(){ $("morn").hidden = true; visEditing = null; }
@@ -2561,7 +2563,14 @@ const tMin = (t) => { const m = /^(\d{1,2}):(\d{2})/.exec(String(t || "")); retu
 const tShow = (t) => { const v = tMin(t); return v === 9999 ? "" : Math.floor(v / 60) + ":" + String(v % 60).padStart(2, "0"); };
 const tInput = (t) => { const v = tMin(t); return v === 9999 ? "" : String(Math.floor(v / 60)).padStart(2, "0") + ":" + String(v % 60).padStart(2, "0"); };
 const mdS = (s2) => Number(s2.slice(5, 7)) + "/" + Number(s2.slice(8, 10));
-const sideTag = (x) => x.side ? '<em class="' + (x.side === "work" ? "w" : "l") + '">' + (x.side === "work" ? "WORK" : "LIFE") + '</em>' : '';
+const sideTag = (x) => x.side === "cal" ? '<em class="g">GOOGLE</em>' : x.side ? '<em class="' + (x.side === "work" ? "w" : "l") + '">' + (x.side === "work" ? "WORK" : "LIFE") + '</em>' : '';
+// Googleカレンダーの予定（週ごとにまとめて読む。5分は読み直さない）
+let calCache = {}, calAt = {};
+async function loadCal(ws, force){
+  if (!force && calAt[ws] && Date.now() - calAt[ws] < 300000) return;
+  calAt[ws] = Date.now();
+  try { const r = await window.JOURNAL_CALL("cal_week", {start: ws}); Object.assign(calCache, (r && r.days) || {}); } catch(e){ calAt[ws] = 0; }
+}
 // その日に当たる繰り返し（第何週は日付を7で割って数える。日付が月にない日は末日に寄せる）
 function boardHits(day){
   const d = dObj(day), dow = d.getDay(), dd = d.getDate(), last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
@@ -2592,8 +2601,9 @@ function dayList(day){
   const s2 = schedCache[day] || {items: [], done: {}}, done = s2.done || {};
   const rec = boardHits(day).map((x) => ({key: "b:" + x.side + ":" + x.task, text: x.task, t: x.time || "", side: x.side, rec: true}));
   const one = (s2.items || []).map((x) => ({key: "s:" + x.id, id: x.id, text: x.text, t: x.t || "", rec: false}));
-  const all = rec.concat(one).map((x) => Object.assign(x, {done: !!done[x.key]}));
-  const must = all.filter((x) => !tShow(x.t)), so = {life: 0, work: 1};
+  const gc = (calCache[day] || []).map((x) => ({key: "g:" + x.id, text: String(x.text || "").trim(), t: x.t || "", side: "cal", rec: true}));
+  const all = gc.concat(rec, one).map((x) => Object.assign(x, {done: !!done[x.key]}));
+  const must = all.filter((x) => !tShow(x.t)), so = {cal: -1, life: 0, work: 1};
   must.sort((a, b) => (a.rec ? so[a.side] ?? 2 : 3) - (b.rec ? so[b.side] ?? 2 : 3));
   return {must: must, time: all.filter((x) => tShow(x.t)).sort((a, b) => tMin(a.t) - tMin(b.t))};
 }
@@ -2630,10 +2640,10 @@ function weekStart(day){ const d = dObj(day); d.setDate(d.getDate() - d.getDay()
 async function planOpen(day){
   planDay = day || mornDay(); planSel = null; planMustOpen = false; $("plan").hidden = false; paintPlan();
   await loadBoard(); const ws = weekStart(planDay);
-  await Promise.all(Array.from({length: 7}, (_, i) => loadSched(addD(ws, i)))); paintPlan();
+  await Promise.all(Array.from({length: 7}, (_, i) => loadSched(addD(ws, i))).concat([loadCal(ws)])); paintPlan();
 }
 let planMustOpen = false, planSel = null;
-const planRow = (x, inGrid) => '<div class="pr ' + (x.side === "work" ? "w" : x.side === "life" ? "l" : "o") + '"><span class="tx">' + (inGrid && tMin(x.t) % 30 ? '<span class="tm2">' + tShow(x.t) + '　</span>' : '') + esc(x.text) + '</span>' + (x.rec ? sideTag(x) : '<button type="button" class="x" data-scdel="' + esc(x.id) + '" data-scday="' + planDay + '" aria-label="消す">×</button>') + '</div>';
+const planRow = (x, inGrid) => '<div class="pr ' + (x.side === "work" ? "w" : x.side === "life" ? "l" : x.side === "cal" ? "g" : "o") + '"><span class="tx">' + (inGrid && tMin(x.t) % 30 ? '<span class="tm2">' + tShow(x.t) + '　</span>' : '') + esc(x.text) + '</span>' + (x.rec ? sideTag(x) : '<button type="button" class="x" data-scdel="' + esc(x.id) + '" data-scday="' + planDay + '" aria-label="消す">×</button>') + '</div>';
 function paintPlan(){
   const ws = weekStart(planDay), days = Array.from({length: 7}, (_, i) => addD(ws, i));
   // 上の表示：「2026年 11月 第2週」と「11月8日 (日) 〜 14日 (土)」（第何週は、その週の木曜日がある月で数える）
@@ -2670,7 +2680,7 @@ function planFit(){
   el.style.top = vv.offsetTop + "px"; el.style.height = vv.height + "px"; el.style.bottom = "auto";
 }
 if (window.visualViewport){ visualViewport.addEventListener("resize", planFit); visualViewport.addEventListener("scroll", planFit); }
-const planMove = async (n) => { planDay = addD(planDay, n); planSel = null; planMustOpen = false; paintPlan(); const ws = weekStart(planDay); await Promise.all(Array.from({length: 7}, (_, i) => loadSched(addD(ws, i)))); paintPlan(); };
+const planMove = async (n) => { planDay = addD(planDay, n); planSel = null; planMustOpen = false; paintPlan(); const ws = weekStart(planDay); await Promise.all(Array.from({length: 7}, (_, i) => loadSched(addD(ws, i))).concat([loadCal(ws)])); paintPlan(); };
 $("plan-prev").addEventListener("click", () => planMove(-7));
 $("plan-next").addEventListener("click", () => planMove(7));
 /* WORK BOARDとLIFE BOARD（繰り返しのやること） */
@@ -3375,7 +3385,7 @@ renderToday();
   } catch(e){}
   watchDay();
   loadVision().then(mornCheck).catch(() => {});
-  Promise.all([loadBoard(), loadSched(mornDay(), true)]).then(paintHomeSched).catch(() => {});
+  Promise.all([loadBoard(), loadSched(mornDay(), true), loadCal(weekStart(mornDay()))]).then(paintHomeSched).catch(() => {});
   loadLastYear().catch(() => { $("ly-body").innerHTML = '<span class="empty">読み込めませんでした。</span>'; });
   loadOlder().catch(() => {});
   // 写真の一覧が届いたら、写真へのリンク付きで描き直す
