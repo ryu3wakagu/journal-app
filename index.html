@@ -811,6 +811,8 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
       <div class="pref"><div class="row-between"><span class="t">週のまとめ（月曜の朝）</span><span class="chips" id="n-week-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></div></div>
       <div class="pref"><div class="row-between"><span class="t">月のまとめ（1日の朝）</span><span class="chips" id="n-month-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></div></div>
       <div class="pref"><div class="row-between"><span class="t">TODOの期限（朝）</span><span class="chips" id="n-todo-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></div></div>
+      <div class="pref"><div class="row-between"><span class="t">今日の予定（朝にまとめて）</span><span class="ntime"><select id="n-sched" aria-label="今日の予定を知らせる時刻"></select><span class="chips" id="n-sched-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></span></div></div>
+      <div class="pref"><div class="row-between"><span class="t">時間の決まった予定の前に</span><span class="ntime"><select id="n-pre" aria-label="何分前に知らせるか"></select><span class="chips" id="n-pre-on" style="grid-template-columns:repeat(2,minmax(0,64px))"></span></span></div></div>
     </div>
   </details>
 
@@ -1110,7 +1112,7 @@ const ALLF = {}; FONTS.forEach((g) => Object.assign(ALLF, g.items));
 const SHAPES = {sharp:{label:"角ばる",r:4,pill:6}, mid:{label:"標準",r:14,pill:30}, round:{label:"まるい",r:24,pill:30}};
 const SIZES = {s:{label:"小さめ",fs:14}, m:{label:"標準",fs:15}, l:{label:"大きめ",fs:17}};
 const LEN_STEPS = ["auto","100","150","200","250","300","400"];
-const DEFAULTS = {nTodoOn:true, nMorning:6, nNight:21, nMorningOn:true, nNightOn:true, nWeekOn:true, nMonthOn:true, bg:"sky", color:"kon", shade:3, font:"noto", shape:"mid", size:"m", len:"auto", lenV:2, auto:true, showHand:false};
+const DEFAULTS = {nTodoOn:true, nMorning:6, nNight:21, nMorningOn:true, nNightOn:true, nWeekOn:true, nMonthOn:true, nSched:"6:00", nSchedOn:true, nPre:10, nPreOn:true, bg:"sky", color:"kon", shade:3, font:"noto", shape:"mid", size:"m", len:"auto", lenV:2, auto:true, showHand:false};
 function fixPrefs(p){
   const o = Object.assign({}, DEFAULTS, p || {});
   if (o.lenV !== 2){ o.len = "auto"; o.lenV = 2; }
@@ -1853,7 +1855,10 @@ function renderPrefs(){
   paintLen();
   const hours = (sel) => Array.from({length: 24}, (_, h) => '<option value="' + h + '"' + (h === sel ? ' selected' : '') + '>' + h + '時</option>').join("");
   $("n-morning").innerHTML = hours(Number(prefs.nMorning)); $("n-night").innerHTML = hours(Number(prefs.nNight));
-  ["Morning","Night","Week","Month","Todo"].forEach((k) => { const key = "n" + k + "On"; $("n-" + k.toLowerCase() + "-on").innerHTML = chip(prefs[key] !== false, "送る", 'data-p="' + key + '" data-v="1"') + chip(prefs[key] === false, "なし", 'data-p="' + key + '" data-v="0"'); });
+  // 今日の予定：朝の時刻（30分ごと）と、予定の何分前に知らせるか
+  $("n-sched").innerHTML = Array.from({length: 13}, (_, i) => { const t = (4 + Math.floor(i / 2)) + ":" + (i % 2 ? "30" : "00"); return '<option value="' + t + '"' + (t === (prefs.nSched || "6:00") ? " selected" : "") + '>' + t + '</option>'; }).join("");
+  $("n-pre").innerHTML = [5, 10, 15, 30, 60].map((m) => '<option value="' + m + '"' + (m === Number(prefs.nPre || 10) ? " selected" : "") + '>' + m + '分前</option>').join("");
+  ["Morning","Night","Week","Month","Todo","Sched","Pre"].forEach((k) => { const key = "n" + k + "On"; $("n-" + k.toLowerCase() + "-on").innerHTML = chip(prefs[key] !== false, "送る", 'data-p="' + key + '" data-v="1"') + chip(prefs[key] === false, "なし", 'data-p="' + key + '" data-v="0"'); });
   $("p-showhand").innerHTML = chip(prefs.showHand, "する", 'data-p="showHand" data-v="1"') + chip(!prefs.showHand, "しない", 'data-p="showHand" data-v="0"');
   renderDict();
   $("p-store").textContent = db ? "スプレッドシート「JOURNALアプリのデータ」と「控え」" : "未接続";
@@ -3330,6 +3335,8 @@ $("n-test").addEventListener("click", async () => {
   try { await window.JOURNAL_PUSH.test(); st.textContent = "送りました。数秒で届きます。"; } catch(e){ st.textContent = "送れませんでした。"; }
 });
 ["n-morning","n-night"].forEach((id) => $(id).addEventListener("change", (ev) => { prefs[id === "n-morning" ? "nMorning" : "nNight"] = Number(ev.target.value); savePrefs(); }));
+$("n-sched").addEventListener("change", (ev) => { prefs.nSched = ev.target.value; savePrefs(); });
+$("n-pre").addEventListener("change", (ev) => { prefs.nPre = Number(ev.target.value); savePrefs(); });
 
 /* ---------- 起動 ---------- */
 renderToday();
