@@ -217,6 +217,27 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .sc-add input[type="time"]::-webkit-date-and-time-value{text-align:center;margin:0}
 .sc-add input[type="text"]{height:44px;line-height:normal;font-size:16px;min-width:0;box-sizing:border-box}
 .sc-add .mini{min-height:44px}
+/* 「時間」と「予定を入力」の薄さをそろえる */
+.sc-add input::placeholder{color:var(--sub);opacity:1}
+.tbox span{font-size:16px;color:var(--sub)}
+.sc-add .tbox:not(.has) input[type="time"],.sc-add .tbox:not(.has) input[type="time"]::-webkit-datetime-edit{color:transparent}
+/* 下のボタンは横いっぱいに2つ並べる */
+.sc-links{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sc-links .mini{width:100%;min-height:44px}
+/* 週の予定のマスは低めに */
+.pg-row{min-height:36px}
+.pg-row .tm{padding-top:7px}
+.pg-cell{padding:3px 0}
+.pr{min-height:32px}
+.plan-nav b{display:flex;flex-direction:column;align-items:center;line-height:1.35;font-size:15px}
+.plan-nav b small{font-size:11px;font-weight:500;color:var(--sub);letter-spacing:.04em}
+/* 繰り返しの画面もWORKは青、LIFEは赤 */
+.seg2 button[data-bside="work"][aria-pressed="true"]{color:var(--work);box-shadow:inset 0 -2px 0 var(--work)}
+.seg2 button[data-bside="life"][aria-pressed="true"]{color:var(--life);box-shadow:inset 0 -2px 0 var(--life)}
+.brd-list.w .brd-row{box-shadow:inset 3px 0 0 var(--work)}
+.brd-list.l .brd-row{box-shadow:inset 3px 0 0 var(--life)}
+.brd-list.w .brd-add{color:var(--work)}
+.brd-list.l .brd-add{color:var(--life)}
 .recv-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .recv-btns .recv-stop{font-size:16px;padding:0 8px}
 .recv-stop.sub{background:transparent;color:var(--rec);box-shadow:inset 0 0 0 2px var(--rec)}
@@ -1273,13 +1294,13 @@ async function polishVoice(){
     const fixed = outs.join(parts.length > 1 ? "\n" : "").trim();
     if (!fixed || entryEl.value !== before || recOn) { st.textContent = "止めました。直してから「記録する」を押してください"; return; }
     entryEl.value = head + fixed; ls.set("journal.draft", entryEl.value);
-    voiceUndo = before;
+    voiceUndo = before; voiceRawFull = entryEl.value;   // ここから先、自分で直した分だけを「直した記録」として覚える
     st.innerHTML = 'AIが聞き間違いを直しました。<button type="button" class="mini" id="mic-undo" style="min-height:30px;margin-left:6px">元に戻す</button>';
   } catch(e){ st.textContent = "止めました。直してから「記録する」を押してください"; }
 }
 document.addEventListener("click", (ev) => {
   if (!ev.target.closest("#mic-undo") || voiceUndo === null) return;
-  entryEl.value = voiceUndo; ls.set("journal.draft", entryEl.value); voiceUndo = null;
+  entryEl.value = voiceUndo; ls.set("journal.draft", entryEl.value); voiceRawFull = voiceUndo; voiceUndo = null;
   $("mic-status").textContent = "元に戻しました";
 });
 function micStart(){
@@ -2527,11 +2548,11 @@ function dayList(day){
   return {must: must, time: all.filter((x) => tShow(x.t)).sort((a, b) => tMin(a.t) - tMin(b.t))};
 }
 const scCk = (x, day) => '<button type="button" class="sc-ck' + (x.done ? " on" : "") + '" data-scdone="' + esc(x.key) + '" data-scday="' + day + '" aria-pressed="' + x.done + '"><i></i><span>' + esc(x.text) + '</span>' + sideTag(x) + '</button>';
-function schedAddHtml(day){ return '<div class="sc-add"><label class="tbox"><input type="time" class="date-input" aria-label="時間（なくてもよい）"><span>時間</span></label><input type="text" class="date-input" placeholder="予定を追加" aria-label="予定（時間がなければMUST DOに入ります）" enterkeyhint="done"><button type="button" class="mini" data-scadd="' + day + '">追加</button></div>'; }
+function schedAddHtml(day){ return '<div class="sc-add"><label class="tbox"><input type="time" class="date-input" aria-label="時間（なくてもよい）"><span>時間</span></label><input type="text" class="date-input" placeholder="予定を入力" aria-label="予定（時間がなければMUST DOに入ります）" enterkeyhint="done"><button type="button" class="mini" data-scadd="' + day + '">追加</button></div>'; }
 // 毎朝のMY COMPASSの4番目
 function schedHtml(day){
   const L = dayList(day), d = dObj(day);
-  let h = "<h2>TODAY'S SCHEDULE</h2><p class=\"lead\">" + (d.getMonth() + 1) + "月" + d.getDate() + "日（" + WD[d.getDay()] + "）の予定です。時間を決めていないものはMUST DOに入ります。</p>";
+  let h = "<h2>TODAY'S SCHEDULE</h2><p class=\"lead\">" + (d.getMonth() + 1) + "月" + d.getDate() + "日 (" + WD[d.getDay()] + ") の予定です。<br>時間を決めていないものはMUST DOに入ります。</p>";
   h += '<div class="sc-card"><div class="sc-lb">MUST DO</div>' + (L.must.length ? L.must.map((x) => scCk(x, day)).join("") : '<span class="small">ありません</span>') + '</div>';
   h += '<div class="sc-card"><div class="sc-lb">TIME</div>' + (L.time.length ? L.time.map((x) => '<div class="sc-t"><span class="tm">' + tShow(x.t) + '</span>' + scCk(x, day) + '</div>').join("") : '<span class="small">時間の決まった予定はありません</span>') + '</div>';
   h += schedAddHtml(day);
@@ -2554,7 +2575,10 @@ let planMustOpen = false, planSel = null;
 const planRow = (x, inGrid) => '<div class="pr ' + (x.side === "work" ? "w" : x.side === "life" ? "l" : "o") + '"><span class="tx">' + (inGrid && tMin(x.t) % 30 ? '<span class="tm2">' + tShow(x.t) + '　</span>' : '') + esc(x.text) + '</span>' + (x.rec ? sideTag(x) : '<button type="button" class="x" data-scdel="' + esc(x.id) + '" data-scday="' + planDay + '" aria-label="消す">×</button>') + '</div>';
 function paintPlan(){
   const ws = weekStart(planDay), days = Array.from({length: 7}, (_, i) => addD(ws, i));
-  $("plan-range").textContent = mdS(ws) + "〜" + mdS(days[6]);
+  // 上の表示：「2026年 11月 第2週」と「11月8日 (日) 〜 14日 (土)」（第何週は、その週の木曜日がある月で数える）
+  const th = dObj(addD(ws, 4)), d0 = dObj(ws), d6 = dObj(days[6]);
+  $("plan-range").innerHTML = '<small>' + th.getFullYear() + "年 " + (th.getMonth() + 1) + "月 第" + Math.ceil(th.getDate() / 7) + "週" + '</small>'
+    + (d0.getMonth() + 1) + "月" + d0.getDate() + "日 (日) 〜 " + (d6.getMonth() !== d0.getMonth() ? (d6.getMonth() + 1) + "月" : "") + d6.getDate() + "日 (土)";
   $("plan-days").innerHTML = days.map((d) => { const n = dayList(d), c = n.must.length + n.time.length; return '<button type="button" data-pday="' + d + '" aria-pressed="' + (d === planDay) + '"><span>' + WD[dObj(d).getDay()] + '</span><b>' + dObj(d).getDate() + '</b><i>' + (c || "") + '</i></button>'; }).join("");
   // MUST DOは4件まで出し、多い日は「ほか○件」でたたむ
   const L = dayList(planDay), many = L.must.length > 4, shown = many && !planMustOpen ? L.must.slice(0, 4) : L.must;
@@ -2596,7 +2620,7 @@ function paintBrd(){
   let h = '<div class="seg2">' + [["work", "WORK BOARD"], ["life", "LIFE BOARD"]].map(([k, l]) => '<button type="button" data-bside="' + k + '" aria-pressed="' + (brdSide === k) + '">' + l + '</button>').join("") + '</div>';
   if (brdEdit){ $("brd-body").innerHTML = h + brdFormHtml(brdEdit); return; }
   const list = items.map((x, i) => [x, i]).filter(([x]) => x.side === brdSide);
-  h += '<div class="brd-list">' + list.map(([x, i]) => '<button type="button" class="brd-row" data-bedit="' + i + '"><span><b>' + esc(x.task) + '</b><small>' + esc(whenLabel(x)) + (tShow(x.time) ? "　" + tShow(x.time) + "から" : "") + '</small></span><i aria-hidden="true">›</i></button>').join("")
+  h += '<div class="brd-list ' + (brdSide === "work" ? "w" : "l") + '">' + list.map(([x, i]) => '<button type="button" class="brd-row" data-bedit="' + i + '"><span><b>' + esc(x.task) + '</b><small>' + esc(whenLabel(x)) + (tShow(x.time) ? "　" + tShow(x.time) + "から" : "") + '</small></span><i aria-hidden="true">›</i></button>').join("")
     + '<button type="button" class="brd-add" data-bedit="new">＋ 追加</button></div>';
   $("brd-body").innerHTML = h;
 }
