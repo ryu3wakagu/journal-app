@@ -238,6 +238,14 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .brd-list.l .brd-row{box-shadow:inset 3px 0 0 var(--life)}
 .brd-list.w .brd-add{color:var(--work)}
 .brd-list.l .brd-add{color:var(--life)}
+/* 入力前の文字は、アプリ全体で薄めに */
+input::placeholder,textarea::placeholder{color:var(--sub);opacity:.5}
+.sc-add input::placeholder{opacity:.5}
+.tbox span{opacity:.5}
+/* 追加欄とボタンは少し小さく、ボタンの文字は真ん中に */
+.sc-add .date-input,.sc-add input[type="time"],.sc-add input[type="text"]{height:40px;line-height:38px}
+.sc-add .mini{min-height:40px;font-size:14px;padding:0 14px}
+.sc-links .mini{min-height:40px;font-size:14px;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 10px}
 .recv-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .recv-btns .recv-stop{font-size:16px;padding:0 8px}
 .recv-stop.sub{background:transparent;color:var(--rec);box-shadow:inset 0 0 0 2px var(--rec)}
