@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="JOURNAL">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#E9F0F7">
-<meta name="journal-ver" content="57">
+<meta name="journal-ver" content="58">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -3014,10 +3014,13 @@ function tboxMark(root){ (root || document).querySelectorAll(".tbox").forEach((b
 function planFit(){
   const el = $("plan"), vv = window.visualViewport; if (!vv || el.hidden) return;
   // 予定のタブでキーボードが出ていないときは、下のタブの上までにする
-  if (el.classList.contains("as-tab") && vv.height > window.innerHeight - 80){ el.style.top = el.style.height = el.style.bottom = ""; return; }
+  const ae = document.activeElement, typing = ae && el.contains(ae) && /^(INPUT|TEXTAREA)$/.test(ae.tagName);
+  if (el.classList.contains("as-tab") && (!typing || vv.height > window.innerHeight - 80)){ el.style.top = el.style.height = el.style.bottom = ""; return; }
   el.style.top = vv.offsetTop + "px"; el.style.height = vv.height + "px"; el.style.bottom = "auto";
 }
 if (window.visualViewport){ visualViewport.addEventListener("resize", planFit); visualViewport.addEventListener("scroll", planFit); }
+// キーボードを閉じたら、下のタブの上までの高さに戻す（予定のタブで下が隠れないように）
+document.addEventListener("focusout", () => setTimeout(planFit, 350));
 const planMove = async (n) => { planDay = addD(planDay, n); planSel = null; planMustOpen = false; paintPlan(); const ws = weekStart(planDay); await Promise.all(Array.from({length: 7}, (_, i) => loadSched(addD(ws, i))).concat([loadCal(ws)])); paintPlan(); };
 $("plan-prev").addEventListener("click", () => planMove(-7));
 $("plan-next").addEventListener("click", () => planMove(7));
