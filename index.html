@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="JOURNAL">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#E9F0F7">
+<meta name="journal-ver" content="57">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -267,6 +268,8 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .tl-ev.o .tl-rs::after{background:var(--sub)}
 .tl-ev.sel .tl-rs{display:block}
 .tl-ev.sel .tl-x{overflow:hidden}
+.upd{position:fixed;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));top:calc(8px + env(safe-area-inset-top,0px));z-index:80;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px 10px 16px;border-radius:14px;background:var(--accent);color:var(--onAccent);font-size:14px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
+.upd button{border:0;border-radius:10px;background:var(--onAccent);color:var(--accent);font:inherit;font-size:14px;font-weight:600;padding:8px 14px;cursor:pointer}
 .pi-grp{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
 .pi-grp:empty{display:none}
 .pi-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;min-height:46px;box-sizing:border-box;font-size:15px}
@@ -1857,6 +1860,22 @@ async function mornCheck(){
   mornOpen(true);
 }
 document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(mornCheck, 400); });
+// 新しい版が出ていたら、上に「読み直す」を出す（書きかけが消えないよう、勝手には読み直さない）
+async function verCheck(){
+  try {
+    const mine = (document.querySelector('meta[name="journal-ver"]') || {}).content;
+    const t = await fetch("index.html?v=" + Date.now(), {cache: "no-store"}).then((r) => r.text());
+    const m = /name="journal-ver" content="(\d+)"/.exec(t);
+    if (m && mine && m[1] !== mine && !document.getElementById("upd")){
+      const b = document.createElement("div"); b.id = "upd"; b.className = "upd";
+      b.innerHTML = '<span>アプリの新しい版があります</span><button type="button">読み直す</button>';
+      b.querySelector("button").addEventListener("click", () => location.reload());
+      document.body.appendChild(b);
+    }
+  } catch(e){}
+}
+setTimeout(verCheck, 4000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(verCheck, 800); });
 setInterval(() => { if (!document.hidden) mornCheck(); }, 60000);
 $("vis-open").addEventListener("click", () => { if (!vision) vision = {mission: "", affirm: "", fm: {}, clover: {}}; mornOpen(false); loadVision(); });
 $("morn-close").addEventListener("click", mornClose);
