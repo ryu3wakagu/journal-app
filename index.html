@@ -254,8 +254,11 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .tl-ev.done .tl-x{text-decoration:line-through;color:var(--sub)}
 .tl-ev.mv{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .tl-ev.drag{z-index:5;box-shadow:0 6px 18px rgba(0,0,0,.22);opacity:.95;transition:none}
-.tl-rs{position:absolute;left:0;right:0;bottom:0;height:12px;cursor:ns-resize;touch-action:none}
-.tl-rs::after{content:"";position:absolute;left:50%;bottom:3px;width:22px;height:3px;margin-left:-11px;border-radius:2px;background:currentColor;opacity:.25}
+.tl-rs{display:none;position:absolute;left:0;right:0;bottom:-10px;height:26px;cursor:ns-resize;touch-action:none;z-index:2}
+.tl-rs::after{content:"";position:absolute;left:50%;top:6px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--card);border:2.5px solid var(--accentText);box-sizing:border-box}
+.tl-ev.sel{z-index:4;overflow:visible;outline:2px solid var(--accentText);outline-offset:-1px;touch-action:none;box-shadow:0 4px 14px rgba(0,0,0,.15)}
+.tl-ev.sel .tl-rs{display:block}
+.tl-ev.sel .tl-x{overflow:hidden}
 .pinfo-tm{display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid var(--line);padding-top:8px}
 .pinfo-tm label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--sub)}
 .pinfo-tm .date-input{height:40px;font-size:16px}
@@ -2861,7 +2864,7 @@ function planTimeline(items){
   }
   h += ev.map((e) => {
     const x = e.x, cls = x.side === "work" ? "w" : x.side === "life" ? "l" : x.side === "cal" ? "g" : "o", short = e.en - e.st <= 30;
-    return '<div class="tl-ev ' + cls + (short ? ' short' : '') + (x.done ? ' done' : '') + (canMove(x) ? ' mv' : '') + '" data-st="' + e.st + '" data-en="' + e.en + '"' + pinfoAttr(x, planDay)
+    return '<div class="tl-ev ' + cls + (short ? ' short' : '') + (x.done ? ' done' : '') + (canMove(x) ? ' mv' : '') + (tlSel === planDay + "|" + x.key ? ' sel' : '') + '" data-st="' + e.st + '" data-en="' + e.en + '"' + pinfoAttr(x, planDay)
       + ' style="top:' + (y(e.st) + 1) + 'px;height:' + (Math.max(y(e.en) - y(e.st), TL_H / 2) - 2) + 'px;left:calc(' + (e.col * 100 / e.n) + '% + 2px);width:calc(' + (100 / e.n) + '% - 4px)">'
       + '<span class="tl-t">' + tShow(x.t) + (tEnd(x) ? '〜' + tEnd(x) : '') + '</span><span class="tl-x">' + esc(x.text) + '</span>' + (canMove(x) ? '<i class="tl-rs" aria-hidden="true"></i>' : '') + '</div>';
   }).join("");
@@ -2898,20 +2901,27 @@ $("pinfo").addEventListener("click", (ev) => {
   }
   if (ev.target === $("pinfo") || ev.target.closest("[data-pinfo-close],[data-scdel]")) pinfoClose();
 });
-// 時間の欄の予定を、長押しして上下に動かす。下の取っ手を引くと長さが変わる（15分きざみ）
-let tlDrag = null, tlNoClick = 0;
+// 時間の欄の予定を動かす：長押しで「選んだ状態」になり、そのまま上下に動かせる。
+// 選んだ状態のときだけ下に取っ手が出て、引くと長さが変わる（15分きざみ）。ほかを押すと選ぶのをやめる
+let tlDrag = null, tlNoClick = 0, tlSel = null;
+const tlUnsel = () => { tlSel = null; document.querySelectorAll(".tl-ev.sel").forEach((e) => e.classList.remove("sel")); };
 document.addEventListener("pointerdown", (ev) => {
-  const el = ev.target.closest(".tl-ev.mv"); if (!el || !ev.isPrimary) return;
-  const rs = !!ev.target.closest(".tl-rs");
-  tlDrag = {el: el, k: el.dataset.pinfo, y0: ev.clientY, st: Number(el.dataset.st), en: Number(el.dataset.en), rs: rs, on: false, top0: parseFloat(el.style.top), h0: parseFloat(el.style.height), d: 0};
-  const go = () => { if (!tlDrag) return; tlDrag.on = true; el.classList.add("drag"); if (navigator.vibrate) navigator.vibrate(10); };
-  if (rs) go(); else tlDrag.timer = setTimeout(go, 350);
+  const el = ev.target.closest(".tl-ev.mv");
+  if (!el || !el.classList.contains("sel")) { if (tlSel) tlUnsel(); }
+  if (!el || !ev.isPrimary) return;
+  const sel = el.classList.contains("sel"), rs = sel && !!ev.target.closest(".tl-rs");
+  tlDrag = {el: el, k: el.dataset.pinfo, y0: ev.clientY, st: Number(el.dataset.st), en: Number(el.dataset.en), rs: rs, sel: sel, on: false, moved: false, top0: parseFloat(el.style.top), d: 0};
+  const go = () => { if (!tlDrag) return; tlDrag.on = true; tlSel = el.dataset.pinfo; el.classList.add("sel", "drag"); if (navigator.vibrate) navigator.vibrate(10); };
+  if (rs) go(); else if (!sel) tlDrag.timer = setTimeout(go, 350);
 });
 document.addEventListener("pointermove", (ev) => {
   if (!tlDrag) return;
   const dy = ev.clientY - tlDrag.y0;
-  if (!tlDrag.on){ if (Math.abs(dy) > 8){ clearTimeout(tlDrag.timer); tlDrag = null; } return; }
-  const d = Math.round(dy * 60 / TL_H / 15) * 15; tlDrag.d = d;
+  if (!tlDrag.on){
+    if (tlDrag.sel && Math.abs(dy) > 4){ tlDrag.on = true; tlDrag.el.classList.add("drag"); }   // 選んである予定は、そのまま動かせる
+    else { if (Math.abs(dy) > 8){ clearTimeout(tlDrag.timer); tlDrag = null; } return; }
+  }
+  const d = Math.round(dy * 60 / TL_H / 15) * 15; tlDrag.d = d; if (d) tlDrag.moved = true;
   const lab = tlDrag.el.querySelector(".tl-t");
   if (tlDrag.rs){
     const en = Math.max(tlDrag.st + 15, tlDrag.en + d);
@@ -2920,12 +2930,12 @@ document.addEventListener("pointermove", (ev) => {
     tlDrag.el.style.top = tlDrag.top0 + d * TL_H / 60 + "px"; lab.textContent = mm2t(tlDrag.st + d) + "〜" + mm2t(tlDrag.en + d);
   }
 });
-document.addEventListener("touchmove", (ev) => { if (tlDrag && tlDrag.on) ev.preventDefault(); }, {passive: false});
+document.addEventListener("touchmove", (ev) => { if (tlDrag && (tlDrag.on || tlDrag.sel)) ev.preventDefault(); }, {passive: false});
 const tlEnd = () => {
   if (!tlDrag) return; clearTimeout(tlDrag.timer);
   const g = tlDrag; tlDrag = null; if (!g.on) return;
   g.el.classList.remove("drag"); tlNoClick = Date.now();
-  if (!g.d){ paintPlan(); return; }
+  if (!g.d) return;                                   // 動かさずに離したら、選んだ状態のまま（取っ手が出る）
   const it = pinfoMap[g.k]; if (!it) return;
   if (g.rs) moveItem(it.x, it.day, g.st, Math.max(g.st + 15, g.en + g.d)); else moveItem(it.x, it.day, g.st + g.d, g.en + g.d);
 };
