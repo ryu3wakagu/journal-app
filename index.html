@@ -259,6 +259,21 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .tl-ev.sel{z-index:4;overflow:visible;outline:2px solid var(--accentText);outline-offset:-1px;touch-action:none;box-shadow:0 4px 14px rgba(0,0,0,.15)}
 .tl-ev.sel .tl-rs{display:block}
 .tl-ev.sel .tl-x{overflow:hidden}
+.pi-grp{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
+.pi-grp:empty{display:none}
+.pi-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;min-height:46px;box-sizing:border-box;font-size:15px}
+.pi-row + .pi-row{border-top:1px solid var(--line)}
+.pi-row > span{flex:none;color:var(--sub);font-size:14px}
+.pi-row .v{min-width:0;text-align:right;overflow-wrap:anywhere}
+.pi-row .v a{color:var(--accentText)}
+.pi-row.col{flex-direction:column;align-items:stretch;gap:2px;padding:10px 12px}
+.pi-row.col .v{text-align:left;font-size:14px;line-height:1.6}
+.pi-row input[type="time"]{-webkit-appearance:none;appearance:none;border:0;border-radius:8px;background:var(--soft);color:var(--text);font:inherit;font-size:16px;padding:6px 14px;min-width:0;width:auto}
+.pi-row input[type="time"]::-webkit-date-and-time-value{text-align:center}
+.pi-acts{display:flex;gap:8px}
+.pi-btn{flex:1;min-height:46px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);font:inherit;font-size:15px;cursor:pointer}
+.pi-btn.on{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+.pi-btn.del{color:var(--rec);border-color:color-mix(in srgb,var(--rec) 45%,var(--line))}
 .pinfo-tm{display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid var(--line);padding-top:8px}
 .pinfo-tm label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--sub)}
 .pinfo-tm .date-input{height:40px;font-size:16px}
@@ -2876,30 +2891,35 @@ const planMust = (x, day) => '<div class="pr ck ' + (x.side === "work" ? "w" : x
 function pinfoOpen(k){
   const it = pinfoMap[k]; if (!it) return;
   const x = it.x, d = dObj(it.day);
-  const r = (lb, v) => v ? '<div class="pinfo-r"><span>' + lb + '</span><div>' + v + '</div></div>' : '';
+  // iPhoneのカレンダーのように、行で区切って並べる
+  const row = (lb, v, col) => v ? '<div class="pi-row' + (col ? ' col' : '') + '"><span>' + lb + '</span><div class="v">' + v + '</div></div>' : '';
   const kind = x.side === "cal" ? "Googleカレンダー" + (x.cal ? "（" + esc(x.cal) + "）" : "") : x.side === "work" ? "WORK BOARD　" + esc(whenLabel({freq: x.bfreq, when: x.bwhen})) : x.side === "life" ? "LIFE BOARD　" + esc(whenLabel({freq: x.bfreq, when: x.bwhen})) : "自分で入れた予定";
+  const tm = canMove(x)
+    ? '<div class="pi-row"><span>始まり</span><input type="time" id="pi-st" data-pik="' + esc(k) + '" value="' + tInput(x.t) + '" aria-label="始まり"></div>'
+      + '<div class="pi-row"><span>終わり</span><input type="time" id="pi-en" data-pik="' + esc(k) + '" value="' + tInput(tEnd(x) || mm2t(Math.min(tMin(x.t) + 30, 1439))) + '" aria-label="終わり"></div>'
+    : row("時間", x.t ? tShow(x.t) + (tEnd(x) ? "〜" + tEnd(x) : "") : "時間なし");
+  const info = row("場所", x.place ? linkify(x.place) : "") + row("種類", kind) + row("メモ", x.memo ? linkify(x.memo) : "", true);
   $("pinfo-body").innerHTML = '<div class="pinfo-h"><b>' + esc(x.text) + '</b><button type="button" class="mini" data-pinfo-close>閉じる</button></div>'
-    + r("日にち", (d.getMonth() + 1) + "月" + d.getDate() + "日 (" + WD[d.getDay()] + ")")
-    + r("時間", x.t ? tShow(x.t) + (x.end && x.end !== x.t ? "〜" + esc(x.end) : "") : "時間なし")
-    + (canMove(x) ? '<div class="pinfo-tm"><label>始まり<input type="time" class="date-input" id="pi-st" value="' + tInput(x.t) + '"></label><label>終わり<input type="time" class="date-input" id="pi-en" value="' + tInput(tEnd(x) || mm2t(Math.min(tMin(x.t) + 30, 1439))) + '"></label><button type="button" class="mini" data-pi-save="' + esc(k) + '">時間を変える</button></div>' : '')
+    + '<div class="pi-grp">' + row("日にち", (d.getMonth() + 1) + "月" + d.getDate() + "日 (" + WD[d.getDay()] + ")") + tm + '</div>'
     + (x.rec && x.side !== "cal" ? '<div class="small">繰り返しの予定の時間は「繰り返しを直す」で変えられます</div>' : '')
-    + r("場所", x.place ? linkify(x.place) : "")
-    + r("種類", kind)
-    + r("メモ", x.memo ? linkify(x.memo) : "")
-    + '<div class="pinfo-ck">' + scCk({key: x.key, done: x.done, text: "終わったらチェック"}, it.day) + '</div>'
-    + (x.rec ? '' : '<button type="button" class="mini pinfo-del" data-scdel="' + esc(x.id) + '" data-scday="' + it.day + '">この予定を消す</button>');
+    + '<div class="pi-grp">' + info + '</div>'
+    + '<div class="pi-acts"><button type="button" class="pi-btn' + (x.done ? ' on' : '') + '" data-scdone="' + esc(x.key) + '" data-scday="' + it.day + '" aria-pressed="' + !!x.done + '">終わった</button>'
+    + (x.rec ? '' : '<button type="button" class="pi-btn del" data-scdel="' + esc(x.id) + '" data-scday="' + it.day + '">消す</button>') + '</div>';
   $("pinfo").hidden = false;
 }
 function pinfoClose(){ $("pinfo").hidden = true; }
-$("pinfo").addEventListener("click", (ev) => {
-  const sv = ev.target.closest("[data-pi-save]");
-  if (sv){
-    const it = pinfoMap[sv.dataset.piSave], st = tMin($("pi-st").value), en = tMin($("pi-en").value);
-    if (!it || st === 9999){ toast("始まりの時間を入れてください"); return; }
-    if (en === 9999 || en <= st){ toast("終わりは始まりより後にしてください"); return; }
-    pinfoClose(); moveItem(it.x, it.day, st, en); return;
-  }
-  if (ev.target === $("pinfo") || ev.target.closest("[data-pinfo-close],[data-scdel]")) pinfoClose();
+$("pinfo").addEventListener("click", (ev) => { if (ev.target === $("pinfo") || ev.target.closest("[data-pinfo-close],[data-scdel]")) pinfoClose(); });
+// 始まりか終わりを変えたら、すぐ保存（始まりを動かしたときは長さをそのままにする）
+$("pinfo").addEventListener("change", (ev) => {
+  const inp = ev.target.closest("[data-pik]"); if (!inp) return;
+  const it = pinfoMap[inp.dataset.pik]; if (!it) return;
+  const st0 = tMin(it.x.t), en0 = tEnd(it.x) ? tMin(it.x.end) : st0 + 30;
+  let st = tMin($("pi-st").value), en = tMin($("pi-en").value);
+  if (st === 9999){ toast("始まりの時間を入れてください"); return; }
+  if (inp.id === "pi-st"){ en = st + (en0 - st0); $("pi-en").value = tInput(mm2t(Math.min(en, 1439))); }
+  if (en === 9999 || en <= st){ toast("終わりは始まりより後にしてください"); return; }
+  it.x.t = mm2t(st); it.x.end = mm2t(Math.min(en, 1439));
+  moveItem(Object.assign({}, it.x, {t: mm2t(st0), end: mm2t(en0)}), it.day, st, en);
 });
 // 時間の欄の予定を動かす：長押しで「選んだ状態」になり、そのまま上下に動かせる。
 // 選んだ状態のときだけ下に取っ手が出て、引くと長さが変わる（15分きざみ）。ほかを押すと選ぶのをやめる
