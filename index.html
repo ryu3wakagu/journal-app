@@ -252,6 +252,14 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .tl-ev.short{flex-direction:row;align-items:center;gap:6px;white-space:nowrap;padding-top:0;padding-bottom:0}
 .tl-ev.short .tl-x{overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
 .tl-ev.done .tl-x{text-decoration:line-through;color:var(--sub)}
+.tl-ev.mv{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.tl-ev.drag{z-index:5;box-shadow:0 6px 18px rgba(0,0,0,.22);opacity:.95;transition:none}
+.tl-rs{position:absolute;left:0;right:0;bottom:0;height:12px;cursor:ns-resize;touch-action:none}
+.tl-rs::after{content:"";position:absolute;left:50%;bottom:3px;width:22px;height:3px;margin-left:-11px;border-radius:2px;background:currentColor;opacity:.25}
+.pinfo-tm{display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid var(--line);padding-top:8px}
+.pinfo-tm label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--sub)}
+.pinfo-tm .date-input{height:40px;font-size:16px}
+.pinfo-tm button{grid-column:1 / -1;justify-self:start}
 .plan-foot{position:sticky;bottom:0;z-index:2;background:var(--bg);border-top:1px solid var(--line);padding:10px 0 calc(env(safe-area-inset-bottom,0px) + 10px);max-width:760px;width:100%;margin:0 auto}
 .row-lb{display:flex;justify-content:space-between;align-items:center;gap:8px}
 /* 予定のタブ：メールで届いた予定の候補 */
@@ -2689,8 +2697,8 @@ async function saveSched(day){ const s2 = schedCache[day]; if (!s2 || !db) retur
 function dayList(day){
   const s2 = schedCache[day] || {items: [], done: {}}, done = s2.done || {};
   const rec = boardHits(day).map((x) => ({key: "b:" + x.side + ":" + x.task, text: x.task, t: x.time || "", side: x.side, rec: true, memo: x.memo || "", bfreq: x.freq, bwhen: x.when}));
-  const one = (s2.items || []).map((x) => ({key: "s:" + x.id, id: x.id, text: x.text, t: x.t || "", rec: false}));
-  const gc = (calCache[day] || []).map((x) => ({key: "g:" + x.id, text: String(x.text || "").trim(), t: x.t || "", side: "cal", rec: true, end: x.end || "", place: x.place || "", memo: x.desc || "", cal: x.cal || ""}));
+  const one = (s2.items || []).map((x) => ({key: "s:" + x.id, id: x.id, text: x.text, t: x.t || "", end: x.end || "", rec: false}));
+  const gc = (calCache[day] || []).map((x) => ({key: "g:" + x.id, text: String(x.text || "").trim(), t: x.t || "", side: "cal", rec: true, end: x.end || "", place: x.place || "", memo: x.desc || "", cal: x.cal || "", gid: x.id}));
   const all = gc.concat(rec, one).map((x) => Object.assign(x, {done: !!done[x.key]}));
   const must = all.filter((x) => !tShow(x.t)), so = {cal: -1, life: 0, work: 1};
   must.sort((a, b) => (a.rec ? so[a.side] ?? 2 : 3) - (b.rec ? so[b.side] ?? 2 : 3));
@@ -2807,6 +2815,25 @@ function paintPlan(){
   if (!foot.querySelector(".sc-add")) foot.innerHTML = schedAddHtml(planDay);
   foot.querySelector("[data-scadd]").dataset.scadd = planDay;
 }
+const mm2t = (m) => Math.floor(m / 60) + ":" + String(m % 60).padStart(2, "0");
+// 時間を動かせる予定か（自分で入れた予定と、Googleカレンダーの時間のある予定。繰り返しのBOARDは「繰り返しを直す」で）
+const canMove = (x) => !!x.t && (!x.rec || x.side === "cal");
+async function moveItem(x, day, st, en){
+  st = Math.max(0, Math.min(st, 24 * 60 - 15)); en = Math.max(st + 15, Math.min(en, 24 * 60 - 1));
+  const t = mm2t(st), e = mm2t(en);
+  if (x.side === "cal"){
+    const c = (calCache[day] || []).find((g) => "g:" + g.id === x.key); if (c){ c.t = t; c.end = e; } repaintSched();
+    try {
+      const r = await window.JOURNAL_CALL("cal_move", {id: x.gid, day: day, start: t, end: e});
+      if (!r || r.error) throw new Error((r && r.error) || "");
+      toast("Googleカレンダーの時間を " + t + "〜" + e + " にしました");
+    } catch(err){ toast("変えられませんでした" + (err.message ? "（" + err.message + "）" : "")); }
+    loadCal(weekStart(day), true);
+  } else {
+    const s2 = await loadSched(day), it = (s2.items || []).find((i) => i.id === x.id); if (!it) return;
+    it.t = t; it.end = e; repaintSched(); saveSched(day); toast(t + "〜" + e + " にしました");
+  }
+}
 // 時間の欄（1時間＝56px。予定は始まりの位置から長さぶん置く。終わりが分からないものは30分ぶん）
 const TL_H = 56;
 function planTimeline(items){
@@ -2834,9 +2861,9 @@ function planTimeline(items){
   }
   h += ev.map((e) => {
     const x = e.x, cls = x.side === "work" ? "w" : x.side === "life" ? "l" : x.side === "cal" ? "g" : "o", short = e.en - e.st <= 30;
-    return '<div class="tl-ev ' + cls + (short ? ' short' : '') + (x.done ? ' done' : '') + '"' + pinfoAttr(x, planDay)
+    return '<div class="tl-ev ' + cls + (short ? ' short' : '') + (x.done ? ' done' : '') + (canMove(x) ? ' mv' : '') + '" data-st="' + e.st + '" data-en="' + e.en + '"' + pinfoAttr(x, planDay)
       + ' style="top:' + (y(e.st) + 1) + 'px;height:' + (Math.max(y(e.en) - y(e.st), TL_H / 2) - 2) + 'px;left:calc(' + (e.col * 100 / e.n) + '% + 2px);width:calc(' + (100 / e.n) + '% - 4px)">'
-      + '<span class="tl-t">' + tShow(x.t) + (tEnd(x) ? '〜' + tEnd(x) : '') + '</span><span class="tl-x">' + esc(x.text) + '</span></div>';
+      + '<span class="tl-t">' + tShow(x.t) + (tEnd(x) ? '〜' + tEnd(x) : '') + '</span><span class="tl-x">' + esc(x.text) + '</span>' + (canMove(x) ? '<i class="tl-rs" aria-hidden="true"></i>' : '') + '</div>';
   }).join("");
   return h + '</div></div>';
 }
@@ -2851,6 +2878,8 @@ function pinfoOpen(k){
   $("pinfo-body").innerHTML = '<div class="pinfo-h"><b>' + esc(x.text) + '</b><button type="button" class="mini" data-pinfo-close>閉じる</button></div>'
     + r("日にち", (d.getMonth() + 1) + "月" + d.getDate() + "日 (" + WD[d.getDay()] + ")")
     + r("時間", x.t ? tShow(x.t) + (x.end && x.end !== x.t ? "〜" + esc(x.end) : "") : "時間なし")
+    + (canMove(x) ? '<div class="pinfo-tm"><label>始まり<input type="time" class="date-input" id="pi-st" value="' + tInput(x.t) + '"></label><label>終わり<input type="time" class="date-input" id="pi-en" value="' + tInput(tEnd(x) || mm2t(Math.min(tMin(x.t) + 30, 1439))) + '"></label><button type="button" class="mini" data-pi-save="' + esc(k) + '">時間を変える</button></div>' : '')
+    + (x.rec && x.side !== "cal" ? '<div class="small">繰り返しの予定の時間は「繰り返しを直す」で変えられます</div>' : '')
     + r("場所", x.place ? linkify(x.place) : "")
     + r("種類", kind)
     + r("メモ", x.memo ? linkify(x.memo) : "")
@@ -2859,7 +2888,48 @@ function pinfoOpen(k){
   $("pinfo").hidden = false;
 }
 function pinfoClose(){ $("pinfo").hidden = true; }
-$("pinfo").addEventListener("click", (ev) => { if (ev.target === $("pinfo") || ev.target.closest("[data-pinfo-close],[data-scdel]")) pinfoClose(); });
+$("pinfo").addEventListener("click", (ev) => {
+  const sv = ev.target.closest("[data-pi-save]");
+  if (sv){
+    const it = pinfoMap[sv.dataset.piSave], st = tMin($("pi-st").value), en = tMin($("pi-en").value);
+    if (!it || st === 9999){ toast("始まりの時間を入れてください"); return; }
+    if (en === 9999 || en <= st){ toast("終わりは始まりより後にしてください"); return; }
+    pinfoClose(); moveItem(it.x, it.day, st, en); return;
+  }
+  if (ev.target === $("pinfo") || ev.target.closest("[data-pinfo-close],[data-scdel]")) pinfoClose();
+});
+// 時間の欄の予定を、長押しして上下に動かす。下の取っ手を引くと長さが変わる（15分きざみ）
+let tlDrag = null, tlNoClick = 0;
+document.addEventListener("pointerdown", (ev) => {
+  const el = ev.target.closest(".tl-ev.mv"); if (!el || !ev.isPrimary) return;
+  const rs = !!ev.target.closest(".tl-rs");
+  tlDrag = {el: el, k: el.dataset.pinfo, y0: ev.clientY, st: Number(el.dataset.st), en: Number(el.dataset.en), rs: rs, on: false, top0: parseFloat(el.style.top), h0: parseFloat(el.style.height), d: 0};
+  const go = () => { if (!tlDrag) return; tlDrag.on = true; el.classList.add("drag"); if (navigator.vibrate) navigator.vibrate(10); };
+  if (rs) go(); else tlDrag.timer = setTimeout(go, 350);
+});
+document.addEventListener("pointermove", (ev) => {
+  if (!tlDrag) return;
+  const dy = ev.clientY - tlDrag.y0;
+  if (!tlDrag.on){ if (Math.abs(dy) > 8){ clearTimeout(tlDrag.timer); tlDrag = null; } return; }
+  const d = Math.round(dy * 60 / TL_H / 15) * 15; tlDrag.d = d;
+  const lab = tlDrag.el.querySelector(".tl-t");
+  if (tlDrag.rs){
+    const en = Math.max(tlDrag.st + 15, tlDrag.en + d);
+    tlDrag.el.style.height = Math.max((en - tlDrag.st) * TL_H / 60, TL_H / 4) - 2 + "px"; lab.textContent = mm2t(tlDrag.st) + "〜" + mm2t(en);
+  } else {
+    tlDrag.el.style.top = tlDrag.top0 + d * TL_H / 60 + "px"; lab.textContent = mm2t(tlDrag.st + d) + "〜" + mm2t(tlDrag.en + d);
+  }
+});
+document.addEventListener("touchmove", (ev) => { if (tlDrag && tlDrag.on) ev.preventDefault(); }, {passive: false});
+const tlEnd = () => {
+  if (!tlDrag) return; clearTimeout(tlDrag.timer);
+  const g = tlDrag; tlDrag = null; if (!g.on) return;
+  g.el.classList.remove("drag"); tlNoClick = Date.now();
+  if (!g.d){ paintPlan(); return; }
+  const it = pinfoMap[g.k]; if (!it) return;
+  if (g.rs) moveItem(it.x, it.day, g.st, Math.max(g.st + 15, g.en + g.d)); else moveItem(it.x, it.day, g.st + g.d, g.en + g.d);
+};
+document.addEventListener("pointerup", tlEnd); document.addEventListener("pointercancel", tlEnd);
 // 1週間をまとめて見る（日付を押すと、その日の1日の表示に切りかわる）
 let planWeek = ls.get("journal.planWeek") === true;
 function paintPlanWeek(days){
@@ -2930,7 +3000,7 @@ async function brdSave(items){
 }
 $("brd-close").addEventListener("click", () => { $("brd").hidden = true; brdEdit = null; repaintSched(); });
 document.addEventListener("click", async (ev) => {
-  const pi = ev.target.closest("[data-pinfo]"); if (pi && !ev.target.closest("[data-scdel],[data-scdone]")){ pinfoOpen(pi.dataset.pinfo); return; }
+  const pi = ev.target.closest("[data-pinfo]"); if (pi && !ev.target.closest("[data-scdel],[data-scdone]")){ if (Date.now() - tlNoClick > 400) pinfoOpen(pi.dataset.pinfo); return; }
   const p = ev.target.closest("[data-plan]"); if (p){ planOpen(p.dataset.plan || null); return; }
   if (ev.target.closest("[data-brd]")){ brdOpen(); return; }
   const c = ev.target.closest("[data-scdone]");
@@ -2939,7 +3009,9 @@ document.addEventListener("click", async (ev) => {
   if (a){
     const day = a.dataset.scadd, box = a.closest(".sc-add"), text = box.querySelector('input[type="text"]').value.trim(), t = box.querySelector('input[type="time"]').value;
     if (!text){ toast("予定を書いてください"); box.querySelector('input[type="text"]').focus(); return; }
-    const s2 = await loadSched(day); s2.items = (s2.items || []).concat([{id: Date.now().toString(36), t: tShow(t), text: text}]);
+    const s2 = await loadSched(day), st0 = tMin(t), it0 = {id: Date.now().toString(36), t: tShow(t), text: text};
+    if (st0 !== 9999) it0.end = mm2t(Math.min(st0 + 30, 24 * 60 - 1));   // 終わりはまず30分後
+    s2.items = (s2.items || []).concat([it0]);
     if (box.closest("#plan-foot")){ box.querySelector('input[type="text"]').value = ""; box.querySelector('input[type="time"]').value = ""; tboxMark(box); planSel = null; }
     repaintSched(); saveSched(day); toast(tShow(t) ? tShow(t) + "に入れました" : "MUST DOに入れました"); return;
   }
