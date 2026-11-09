@@ -233,7 +233,9 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .pinfo-r a{color:var(--accentText)}
 .pinfo-ck{border-top:1px solid var(--line);padding-top:6px}
 .pinfo-del{align-self:flex-start;color:var(--rec)}
-.sc-t .tm small,.wk-row .tm small{display:block;font-size:11px;line-height:1.3}
+/* 始まりと終わりの時刻は同じ大きさ（小さい方にそろえる） */
+.sc-t .tm,.wk-row .tm{font-size:12px}
+.sc-t .tm small,.wk-row .tm small{display:block;font-size:inherit;line-height:1.3}
 /* 時間の欄（カレンダーの形） */
 .tl{position:relative;margin-top:4px}
 .tl-tm{position:absolute;left:0;width:40px;transform:translateY(-1px);font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums;line-height:1}
