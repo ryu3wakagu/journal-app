@@ -232,6 +232,26 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .pinfo-r div{flex:1;min-width:0;overflow-wrap:anywhere}
 .pinfo-r a{color:var(--accentText)}
 .pinfo-ck{border-top:1px solid var(--line);padding-top:6px}
+.pinfo-del{align-self:flex-start;color:var(--rec)}
+.sc-t .tm small,.wk-row .tm small{display:block;font-size:11px;line-height:1.3}
+/* 時間の欄（カレンダーの形） */
+.tl{position:relative;margin-top:4px}
+.tl-tm{position:absolute;left:0;width:40px;transform:translateY(-1px);font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums;line-height:1}
+.tl-area{position:absolute;left:44px;right:0;top:0;bottom:0}
+.tl-slot{position:absolute;left:0;right:0;border-top:1px solid var(--line);cursor:pointer;touch-action:manipulation}
+.tl-slot.half{border-top-style:dashed}
+.tl-slot:active{background:var(--soft)}
+.tl-slot.sel{background:color-mix(in srgb,var(--accent) 10%,transparent);box-shadow:inset 0 0 0 1.5px var(--accentText);border-radius:6px}
+.tl-slot.sel::after{content:"ここに入れます";font-size:12px;font-weight:500;color:var(--accentText);padding:5px 8px;display:block}
+.tl-ev{position:absolute;z-index:1;box-sizing:border-box;display:flex;flex-direction:column;gap:1px;overflow:hidden;padding:3px 6px 3px 7px;border-left:3px solid var(--line);border-radius:0 8px 8px 0;background:var(--soft);font-size:13px;line-height:1.35;cursor:pointer}
+.tl-ev.w{border-left-color:var(--work);background:color-mix(in srgb,var(--work) 13%,var(--card))}
+.tl-ev.l{border-left-color:var(--life);background:color-mix(in srgb,var(--life) 13%,var(--card))}
+.tl-ev.g{border-left-color:var(--gcal);background:color-mix(in srgb,var(--gcal) 13%,var(--card))}
+.tl-ev .tl-t{font-size:11px;color:var(--sub);white-space:nowrap;font-variant-numeric:tabular-nums}
+.tl-ev .tl-x{overflow-wrap:anywhere;color:var(--text)}
+.tl-ev.short{flex-direction:row;align-items:center;gap:6px;white-space:nowrap;padding-top:0;padding-bottom:0}
+.tl-ev.short .tl-x{overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+.tl-ev.done .tl-x{text-decoration:line-through;color:var(--sub)}
 .plan-foot{position:sticky;bottom:0;z-index:2;background:var(--bg);border-top:1px solid var(--line);padding:10px 0 calc(env(safe-area-inset-bottom,0px) + 10px);max-width:760px;width:100%;margin:0 auto}
 .row-lb{display:flex;justify-content:space-between;align-items:center;gap:8px}
 /* 予定のタブ：メールで届いた予定の候補 */
@@ -2662,6 +2682,8 @@ function dayList(day){
   must.sort((a, b) => (a.rec ? so[a.side] ?? 2 : 3) - (b.rec ? so[b.side] ?? 2 : 3));
   return {must: must, time: all.filter((x) => tShow(x.t)).sort((a, b) => tMin(a.t) - tMin(b.t))};
 }
+const tEnd = (x) => x.end && tMin(x.end) > tMin(x.t) ? tShow(x.end) : "";
+const tRangeHtml = (x) => tShow(x.t) + (tEnd(x) ? '<small>〜' + tEnd(x) + '</small>' : '');
 const scCk = (x, day) => '<button type="button" class="sc-ck' + (x.done ? " on" : "") + '" data-scdone="' + esc(x.key) + '" data-scday="' + day + '" aria-pressed="' + x.done + '"><i></i><span>' + esc(x.text) + '</span>' + sideTag(x) + '</button>';
 function schedAddHtml(day){ return '<div class="sc-add"><label class="tbox"><input type="time" class="date-input" aria-label="時間（なくてもよい）"><span>時間</span></label><input type="text" class="date-input" placeholder="予定を入力" aria-label="予定（時間がなければMUST DOに入ります）" enterkeyhint="done"><button type="button" class="mini" data-scadd="' + day + '">追加</button></div>'; }
 // 毎朝のMY COMPASSの4番目
@@ -2669,7 +2691,7 @@ function schedHtml(day){
   const L = dayList(day), d = dObj(day);
   let h = "<h2>TODAY'S SCHEDULE</h2><p class=\"lead\">" + (d.getMonth() + 1) + "月" + d.getDate() + "日 (" + WD[d.getDay()] + ") の予定です。<br>時間を決めていないものはMUST DOに入ります。</p>";
   h += '<div class="sc-card"><div class="sc-lb">MUST DO</div>' + (L.must.length ? L.must.map((x) => scCk(x, day)).join("") : '<span class="small">ありません</span>') + '</div>';
-  h += '<div class="sc-card"><div class="sc-lb">TIME</div>' + (L.time.length ? L.time.map((x) => '<div class="sc-t"><span class="tm">' + tShow(x.t) + '</span>' + scCk(x, day) + '</div>').join("") : '<span class="small">時間の決まった予定はありません</span>') + '</div>';
+  h += '<div class="sc-card"><div class="sc-lb">TIME</div>' + (L.time.length ? L.time.map((x) => '<div class="sc-t"><span class="tm">' + tRangeHtml(x) + '</span>' + scCk(x, day) + '</div>').join("") : '<span class="small">時間の決まった予定はありません</span>') + '</div>';
   h += schedAddHtml(day);
   h += '<div class="sc-links"><button type="button" class="mini" data-plan="' + day + '">週の予定を入れる</button><button type="button" class="mini" data-brd>繰り返しを直す</button></div>';
   return h;
@@ -2681,7 +2703,7 @@ function paintHomeSched(){
   if (!L.must.length && !L.time.length){ el.hidden = true; el.innerHTML = ""; return; }
   el.hidden = false;
   el.innerHTML = '<div class="sc-card"><div class="sc-lb row-lb"><span>TODAY\'S SCHEDULE</span><button type="button" class="sc-more" data-plan="' + day + '">予定を直す</button></div>'
-    + (L.time.length ? L.time.map((x) => '<div class="sc-t"><span class="tm">' + tShow(x.t) + '</span>' + scCk(x, day) + '</div>').join("") : '')
+    + (L.time.length ? L.time.map((x) => '<div class="sc-t"><span class="tm">' + tRangeHtml(x) + '</span>' + scCk(x, day) + '</div>').join("") : '')
     + (L.must.length ? (L.time.length ? '<div class="sc-lb" style="margin-top:6px">MUST DO</div>' : '') + L.must.map((x) => scCk(x, day)).join("") : '') + '</div>';
 }
 // 下のタブの「予定」：週の予定（今日を選んだ状態）をそのまま出す。上にはメールで届いた予定の候補
@@ -2763,20 +2785,46 @@ function paintPlan(){
   let h = '<div class="sc-card"><div class="sc-lb row-lb"><span>MUST DO' + (L.must.length ? "　" + L.must.length : "") + '</span>' + (many && planMustOpen ? '<button type="button" class="sc-more" data-pmore>たたむ</button>' : '') + '</div>'
     + (L.must.length ? shown.map((x) => planMust(x, planDay)).join("") : '<span class="small">ありません</span>')
     + (many && !planMustOpen ? '<button type="button" class="sc-more" data-pmore>ほか' + (L.must.length - 4) + '件を見る</button>' : '') + '</div>';
-  h += '<div class="sc-card plan-grid"><div class="sc-lb" style="padding-bottom:6px">TIME　空いているマスを押すと、その時間で追加できます</div>';
-  for (let m = 5 * 60; m <= 23 * 60; m += 30){
-    const t = Math.floor(m / 60) + ":" + String(m % 60).padStart(2, "0");
-    const here = L.time.filter((x) => { const v = tMin(x.t); return v >= m && v < m + 30; });
-    h += '<div class="pg-row' + (m % 60 ? " half" : "") + '"><span class="tm">' + (m % 60 ? "" : t) + '</span><div class="pg-cell' + (planSel === t ? " sel" : "") + '" data-pgt="' + t + '">' + here.map((x) => planRow(x, true)).join("") + '</div></div>';
-  }
-  const late = L.time.filter((x) => tMin(x.t) < 5 * 60 || tMin(x.t) >= 23 * 60 + 30);
-  if (late.length) h += '<div class="pg-row"><span class="tm">ほか</span><div class="pg-cell">' + late.map((x) => planRow(x, true)).join("") + '</div></div>';
+  h += '<div class="sc-card plan-grid"><div class="sc-lb" style="padding-bottom:6px">TIME　空いているマスを押すと、その時間で追加できます</div>' + planTimeline(L.time);
   const asTab = $("plan").classList.contains("as-tab");
   $("plan-body").innerHTML = (asTab ? mcHtml() : '') + h + '</div>' + (asTab ? '<div class="sc-links"><button type="button" class="mini" data-brd>繰り返しを直す</button></div>' : '');
   // 追加欄は下に固定（書きかけが消えないよう、作るのは最初の1回だけ）
   const foot = $("plan-foot");
   if (!foot.querySelector(".sc-add")) foot.innerHTML = schedAddHtml(planDay);
   foot.querySelector("[data-scadd]").dataset.scadd = planDay;
+}
+// 時間の欄（1時間＝56px。予定は始まりの位置から長さぶん置く。終わりが分からないものは30分ぶん）
+const TL_H = 56;
+function planTimeline(items){
+  const ev = items.map((x) => { const st = tMin(x.t), en0 = tEnd(x) ? tMin(x.end) : st + 30; return {x: x, st: st, en: Math.max(en0, st + 30)}; }).sort((a, b) => a.st - b.st || b.en - a.en);
+  const R0 = Math.min(5 * 60, ...ev.map((e) => Math.floor(e.st / 60) * 60)), R1 = Math.max(24 * 60, ...ev.map((e) => Math.ceil(e.en / 60) * 60));
+  // 重なりのかたまりごとに、横の列を割りふる
+  let group = [], gEnd = -1;
+  const flush = () => { const n = Math.max(...group.map((e) => e.col)) + 1; group.forEach((e) => { e.n = n; }); group = []; };
+  ev.forEach((e) => {
+    if (group.length && e.st >= gEnd) flush();
+    const used = group.filter((g) => g.en > e.st).map((g) => g.col); let c = 0; while (used.includes(c)) c++;
+    e.col = c; group.push(e); gEnd = Math.max(gEnd, e.en);
+  });
+  if (group.length) flush();
+  const y = (m) => (m - R0) * TL_H / 60;
+  let h = '<div class="tl" style="height:' + y(R1) + 'px">';
+  for (let m = R0; m < R1; m += 30){
+    const t = Math.floor(m / 60) + ":" + String(m % 60).padStart(2, "0");
+    if (!(m % 60)) h += '<span class="tl-tm" style="top:' + y(m) + 'px">' + t + '</span>';
+  }
+  h += '<div class="tl-area">';
+  for (let m = R0; m < R1; m += 30){
+    const t = Math.floor(m / 60) + ":" + String(m % 60).padStart(2, "0");
+    h += '<div class="tl-slot' + (m % 60 ? " half" : "") + (planSel === t ? " sel" : "") + '" style="top:' + y(m) + 'px;height:' + (TL_H / 2) + 'px" data-pgt="' + t + '"></div>';
+  }
+  h += ev.map((e) => {
+    const x = e.x, cls = x.side === "work" ? "w" : x.side === "life" ? "l" : x.side === "cal" ? "g" : "o", short = e.en - e.st <= 30;
+    return '<div class="tl-ev ' + cls + (short ? ' short' : '') + (x.done ? ' done' : '') + '"' + pinfoAttr(x, planDay)
+      + ' style="top:' + (y(e.st) + 1) + 'px;height:' + (Math.max(y(e.en) - y(e.st), TL_H / 2) - 2) + 'px;left:calc(' + (e.col * 100 / e.n) + '% + 2px);width:calc(' + (100 / e.n) + '% - 4px)">'
+      + '<span class="tl-t">' + tShow(x.t) + (tEnd(x) ? '〜' + tEnd(x) : '') + '</span><span class="tl-x">' + esc(x.text) + '</span></div>';
+  }).join("");
+  return h + '</div></div>';
 }
 // MUST DOのチェック付きの行（チェックは今日を書くのTODAY'S SCHEDULEとつながっている）
 const planMust = (x, day) => '<div class="pr ck ' + (x.side === "work" ? "w" : x.side === "life" ? "l" : x.side === "cal" ? "g" : "o") + '">' + scCk(x, day) + (x.rec ? '' : '<button type="button" class="x" data-scdel="' + esc(x.id) + '" data-scday="' + day + '" aria-label="消す">×</button>') + '</div>';
@@ -2792,18 +2840,19 @@ function pinfoOpen(k){
     + r("場所", x.place ? linkify(x.place) : "")
     + r("種類", kind)
     + r("メモ", x.memo ? linkify(x.memo) : "")
-    + '<div class="pinfo-ck">' + scCk({key: x.key, done: x.done, text: "終わったらチェック"}, it.day) + '</div>';
+    + '<div class="pinfo-ck">' + scCk({key: x.key, done: x.done, text: "終わったらチェック"}, it.day) + '</div>'
+    + (x.rec ? '' : '<button type="button" class="mini pinfo-del" data-scdel="' + esc(x.id) + '" data-scday="' + it.day + '">この予定を消す</button>');
   $("pinfo").hidden = false;
 }
 function pinfoClose(){ $("pinfo").hidden = true; }
-$("pinfo").addEventListener("click", (ev) => { if (ev.target === $("pinfo") || ev.target.closest("[data-pinfo-close]")) pinfoClose(); });
+$("pinfo").addEventListener("click", (ev) => { if (ev.target === $("pinfo") || ev.target.closest("[data-pinfo-close],[data-scdel]")) pinfoClose(); });
 // 1週間をまとめて見る（日付を押すと、その日の1日の表示に切りかわる）
 let planWeek = ls.get("journal.planWeek") === true;
 function paintPlanWeek(days){
   const today = mornDay(), asTab = $("plan").classList.contains("as-tab");
   const h = days.map((d) => {
     const L = dayList(d), dt = dObj(d);
-    const row = (x) => '<div class="wk-row"><span class="tm">' + tShow(x.t) + '</span><div class="pr tap ' + (x.side === "work" ? "w" : x.side === "life" ? "l" : x.side === "cal" ? "g" : "o") + '"' + pinfoAttr(x, d) + '><span class="tx">' + esc(x.text) + '</span>' + (x.rec ? sideTag(x) : '') + '</div></div>';
+    const row = (x) => '<div class="wk-row"><span class="tm">' + tRangeHtml(x) + '</span><div class="pr tap ' + (x.side === "work" ? "w" : x.side === "life" ? "l" : x.side === "cal" ? "g" : "o") + '"' + pinfoAttr(x, d) + '><span class="tx">' + esc(x.text) + '</span>' + (x.rec ? sideTag(x) : '') + '</div></div>';
     return '<div class="sc-card wk-day' + (d === today ? ' today' : '') + '"><button type="button" class="wk-head" data-pday="' + d + '"><b>' + (dt.getMonth() + 1) + '/' + dt.getDate() + ' (' + WD[dt.getDay()] + ')</b>' + (d === today ? '<em>今日</em>' : '') + '<span>この日を開く ›</span></button>'
       + L.time.map(row).join("")
       + (L.must.length ? '<div class="wk-must"><b>MUST DO</b></div><div class="wk-cks">' + L.must.map((x) => scCk(x, d)).join("") + '</div>' : '')
@@ -2889,7 +2938,7 @@ document.addEventListener("click", async (ev) => {
     // 押したマスの時間を下の追加欄に入れて、すぐ書けるようにする（画面は動かさない）
     const foot = $("plan-foot"), tx = foot.querySelector('input[type="text"]');
     foot.querySelector('input[type="time"]').value = tInput(pg.dataset.pgt); tboxMark(foot); tx.focus({preventScroll: true});
-    planSel = pg.dataset.pgt; document.querySelectorAll("#plan-body .pg-cell.sel").forEach((e2) => e2.classList.remove("sel")); pg.classList.add("sel"); return;
+    planSel = pg.dataset.pgt; document.querySelectorAll("#plan-body [data-pgt].sel").forEach((e2) => e2.classList.remove("sel")); pg.classList.add("sel"); return;
   }
   if (!ev.target.closest("#brd")) return;
   const sd = ev.target.closest("[data-bside]"); if (sd){ brdSide = sd.dataset.bside; brdEdit = null; paintBrd(); return; }
