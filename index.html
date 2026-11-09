@@ -2640,11 +2640,25 @@ const tInput = (t) => { const v = tMin(t); return v === 9999 ? "" : String(Math.
 const mdS = (s2) => Number(s2.slice(5, 7)) + "/" + Number(s2.slice(8, 10));
 const sideTag = (x) => x.side === "cal" ? '<em class="g">GOOGLE</em>' : x.side ? '<em class="' + (x.side === "work" ? "w" : "l") + '">' + (x.side === "work" ? "WORK" : "LIFE") + '</em>' : '';
 // Googleカレンダーの予定（週ごとにまとめて読む。5分は読み直さない）
-let calCache = {}, calAt = {};
-async function loadCal(ws, force){
-  if (!force && calAt[ws] && Date.now() - calAt[ws] < 300000) return;
-  calAt[ws] = Date.now();
-  try { const r = await window.JOURNAL_CALL("cal_week", {start: ws}); Object.assign(calCache, (r && r.days) || {}); } catch(e){ calAt[ws] = 0; }
+// 前に読んだ分をスマホに覚えておき、開いたらすぐ出す。読み終わったら出し直す
+let calCache = ls.get("journal.calCache") || {}, calAt = {}, calP = {};
+function loadCal(ws, force){
+  if (calP[ws]) return calP[ws];                 // 読んでいる途中なら、その結果を待つ
+  if (!force && calAt[ws] && Date.now() - calAt[ws] < 300000) return Promise.resolve();
+  calP[ws] = (async () => {
+    try {
+      const r = await window.JOURNAL_CALL("cal_week", {start: ws});
+      if (r && r.days){
+        Object.assign(calCache, r.days); calAt[ws] = Date.now();
+        const lo = addD(mornDay(), -14), hi = addD(mornDay(), 42);
+        Object.keys(calCache).forEach((d) => { if (d < lo || d > hi) delete calCache[d]; });
+        ls.set("journal.calCache", calCache);
+        repaintSched();
+      }
+    } catch(e){}
+    finally { delete calP[ws]; }
+  })();
+  return calP[ws];
 }
 // その日に当たる繰り返し（第何週は日付を7で割って数える。日付が月にない日は末日に寄せる）
 function boardHits(day){
