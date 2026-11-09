@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="JOURNAL">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#E9F0F7">
-<meta name="journal-ver" content="60">
+<meta name="journal-ver" content="61">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -289,6 +289,29 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .ntc-it.new b::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--life);margin-right:6px;vertical-align:2px}
 #sheet .mc-card{border:0;padding:0;background:none}
 #sheet .mc-card > .sc-lb{display:none}
+/* 予定のタブの上：週や月の表示はまん中、ベルは右 */
+.plan.as-tab .plan-row{justify-content:center;position:relative;min-height:44px}
+.plan-row .bell{display:none}
+.plan.as-tab .plan-row .bell{display:inline-flex;position:absolute;right:6px;top:50%;transform:translateY(-50%);margin:0}
+.head-b{position:relative}
+.head-b .bell{position:absolute;right:4px;top:50%;transform:translateY(-50%);margin:0}
+.plan-mode{grid-template-columns:repeat(3,minmax(0,1fr))}
+/* 1か月の表示 */
+.mo{padding:10px 6px 4px}
+.mo-wd{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));font-size:11px;color:var(--sub);text-align:center;padding-bottom:6px}
+.mo-g{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-top:1px solid var(--line)}
+.mo-c{min-width:0;min-height:78px;border:0;border-bottom:1px solid var(--line);background:none;padding:4px 2px;display:flex;flex-direction:column;gap:2px;align-items:stretch;text-align:left;font:inherit;color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mo-c b{font-size:12.5px;font-weight:700;text-align:center;width:24px;height:24px;line-height:24px;border-radius:50%;align-self:center;margin-bottom:1px}
+.mo-c.sun b{color:var(--life)}
+.mo-c.sat b{color:var(--work)}
+.mo-c.out{opacity:.35}
+.mo-c.sel{background:var(--soft);border-radius:8px}
+.mo-c.today b{background:var(--accent);color:var(--onAccent)}
+.mo-e{display:block;font-size:9.5px;line-height:1.4;padding:0 3px;border-radius:3px;white-space:nowrap;overflow:hidden;background:var(--soft)}
+.mo-e.w{background:color-mix(in srgb,var(--work) 18%,var(--card))}
+.mo-e.l{background:color-mix(in srgb,var(--life) 18%,var(--card))}
+.mo-e.g{background:color-mix(in srgb,var(--gcal) 18%,var(--card))}
+.mo-more{font-size:9.5px;color:var(--sub);padding-left:3px}
 .upd button{border:0;border-radius:10px;background:var(--onAccent);color:var(--accent);font:inherit;font-size:14px;font-weight:600;padding:8px 14px;cursor:pointer}
 .pi-grp{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
 .pi-grp:empty{display:none}
@@ -702,7 +725,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
   <div class="morn-foot" id="morn-foot"><button type="button" class="mini" id="morn-back">戻る</button><button type="button" class="btn" id="morn-next">次へ</button></div>
 </div>
 <div class="morn plan" id="plan" hidden role="dialog" aria-label="週の予定">
-  <div class="morn-top plan-top"><div class="plan-row"><div class="plan-nav"><button type="button" class="mini" id="plan-prev" aria-label="前の週">‹</button><b id="plan-range"></b><button type="button" class="mini" id="plan-next" aria-label="次の週">›</button></div><button type="button" class="mini" id="plan-close">閉じる</button></div><div class="seg2 plan-mode" id="plan-mode"><button type="button" data-pmode="day">1日</button><button type="button" data-pmode="week">1週間</button></div><div class="plan-days" id="plan-days"></div></div>
+  <div class="morn-top plan-top"><div class="plan-row"><div class="plan-nav"><button type="button" class="mini" id="plan-prev" aria-label="前の週">‹</button><b id="plan-range"></b><button type="button" class="mini" id="plan-next" aria-label="次の週">›</button></div><button type="button" class="mini" id="plan-close">閉じる</button><button type="button" class="bell" data-bell aria-label="お知らせ"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><i class="bell-n" hidden></i></button></div><div class="seg2 plan-mode" id="plan-mode"><button type="button" data-pmode="day">1日</button><button type="button" data-pmode="week">1週間</button><button type="button" data-pmode="month">1か月</button></div><div class="plan-days" id="plan-days"></div></div>
   <div class="morn-body" id="plan-body"></div>
   <div class="plan-foot" id="plan-foot"></div>
 </div>
@@ -727,7 +750,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
 <!-- 今日を書く -->
 <section id="v-today" class="view">
   <div class="head">
-    <div class="row-between" style="align-items:center"><div class="eyebrow" id="t-eyebrow"></div><button type="button" class="bell" id="bell-btn" aria-label="お知らせ"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><i class="bell-n" id="bell-n" hidden></i></button></div>
+    <div class="row-between" style="align-items:center"><div class="eyebrow" id="t-eyebrow"></div><button type="button" class="bell" id="bell-btn" data-bell aria-label="お知らせ"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><i class="bell-n" hidden></i></button></div>
     <div class="row-between" style="align-items:center">
       <h1 id="t-date"></h1>
       <button class="link" id="w-change" type="button" style="align-self:center">別の日の分を書く</button>
@@ -809,7 +832,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
 
 <!-- 振り返り -->
 <section id="v-review" class="view" hidden>
-  <div class="head"><h1>振り返り</h1></div>
+  <div class="head head-b"><h1>振り返り</h1><button type="button" class="bell" data-bell aria-label="お知らせ"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><i class="bell-n" hidden></i></button></div>
   <div class="mode" role="group" aria-label="振り返りの種類" id="rv-mode">
     <button type="button" data-rv="years" aria-pressed="true">日記</button>
     <button type="button" data-rv="sum" aria-pressed="false">まとめ</button>
@@ -880,7 +903,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
 
 <!-- TODO -->
 <section id="v-todo" class="view" hidden>
-  <div class="head"><h1>TODO</h1></div>
+  <div class="head head-b"><h1>TODO</h1><button type="button" class="bell" data-bell aria-label="お知らせ"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><i class="bell-n" hidden></i></button></div>
   <div class="group">
     <label class="label" for="todo-in">TODOを追加</label>
     <div class="todo-add"><input id="todo-in" class="date-input" type="text" placeholder="やることを書く" enterkeyhint="done"><button class="btn" id="todo-add" type="button">追加</button></div>
@@ -896,7 +919,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
 
 <!-- 設定 -->
 <section id="v-prefs" class="view" hidden>
-  <div class="head"><h1>設定</h1></div>
+  <div class="head head-b"><h1>設定</h1><button type="button" class="bell" data-bell aria-label="お知らせ"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><i class="bell-n" hidden></i></button></div>
 
   <div class="group">
     <div class="label">見た目</div>
@@ -2724,7 +2747,7 @@ function loadCal(ws, force){
       const r = await window.JOURNAL_CALL("cal_week", {start: ws});
       if (r && r.days){
         Object.assign(calCache, r.days); calAt[ws] = Date.now();
-        const lo = addD(mornDay(), -14), hi = addD(mornDay(), 42);
+        const lo = addD(mornDay(), -70), hi = addD(mornDay(), 200);
         Object.keys(calCache).forEach((d) => { if (d < lo || d > hi) delete calCache[d]; });
         ls.set("journal.calCache", calCache);
         repaintSched();
@@ -2833,8 +2856,8 @@ async function loadNtc(){
   ntcBadge(); if (sheetMode === "ntc") sheetPaint();
 }
 function ntcBadge(){
-  const seen = ls.get("journal.ntcSeen") || "", n = ntcList.filter((x) => x.at > seen).length, b = $("bell-n");
-  b.hidden = !n; b.textContent = n > 9 ? "9+" : String(n);
+  const seen = ls.get("journal.ntcSeen") || "", n = ntcList.filter((x) => x.at > seen).length;
+  document.querySelectorAll(".bell-n").forEach((b) => { b.hidden = !n; b.textContent = n > 9 ? "9+" : String(n); });
 }
 function ntcHtml(){
   if (!ntcList.length) return '<span class="small">まだお知らせはありません</span>';
@@ -2845,7 +2868,8 @@ function ntcHtml(){
     return '<button type="button" class="ntc-it' + (x.at > seen ? ' new' : '') + '" data-ntc-go="' + esc(go) + '"><b>' + esc(x.title || "") + '</b><span class="ntc-t">' + when + '</span>' + (x.body ? '<p>' + esc(x.body) + '</p>' : '') + '</button>';
   }).join("") + '</div>';
 }
-$("bell-btn").addEventListener("click", () => {
+document.addEventListener("click", (ev) => {
+  if (!ev.target.closest("[data-bell]")) return;
   ntcHtml.seen = ls.get("journal.ntcSeen") || "";          // 今回あたらしいものに印を付けてから、見たことにする
   sheetOpen("ntc"); if (ntcList[0]) ls.set("journal.ntcSeen", ntcList[0].at); ntcBadge(); loadNtc();
 });
@@ -2910,8 +2934,11 @@ function paintPlan(){
   $("plan-range").innerHTML = '<small>' + th.getFullYear() + "年 " + (th.getMonth() + 1) + "月 第" + Math.ceil(th.getDate() / 7) + "週" + '</small>'
     + (d0.getMonth() + 1) + "月" + d0.getDate() + "日 (日) 〜 " + (d6.getMonth() !== d0.getMonth() ? (d6.getMonth() + 1) + "月" : "") + d6.getDate() + "日 (土)";
   $("plan-days").innerHTML = days.map((d) => { const n = dayList(d), c = n.must.length + n.time.length; return '<button type="button" data-pday="' + d + '" aria-pressed="' + (d === planDay) + '"><span>' + WD[dObj(d).getDay()] + '</span><b>' + dObj(d).getDate() + '</b><i>' + (c || "") + '</i></button>'; }).join("");
-  document.querySelectorAll("#plan-mode button").forEach((b) => b.setAttribute("aria-pressed", String((b.dataset.pmode === "week") === planWeek)));
-  $("plan-days").hidden = planWeek;
+  const mode = planMonth ? "month" : planWeek ? "week" : "day";
+  document.querySelectorAll("#plan-mode button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.pmode === mode)));
+  $("plan-days").hidden = planWeek || planMonth;
+  $("plan-prev").setAttribute("aria-label", planMonth ? "前の月" : "前の週"); $("plan-next").setAttribute("aria-label", planMonth ? "次の月" : "次の週");
+  if (planMonth){ const dm = dObj(planDay); $("plan-range").innerHTML = '<small>' + dm.getFullYear() + '年</small>' + (dm.getMonth() + 1) + '月'; paintPlanMonth(); return; }
   if (planWeek){ paintPlanWeek(days); return; }
   $("plan-foot").hidden = false;
   // MUST DOは4件まで出し、多い日は「ほか○件」でたたむ
@@ -3071,8 +3098,47 @@ function paintPlanWeek(days){
 }
 $("plan-mode").addEventListener("click", (ev) => {
   const b = ev.target.closest("[data-pmode]"); if (!b) return;
-  planWeek = b.dataset.pmode === "week"; ls.set("journal.planWeek", planWeek); paintPlan(); $("plan").scrollTop = 0;
+  planWeek = b.dataset.pmode === "week"; planMonth = b.dataset.pmode === "month";
+  ls.set("journal.planWeek", planWeek); ls.set("journal.planMonth", planMonth); paintPlan(); $("plan").scrollTop = 0;
+  if (planMonth) loadMonth().then(paintPlan);
 });
+// 1か月をカレンダーの形で見る（日付を押すと、その日の1日の表示に切りかわる）
+let planMonth = ls.get("journal.planMonth") === true, schedAllAt = 0;
+const ymdN = (y, m, d) => ymd(new Date(y, m, d));
+function monthDays(){
+  const d = dObj(planDay), first = ymdN(d.getFullYear(), d.getMonth(), 1), last = ymdN(d.getFullYear(), d.getMonth() + 1, 0);
+  const out = []; for (let x = weekStart(first); x <= last || out.length % 7; x = addD(x, 1)) out.push(x);
+  return {days: out, month: d.getMonth()};
+}
+async function loadMonth(){
+  const {days} = monthDays(), ws = days.filter((_, i) => i % 7 === 0);
+  const jobs = ws.map((w) => loadCal(w));
+  if (Date.now() - schedAllAt > 60000){
+    jobs.push((async () => {
+      try {
+        const r = await window.JOURNAL_CALL("db", {op: "query", coll: "sched", limit: 500});
+        (r.docs || []).forEach((x) => { if (/^\d{4}-\d{2}-\d{2}$/.test(x.id) && !schedCache[x.id]) schedCache[x.id] = Object.assign({items: [], done: {}}, x.data); });
+        schedAllAt = Date.now();
+      } catch(e){}
+    })());
+  }
+  await Promise.all(jobs);
+}
+function paintPlanMonth(){
+  const {days, month} = monthDays(), today = mornDay(), asTab = $("plan").classList.contains("as-tab");
+  const cls = (x) => x.side === "work" ? "w" : x.side === "life" ? "l" : x.side === "cal" ? "g" : "o";
+  const cells = days.map((d) => {
+    const dt = dObj(d), L = dayList(d), list = L.time.concat(L.must.filter((x) => x.side === "cal" || !x.rec)), more = list.length - 3;
+    return '<button type="button" class="mo-c' + (dt.getMonth() !== month ? ' out' : '') + (d === today ? ' today' : '') + (d === planDay ? ' sel' : '') + (dt.getDay() === 0 ? ' sun' : dt.getDay() === 6 ? ' sat' : '') + '" data-pday="' + d + '"><b>' + dt.getDate() + '</b>'
+      + list.slice(0, 3).map((x) => '<span class="mo-e ' + cls(x) + '">' + esc(x.text) + '</span>').join("") + (more > 0 ? '<span class="mo-more">ほか' + more + '</span>' : '') + '</button>';
+  }).join("");
+  $("plan-body").innerHTML = (asTab ? mcStrip() : '') + '<div class="sc-card mo"><div class="mo-wd">' + WD.map((w) => '<span>' + w + '</span>').join("") + '</div><div class="mo-g">' + cells + '</div></div>'
+    + (asTab ? '<div class="sc-links"><button type="button" class="mini" data-brd>繰り返しを直す</button></div>' : '');
+  $("plan-foot").hidden = true;
+  const mk = days[10].slice(0, 7); if (moLoaded !== mk){ moLoaded = mk; loadMonth().then(paintPlan); }   // その月の分をまだ読んでいなければ読む
+}
+let moLoaded = "";
+const planMoveMonth = async (n) => { const d = dObj(planDay); planDay = ymdN(d.getFullYear(), d.getMonth() + n, 1); paintPlan(); await loadMonth(); paintPlan(); };
 $("plan-close").addEventListener("click", () => { const el = $("plan"); el.hidden = true; el.style.top = el.style.height = el.style.bottom = ""; repaintSched(); });
 // 時間が入っていないときだけ「時間」と出す
 function tboxMark(root){ (root || document).querySelectorAll(".tbox").forEach((b) => b.classList.toggle("has", !!b.querySelector("input").value)); }
@@ -3089,8 +3155,8 @@ if (window.visualViewport){ visualViewport.addEventListener("resize", planFit); 
 // キーボードを閉じたら、下のタブの上までの高さに戻す（予定のタブで下が隠れないように）
 document.addEventListener("focusout", () => setTimeout(planFit, 350));
 const planMove = async (n) => { planDay = addD(planDay, n); planSel = null; planMustOpen = false; paintPlan(); const ws = weekStart(planDay); await Promise.all(Array.from({length: 7}, (_, i) => loadSched(addD(ws, i))).concat([loadCal(ws)])); paintPlan(); };
-$("plan-prev").addEventListener("click", () => planMove(-7));
-$("plan-next").addEventListener("click", () => planMove(7));
+$("plan-prev").addEventListener("click", () => planMonth ? planMoveMonth(-1) : planMove(-7));
+$("plan-next").addEventListener("click", () => planMonth ? planMoveMonth(1) : planMove(7));
 /* WORK BOARDとLIFE BOARD（繰り返しのやること） */
 const whenLabel = (x) => x.freq === "日付" ? "毎月 " + (x.when === "末日" || x.when === "最終日" ? "末日" : x.when + "日") : x.freq + " " + x.when;
 async function brdOpen(){ $("brd").hidden = false; brdEdit = null; paintBrd(); await loadBoard(); paintBrd(); }
@@ -3153,7 +3219,7 @@ document.addEventListener("click", async (ev) => {
   }
   const del = ev.target.closest("[data-scdel]");
   if (del){ const day = del.dataset.scday, s2 = await loadSched(day); s2.items = (s2.items || []).filter((x) => x.id !== del.dataset.scdel); repaintSched(); saveSched(day); return; }
-  const pd = ev.target.closest("[data-pday]"); if (pd){ if (planWeek){ planWeek = false; ls.set("journal.planWeek", false); } planDay = pd.dataset.pday; planSel = null; planMustOpen = false; paintPlan(); $("plan").scrollTop = 0; return; }
+  const pd = ev.target.closest("[data-pday]"); if (pd){ if (planWeek || planMonth){ planWeek = planMonth = false; ls.set("journal.planWeek", false); ls.set("journal.planMonth", false); } planDay = pd.dataset.pday; planSel = null; planMustOpen = false; paintPlan(); $("plan").scrollTop = 0; return; }
   if (ev.target.closest("[data-pmore]")){ planMustOpen = !planMustOpen; paintPlan(); return; }
   const pg = ev.target.closest("[data-pgt]");
   if (pg && !ev.target.closest(".pr")){
