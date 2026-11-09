@@ -254,15 +254,15 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .tl-ev.done .tl-x{text-decoration:line-through;color:var(--sub)}
 .tl-ev.mv{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .tl-ev.drag{z-index:5;box-shadow:0 6px 18px rgba(0,0,0,.22);opacity:.95;transition:none}
-.tl-rs{display:none;position:absolute;left:0;right:0;bottom:-10px;height:26px;cursor:ns-resize;touch-action:none;z-index:2}
-.tl-rs::after{content:"";position:absolute;left:50%;top:6px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--card);border:2.5px solid var(--accentText);box-sizing:border-box}
+.tl-rs{display:none;position:absolute;left:0;right:0;bottom:-8px;height:24px;cursor:ns-resize;touch-action:none;z-index:2}
+.tl-rs::after{content:"";position:absolute;left:50%;top:5px;width:28px;height:4px;margin-left:-14px;border-radius:2px;background:var(--sub)}
 /* 選んだ予定は、枠線ではなく少し浮かせて見せる。取っ手の丸は予定の色に合わせる */
 .tl-ev{-webkit-tap-highlight-color:transparent}
 .tl-ev.sel{z-index:4;overflow:visible;touch-action:none;box-shadow:0 6px 16px rgba(0,0,0,.16);transform:scale(1.015)}
-.tl-ev.w .tl-rs::after{border-color:var(--work)}
-.tl-ev.l .tl-rs::after{border-color:var(--life)}
-.tl-ev.g .tl-rs::after{border-color:var(--gcal)}
-.tl-ev.o .tl-rs::after{border-color:var(--sub)}
+.tl-ev.w .tl-rs::after{background:var(--work)}
+.tl-ev.l .tl-rs::after{background:var(--life)}
+.tl-ev.g .tl-rs::after{background:var(--gcal)}
+.tl-ev.o .tl-rs::after{background:var(--sub)}
 .tl-ev.sel .tl-rs{display:block}
 .tl-ev.sel .tl-x{overflow:hidden}
 .pi-grp{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
