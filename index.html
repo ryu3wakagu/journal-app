@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="JOURNAL">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#E9F0F7">
-<meta name="journal-ver" content="61">
+<meta name="journal-ver" content="62">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -145,7 +145,7 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 /* スケジュール（SEIZE THE WEEK SHEETと同じ作り） */
 .plan{z-index:46}
 /* 下のタブの「予定」では、週の予定をそのまま出す（下のタブは見えたまま） */
-.plan.as-tab{bottom:var(--navh,80px);z-index:4}
+.plan.as-tab{bottom:calc(var(--navh,80px) - var(--vvfix,0px));z-index:4}
 .plan.as-tab #plan-close{display:none}
 .plan.as-tab .plan-foot{padding-bottom:10px}
 .sc-card{background:var(--card);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:6px}
@@ -218,6 +218,9 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .wk-row{display:flex;align-items:center;gap:8px}
 .wk-row .tm{width:3.2em;flex:none;font-size:13px;color:var(--sub)}
 .wk-row .pr{flex:1;min-width:0}
+.ad-row + .ad-row{margin-top:6px}
+.ad-row .tm{font-size:12px}
+.ad-card .ad-row .tm{display:none}
 .wk-must{font-size:12.5px;color:var(--sub);line-height:1.6;padding-top:2px}
 .wk-must b{font-size:11px;letter-spacing:.06em;margin-right:6px}
 .wk-cks .sc-ck{min-height:34px;font-size:14px}
@@ -702,7 +705,7 @@ input,select,textarea{max-width:100%}
 .ntime-in::-webkit-date-and-time-value{text-align:center;margin:0}
 .ntime select{min-height:40px;border:1px solid var(--line);border-radius:max(4px,calc(var(--r) - 6px));background:var(--card);color:var(--text);font:inherit;padding:0 10px}
 /* 下のタブ */
-nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:var(--bar);border-top:1px solid var(--line);padding:6px max(0px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(0px,env(safe-area-inset-left,0px))}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;transform:translateY(var(--vvfix,0px));display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:var(--bar);border-top:1px solid var(--line);padding:6px max(0px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(0px,env(safe-area-inset-left,0px))}
 nav.tabs button{position:relative;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:50px;justify-content:center;font-size:11px;color:var(--sub)}
 nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
 @media (prefers-reduced-motion:no-preference){.seg button,.chip,.dot{transition:background .15s,box-shadow .15s}}
@@ -1400,6 +1403,24 @@ function recvPause(msg){
 // 離したあとの「押した」が下の画面（振り返りのタブなど）に届かないよう、少しのあいだ止める
 // 下のタブの高さに合わせて、画面のいちばん下まで見えるように余白を取る（文字の大きさを変えてもはみ出さない）
 (function(){ const nv = document.querySelector("nav.tabs"); if (!nv) return; const fit = () => document.documentElement.style.setProperty("--navh", nv.offsetHeight + "px"); fit(); if (window.ResizeObserver) new ResizeObserver(fit).observe(nv); window.addEventListener("resize", fit); })();
+// iPhoneでキーボードを閉じたあと、下のタブが画面の途中に浮いたままになることがある。
+// 入力中でないときに、タブの下の端が画面の下の端と合っているか確かめ、ずれていたら戻す
+(function(){
+  const nv = document.querySelector("nav.tabs"), vv = window.visualViewport; if (!nv || !vv) return;
+  let fix = 0, raf = 0;
+  const typing = () => { const a = document.activeElement; return a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || (a && a.isContentEditable); };
+  const check = () => {
+    raf = 0; if (typing()) return;
+    const want = vv.offsetTop + vv.height, got = nv.getBoundingClientRect().bottom - fix, d = Math.round(want - got);
+    const nf = Math.abs(d) > 2 ? d : 0;
+    if (nf !== fix){ fix = nf; document.documentElement.style.setProperty("--vvfix", fix + "px"); }
+  };
+  const soon = () => { if (!raf) raf = requestAnimationFrame(check); };
+  vv.addEventListener("resize", soon); vv.addEventListener("scroll", soon);
+  window.addEventListener("scroll", soon, {passive: true}); window.addEventListener("resize", soon);
+  document.addEventListener("focusout", () => { [80, 300, 700].forEach((t) => setTimeout(check, t)); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(check, 300); });
+})();
 let clickGuard = 0;
 document.addEventListener("click", (ev) => { if (Date.now() < clickGuard){ ev.preventDefault(); ev.stopPropagation(); } }, true);
 function holdBtn(b, label, ready, done){
@@ -2783,15 +2804,20 @@ async function loadSched(day, force){
   return schedCache[day];
 }
 async function saveSched(day){ const s2 = schedCache[day]; if (!s2 || !db) return; try { await db.doc("sched/" + day).set(Object.assign({}, s2, {date: day, updatedAt: new Date().toISOString()})); } catch(e){ toast("保存できませんでした"); } }
+// アプリに出さないGoogleカレンダー（全体のセミナー予定など）
+const CAL_HIDE = ["セミナー情報"];
+// 終日のGoogleの予定（押すと詳細）
+const alldayRow = (x, day) => '<div class="wk-row ad-row"><span class="tm">終日</span><div class="pr tap g"' + pinfoAttr(x, day) + '><span class="tx">' + esc(x.text) + '</span></div></div>';
 function dayList(day){
   const s2 = schedCache[day] || {items: [], done: {}}, done = s2.done || {};
   const rec = boardHits(day).map((x) => ({key: "b:" + x.side + ":" + x.task, text: x.task, t: x.time || "", side: x.side, rec: true, memo: x.memo || "", bfreq: x.freq, bwhen: x.when}));
   const one = (s2.items || []).map((x) => ({key: "s:" + x.id, id: x.id, text: x.text, t: x.t || "", end: x.end || "", rec: false}));
-  const gc = (calCache[day] || []).map((x) => ({key: "g:" + x.id, text: String(x.text || "").trim(), t: x.t || "", side: "cal", rec: true, end: x.end || "", place: x.place || "", memo: x.desc || "", cal: x.cal || "", gid: x.id}));
+  const gc = (calCache[day] || []).filter((x) => !CAL_HIDE.includes(x.cal)).map((x) => ({key: "g:" + x.id, text: String(x.text || "").trim(), t: x.t || "", side: "cal", rec: true, end: x.end || "", place: x.place || "", memo: x.desc || "", cal: x.cal || "", gid: x.id}));
   const all = gc.concat(rec, one).map((x) => Object.assign(x, {done: !!done[x.key]}));
-  const must = all.filter((x) => !tShow(x.t)), so = {cal: -1, life: 0, work: 1};
+  const allday = all.filter((x) => !tShow(x.t) && x.side === "cal");
+  const must = all.filter((x) => !tShow(x.t) && x.side !== "cal"), so = {life: 0, work: 1};
   must.sort((a, b) => (a.rec ? so[a.side] ?? 2 : 3) - (b.rec ? so[b.side] ?? 2 : 3));
-  return {must: must, time: all.filter((x) => tShow(x.t)).sort((a, b) => tMin(a.t) - tMin(b.t))};
+  return {allday: allday, must: must, time: all.filter((x) => tShow(x.t)).sort((a, b) => tMin(a.t) - tMin(b.t))};
 }
 const tEnd = (x) => x.end && tMin(x.end) > tMin(x.t) ? tShow(x.end) : "";
 const tRangeHtml = (x) => tShow(x.t) + (tEnd(x) ? '<small>〜' + tEnd(x) + '</small>' : '');
@@ -2801,6 +2827,7 @@ function schedAddHtml(day){ return '<div class="sc-add"><label class="tbox"><inp
 function schedHtml(day){
   const L = dayList(day), d = dObj(day);
   let h = "<h2>TODAY'S SCHEDULE</h2><p class=\"lead\">" + (d.getMonth() + 1) + "月" + d.getDate() + "日 (" + WD[d.getDay()] + ") の予定です。<br>時間を決めていないものはMUST DOに入ります。</p>";
+  if (L.allday.length) h += '<div class="sc-card ad-card"><div class="sc-lb">ALL DAY</div>' + L.allday.map((x) => alldayRow(x, day)).join("") + '</div>';
   h += '<div class="sc-card"><div class="sc-lb">MUST DO</div>' + (L.must.length ? L.must.map((x) => scCk(x, day)).join("") : '<span class="small">ありません</span>') + '</div>';
   h += '<div class="sc-card"><div class="sc-lb">TIME</div>' + (L.time.length ? L.time.map((x) => '<div class="sc-t"><span class="tm">' + tRangeHtml(x) + '</span>' + scCk(x, day) + '</div>').join("") : '<span class="small">時間の決まった予定はありません</span>') + '</div>';
   h += schedAddHtml(day);
@@ -2811,11 +2838,12 @@ function schedHtml(day){
 function paintHomeSched(){
   const el = $("home-sched"); if (!el) return;
   const day = mornDay(), L = dayList(day);
-  if (!L.must.length && !L.time.length){ el.hidden = true; el.innerHTML = ""; return; }
+  if (!L.must.length && !L.time.length && !L.allday.length){ el.hidden = true; el.innerHTML = ""; return; }
   el.hidden = false;
   el.innerHTML = '<div class="sc-card"><div class="sc-lb row-lb"><span>TODAY\'S SCHEDULE</span><button type="button" class="sc-more" data-plan="' + day + '">予定を直す</button></div>'
+    + L.allday.map((x) => alldayRow(x, day)).join("")
     + (L.time.length ? L.time.map((x) => '<div class="sc-t"><span class="tm">' + tRangeHtml(x) + '</span>' + scCk(x, day) + '</div>').join("") : '')
-    + (L.must.length ? (L.time.length ? '<div class="sc-lb" style="margin-top:6px">MUST DO</div>' : '') + L.must.map((x) => scCk(x, day)).join("") : '') + '</div>';
+    + (L.must.length ? (L.time.length || L.allday.length ? '<div class="sc-lb" style="margin-top:6px">MUST DO</div>' : '') + L.must.map((x) => scCk(x, day)).join("") : '') + '</div>';
 }
 // 下のタブの「予定」：週の予定（今日を選んだ状態）をそのまま出す。上にはメールで届いた予定の候補
 function paintSchedTab(){}
@@ -2933,7 +2961,7 @@ function paintPlan(){
   const th = dObj(addD(ws, 4)), d0 = dObj(ws), d6 = dObj(days[6]);
   $("plan-range").innerHTML = '<small>' + th.getFullYear() + "年 " + (th.getMonth() + 1) + "月 第" + Math.ceil(th.getDate() / 7) + "週" + '</small>'
     + (d0.getMonth() + 1) + "月" + d0.getDate() + "日 (日) 〜 " + (d6.getMonth() !== d0.getMonth() ? (d6.getMonth() + 1) + "月" : "") + d6.getDate() + "日 (土)";
-  $("plan-days").innerHTML = days.map((d) => { const n = dayList(d), c = n.must.length + n.time.length; return '<button type="button" data-pday="' + d + '" aria-pressed="' + (d === planDay) + '"><span>' + WD[dObj(d).getDay()] + '</span><b>' + dObj(d).getDate() + '</b><i>' + (c || "") + '</i></button>'; }).join("");
+  $("plan-days").innerHTML = days.map((d) => { const n = dayList(d), c = n.must.length + n.time.length + n.allday.length; return '<button type="button" data-pday="' + d + '" aria-pressed="' + (d === planDay) + '"><span>' + WD[dObj(d).getDay()] + '</span><b>' + dObj(d).getDate() + '</b><i>' + (c || "") + '</i></button>'; }).join("");
   const mode = planMonth ? "month" : planWeek ? "week" : "day";
   document.querySelectorAll("#plan-mode button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.pmode === mode)));
   $("plan-days").hidden = planWeek || planMonth;
@@ -2943,7 +2971,8 @@ function paintPlan(){
   $("plan-foot").hidden = false;
   // MUST DOは4件まで出し、多い日は「ほか○件」でたたむ
   const L = dayList(planDay), many = L.must.length > 4, shown = many && !planMustOpen ? L.must.slice(0, 4) : L.must;
-  let h = '<div class="sc-card"><div class="sc-lb row-lb"><span>MUST DO' + (L.must.length ? "　" + L.must.length : "") + '</span>' + (many && planMustOpen ? '<button type="button" class="sc-more" data-pmore>たたむ</button>' : '') + '</div>'
+  let h = (L.allday.length ? '<div class="sc-card ad-card"><div class="sc-lb">ALL DAY</div>' + L.allday.map((x) => alldayRow(x, planDay)).join("") + '</div>' : '')
+    + '<div class="sc-card"><div class="sc-lb row-lb"><span>MUST DO' + (L.must.length ? "　" + L.must.length : "") + '</span>' + (many && planMustOpen ? '<button type="button" class="sc-more" data-pmore>たたむ</button>' : '') + '</div>'
     + (L.must.length ? shown.map((x) => planMust(x, planDay)).join("") : '<span class="small">ありません</span>')
     + (many && !planMustOpen ? '<button type="button" class="sc-more" data-pmore>ほか' + (L.must.length - 4) + '件を見る</button>' : '') + '</div>';
   h += '<div class="sc-card plan-grid"><div class="sc-lb" style="padding-bottom:6px">TIME　空いているマスを押すと、その時間で追加できます</div>' + planTimeline(L.time);
@@ -3089,9 +3118,9 @@ function paintPlanWeek(days){
     const L = dayList(d), dt = dObj(d);
     const row = (x) => '<div class="wk-row"><span class="tm">' + tRangeHtml(x) + '</span><div class="pr tap ' + (x.side === "work" ? "w" : x.side === "life" ? "l" : x.side === "cal" ? "g" : "o") + '"' + pinfoAttr(x, d) + '><span class="tx">' + esc(x.text) + '</span>' + (x.rec ? sideTag(x) : '') + '</div></div>';
     return '<div class="sc-card wk-day' + (d === today ? ' today' : '') + '"><button type="button" class="wk-head" data-pday="' + d + '"><b>' + (dt.getMonth() + 1) + '/' + dt.getDate() + ' (' + WD[dt.getDay()] + ')</b>' + (d === today ? '<em>今日</em>' : '') + '<span>この日を開く ›</span></button>'
-      + L.time.map(row).join("")
+      + L.allday.map((x) => alldayRow(x, d)).join("") + L.time.map(row).join("")
       + (L.must.length ? '<div class="wk-must"><b>MUST DO</b></div><div class="wk-cks">' + L.must.map((x) => scCk(x, d)).join("") + '</div>' : '')
-      + (!L.time.length && !L.must.length ? '<span class="small">予定なし</span>' : '') + '</div>';
+      + (!L.time.length && !L.must.length && !L.allday.length ? '<span class="small">予定なし</span>' : '') + '</div>';
   }).join("");
   $("plan-body").innerHTML = (asTab ? mcStrip() : '') + h + (asTab ? '<div class="sc-links"><button type="button" class="mini" data-brd>繰り返しを直す</button></div>' : '');
   $("plan-foot").hidden = true;
@@ -3128,7 +3157,7 @@ function paintPlanMonth(){
   const {days, month} = monthDays(), today = mornDay(), asTab = $("plan").classList.contains("as-tab");
   const cls = (x) => x.side === "work" ? "w" : x.side === "life" ? "l" : x.side === "cal" ? "g" : "o";
   const cells = days.map((d) => {
-    const dt = dObj(d), L = dayList(d), list = L.time.concat(L.must.filter((x) => x.side === "cal" || !x.rec)), more = list.length - 3;
+    const dt = dObj(d), L = dayList(d), list = L.allday.concat(L.time, L.must.filter((x) => !x.rec)), more = list.length - 3;
     return '<button type="button" class="mo-c' + (dt.getMonth() !== month ? ' out' : '') + (d === today ? ' today' : '') + (d === planDay ? ' sel' : '') + (dt.getDay() === 0 ? ' sun' : dt.getDay() === 6 ? ' sat' : '') + '" data-pday="' + d + '"><b>' + dt.getDate() + '</b>'
       + list.slice(0, 3).map((x) => '<span class="mo-e ' + cls(x) + '">' + esc(x.text) + '</span>').join("") + (more > 0 ? '<span class="mo-more">ほか' + more + '</span>' : '') + '</button>';
   }).join("");
