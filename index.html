@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="JOURNAL">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#E9F0F7">
-<meta name="journal-ver" content="62">
+<meta name="journal-ver" content="63">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -145,7 +145,7 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 /* スケジュール（SEIZE THE WEEK SHEETと同じ作り） */
 .plan{z-index:46}
 /* 下のタブの「予定」では、週の予定をそのまま出す（下のタブは見えたまま） */
-.plan.as-tab{bottom:calc(var(--navh,80px) - var(--vvfix,0px));z-index:4}
+.plan.as-tab{bottom:var(--navh,80px);z-index:4}
 .plan.as-tab #plan-close{display:none}
 .plan.as-tab .plan-foot{padding-bottom:10px}
 .sc-card{background:var(--card);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:6px}
@@ -447,6 +447,8 @@ input::placeholder,textarea::placeholder{color:var(--sub);opacity:.5}
   color-scheme:light;
 }
 html,body{background:var(--bg);color:var(--text)}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+#scr{position:fixed;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding-top:env(safe-area-inset-top,0px);box-sizing:border-box}
 body{font-family:var(--font);font-size:var(--fs);line-height:1.6;-webkit-text-size-adjust:100%}
 *{box-sizing:border-box}
 button,input,textarea,select{font:inherit;color:inherit}
@@ -705,7 +707,7 @@ input,select,textarea{max-width:100%}
 .ntime-in::-webkit-date-and-time-value{text-align:center;margin:0}
 .ntime select{min-height:40px;border:1px solid var(--line);border-radius:max(4px,calc(var(--r) - 6px));background:var(--card);color:var(--text);font:inherit;padding:0 10px}
 /* 下のタブ */
-nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;transform:translateY(var(--vvfix,0px));display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:var(--bar);border-top:1px solid var(--line);padding:6px max(0px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(0px,env(safe-area-inset-left,0px))}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:var(--bar);border-top:1px solid var(--line);padding:6px max(0px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(0px,env(safe-area-inset-left,0px))}
 nav.tabs button{position:relative;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:50px;justify-content:center;font-size:11px;color:var(--sub)}
 nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
 @media (prefers-reduced-motion:no-preference){.seg button,.chip,.dot{transition:background .15s,box-shadow .15s}}
@@ -1403,23 +1405,10 @@ function recvPause(msg){
 // 離したあとの「押した」が下の画面（振り返りのタブなど）に届かないよう、少しのあいだ止める
 // 下のタブの高さに合わせて、画面のいちばん下まで見えるように余白を取る（文字の大きさを変えてもはみ出さない）
 (function(){ const nv = document.querySelector("nav.tabs"); if (!nv) return; const fit = () => document.documentElement.style.setProperty("--navh", nv.offsetHeight + "px"); fit(); if (window.ResizeObserver) new ResizeObserver(fit).observe(nv); window.addEventListener("resize", fit); })();
-// iPhoneでキーボードを閉じたあと、下のタブが画面の途中に浮いたままになることがある。
-// 入力中でないときに、タブの下の端が画面の下の端と合っているか確かめ、ずれていたら戻す
+// 画面全体ではなく、中の箱だけをスクロールさせる（iPhoneで下のタブが動かないように）
 (function(){
-  const nv = document.querySelector("nav.tabs"), vv = window.visualViewport; if (!nv || !vv) return;
-  let fix = 0, raf = 0;
-  const typing = () => { const a = document.activeElement; return a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || (a && a.isContentEditable); };
-  const check = () => {
-    raf = 0; if (typing()) return;
-    const want = vv.offsetTop + vv.height, got = nv.getBoundingClientRect().bottom - fix, d = Math.round(want - got);
-    const nf = Math.abs(d) > 2 ? d : 0;
-    if (nf !== fix){ fix = nf; document.documentElement.style.setProperty("--vvfix", fix + "px"); }
-  };
-  const soon = () => { if (!raf) raf = requestAnimationFrame(check); };
-  vv.addEventListener("resize", soon); vv.addEventListener("scroll", soon);
-  window.addEventListener("scroll", soon, {passive: true}); window.addEventListener("resize", soon);
-  document.addEventListener("focusout", () => { [80, 300, 700].forEach((t) => setTimeout(check, t)); });
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(check, 300); });
+  const w = document.querySelector("body > .wrap"); if (!w || document.getElementById("scr")) return;
+  const sc = document.createElement("div"); sc.id = "scr"; w.parentNode.insertBefore(sc, w); sc.appendChild(w);
 })();
 let clickGuard = 0;
 document.addEventListener("click", (ev) => { if (Date.now() < clickGuard){ ev.preventDefault(); ev.stopPropagation(); } }, true);
@@ -2031,7 +2020,7 @@ $("rv-next").addEventListener("click", () => { rvDate.setDate(rvDate.getDate() +
 $("rv-today").addEventListener("click", () => { rvDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()); renderReview(); });
 $("rv-recent").addEventListener("click", (ev) => {
   const b = ev.target.closest("button[data-date]"); if (!b) return;
-  const [y, m, d] = b.dataset.date.split("-").map(Number); rvDate = new Date(y, m - 1, d); renderReview(); window.scrollTo(0, 0);
+  const [y, m, d] = b.dataset.date.split("-").map(Number); rvDate = new Date(y, m - 1, d); renderReview(); $("scr").scrollTop = 0;
 });
 
 /* ---------- 設定 ---------- */
@@ -3814,7 +3803,7 @@ document.querySelector("nav.tabs").addEventListener("click", (ev) => {
   document.querySelectorAll("nav.tabs button").forEach((x) => { if (x === b) x.setAttribute("aria-current", "page"); else x.removeAttribute("aria-current"); });
   ["today","sched","review","todo","prefs"].forEach((k) => { $("v-" + k).hidden = v !== k; });
   if (v === "sched") schedTabOpen();
-  window.scrollTo(0, 0);
+  window.scrollTo(0, 0); if ($("scr")) $("scr").scrollTop = 0;
   if (v === "review") renderPane();
   if (v === "todo") renderTodo();
   if (v === "prefs"){ if (!prefsRendered){ prefsRendered = true; renderPrefs(); } renderHandStatus(); renderPush().catch(() => {}); }
