@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="JOURNAL">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#E9F0F7">
-<meta name="journal-ver" content="63">
+<meta name="journal-ver" content="64">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -315,6 +315,19 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .mo-e.l{background:color-mix(in srgb,var(--life) 18%,var(--card))}
 .mo-e.g{background:color-mix(in srgb,var(--gcal) 18%,var(--card))}
 .mo-more{font-size:9.5px;color:var(--sub);padding-left:3px}
+/* 予定のタブのいちばん下：繰り返しの予定を直す */
+.plan-brd{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;margin-top:4px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);font:inherit;font-size:14px;padding:13px 14px;cursor:pointer;text-align:left}
+.plan-brd svg{flex:none;color:var(--sub)}
+.plan-brd span{margin-left:auto;color:var(--sub);font-size:18px;line-height:1}
+/* ボードの行：左にスワイプで消す */
+.brd-sw{position:relative;overflow:hidden;border-top:1px solid var(--line)}
+.brd-sw:first-child{border-top:0}
+.brd-sw .brd-row{position:relative;z-index:1;background:var(--card);border-top:0;touch-action:pan-y;transition:width .18s ease;overflow:hidden;white-space:nowrap}
+.brd-sw .brd-row b,.brd-sw .brd-row small{overflow:hidden;text-overflow:ellipsis}
+.brd-x{position:absolute;top:0;right:0;bottom:0;width:80px;border:0;background:var(--rec);color:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.brd-hint{text-align:center;margin:8px 0 0}
+.ntc-it{position:relative;padding-right:28px}
+.ntc-go{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-style:normal;color:var(--sub);font-size:18px}
 .upd button{border:0;border-radius:10px;background:var(--onAccent);color:var(--accent);font:inherit;font-size:14px;font-weight:600;padding:8px 14px;cursor:pointer}
 .pi-grp{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
 .pi-grp:empty{display:none}
@@ -2862,7 +2875,7 @@ function sheetOpen(mode){ sheetMode = mode; sheetPaint(); if (sheetMode) $("shee
 function sheetClose(){ $("sheet").hidden = true; sheetMode = ""; }
 $("sheet").addEventListener("click", (ev) => {
   const g = ev.target.closest("[data-ntc-go]");
-  if (g){ sheetClose(); const v = {"#sched": "sched", "#todo": "todo"}[g.dataset.ntcGo]; if (v) document.querySelector('nav.tabs button[data-view="' + v + '"]').click(); return; }
+  if (g){ if (!g.dataset.ntcGo) return; sheetClose(); ntcGo(g.dataset.ntcGo); return; }
   if (ev.target === $("sheet") || ev.target.closest("[data-sheet-close]")) sheetClose();
 });
 document.addEventListener("click", (ev) => { if (ev.target.closest("[data-mcopen]")) sheetOpen("mc"); });
@@ -2876,13 +2889,36 @@ function ntcBadge(){
   const seen = ls.get("journal.ntcSeen") || "", n = ntcList.filter((x) => x.at > seen).length;
   document.querySelectorAll(".bell-n").forEach((b) => { b.hidden = !n; b.textContent = n > 9 ? "9+" : String(n); });
 }
+// お知らせの行き先（送るときに場所が付いていないものは、題名から決める）
+function ntcWhere(x){
+  const h = (String(x.url || "").match(/#[a-z]+$/) || [""])[0], t = String(x.title || "");
+  if (/メールで届いた予定/.test(t)) return "#mail";
+  if (h) return h;
+  if (/MY COMPASS|予定を確認しましょう/.test(t + (x.body || ""))) return "#compass";
+  if (/今日の予定|分後|まもなく/.test(t)) return "#sched";
+  if (/まとめ/.test(t)) return "#sum";
+  if (/TODO|期限/.test(t)) return "#todo";
+  if (/年前の今日/.test(t)) return "#ly";
+  if (/書いていません/.test(t)) return "#write";
+  return "";
+}
+function ntcGo(go){
+  const tab = (v) => document.querySelector('nav.tabs button[data-view="' + v + '"]').click();
+  if (go === "#sched") tab("sched");
+  else if (go === "#mail"){ tab("sched"); setTimeout(() => { if ((mailCand || []).length) sheetOpen("mc"); }, 300); }
+  else if (go === "#todo") tab("todo");
+  else if (go === "#sum"){ tab("review"); const b = document.querySelector('[data-rv="sum"]'); if (b) b.click(); }
+  else if (go === "#compass"){ tab("today"); setTimeout(() => $("vis-open").click(), 150); }
+  else if (go === "#ly"){ tab("today"); setTimeout(() => { const c = $("ly-title").closest(".card") || $("ly-title"); c.scrollIntoView({behavior: "smooth", block: "start"}); }, 150); }
+  else if (go === "#write"){ tab("today"); setTimeout(() => { const e = document.querySelector("#v-today textarea"); if (e){ e.scrollIntoView({block: "center"}); } }, 150); }
+}
 function ntcHtml(){
   if (!ntcList.length) return '<span class="small">まだお知らせはありません</span>';
   const seen = ntcHtml.seen || "";
   return '<div class="ntc-list">' + ntcList.map((x) => {
     const d = new Date(x.at), when = (d.getMonth() + 1) + "/" + d.getDate() + " " + d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
-    const go = (String(x.url || "").match(/#[a-z]+$/) || [""])[0];
-    return '<button type="button" class="ntc-it' + (x.at > seen ? ' new' : '') + '" data-ntc-go="' + esc(go) + '"><b>' + esc(x.title || "") + '</b><span class="ntc-t">' + when + '</span>' + (x.body ? '<p>' + esc(x.body) + '</p>' : '') + '</button>';
+    const go = ntcWhere(x);
+    return '<button type="button" class="ntc-it' + (x.at > seen ? ' new' : '') + '" data-ntc-go="' + esc(go) + '"><b>' + esc(x.title || "") + '</b><span class="ntc-t">' + when + '</span>' + (x.body ? '<p>' + esc(x.body) + '</p>' : '') + (go ? '<i class="ntc-go" aria-hidden="true">›</i>' : '') + '</button>';
   }).join("") + '</div>';
 }
 document.addEventListener("click", (ev) => {
@@ -2966,7 +3002,7 @@ function paintPlan(){
     + (many && !planMustOpen ? '<button type="button" class="sc-more" data-pmore>ほか' + (L.must.length - 4) + '件を見る</button>' : '') + '</div>';
   h += '<div class="sc-card plan-grid"><div class="sc-lb" style="padding-bottom:6px">TIME　空いているマスを押すと、その時間で追加できます</div>' + planTimeline(L.time);
   const asTab = $("plan").classList.contains("as-tab");
-  $("plan-body").innerHTML = (asTab ? mcStrip() : '') + h + '</div>' + (asTab ? '<div class="sc-links"><button type="button" class="mini" data-brd>繰り返しを直す</button></div>' : '');
+  $("plan-body").innerHTML = (asTab ? mcStrip() : '') + h + '</div>' + (asTab ? brdBtnHtml() : '');
   // 追加欄は下に固定（書きかけが消えないよう、作るのは最初の1回だけ）
   const foot = $("plan-foot");
   if (!foot.querySelector(".sc-add")) foot.innerHTML = schedAddHtml(planDay);
@@ -3111,7 +3147,7 @@ function paintPlanWeek(days){
       + (L.must.length ? '<div class="wk-must"><b>MUST DO</b></div><div class="wk-cks">' + L.must.map((x) => scCk(x, d)).join("") + '</div>' : '')
       + (!L.time.length && !L.must.length && !L.allday.length ? '<span class="small">予定なし</span>' : '') + '</div>';
   }).join("");
-  $("plan-body").innerHTML = (asTab ? mcStrip() : '') + h + (asTab ? '<div class="sc-links"><button type="button" class="mini" data-brd>繰り返しを直す</button></div>' : '');
+  $("plan-body").innerHTML = (asTab ? mcStrip() : '') + h + (asTab ? brdBtnHtml() : '');
   $("plan-foot").hidden = true;
 }
 $("plan-mode").addEventListener("click", (ev) => {
@@ -3151,7 +3187,7 @@ function paintPlanMonth(){
       + list.slice(0, 3).map((x) => '<span class="mo-e ' + cls(x) + '">' + esc(x.text) + '</span>').join("") + (more > 0 ? '<span class="mo-more">ほか' + more + '</span>' : '') + '</button>';
   }).join("");
   $("plan-body").innerHTML = (asTab ? mcStrip() : '') + '<div class="sc-card mo"><div class="mo-wd">' + WD.map((w) => '<span>' + w + '</span>').join("") + '</div><div class="mo-g">' + cells + '</div></div>'
-    + (asTab ? '<div class="sc-links"><button type="button" class="mini" data-brd>繰り返しを直す</button></div>' : '');
+    + (asTab ? brdBtnHtml() : '');
   $("plan-foot").hidden = true;
   const mk = days[10].slice(0, 7); if (moLoaded !== mk){ moLoaded = mk; loadMonth().then(paintPlan); }   // その月の分をまだ読んでいなければ読む
 }
@@ -3178,13 +3214,16 @@ $("plan-next").addEventListener("click", () => planMonth ? planMoveMonth(1) : pl
 /* WORK BOARDとLIFE BOARD（繰り返しのやること） */
 const whenLabel = (x) => x.freq === "日付" ? "毎月 " + (x.when === "末日" || x.when === "最終日" ? "末日" : x.when + "日") : x.freq + " " + x.when;
 async function brdOpen(){ $("brd").hidden = false; brdEdit = null; paintBrd(); await loadBoard(); paintBrd(); }
+// 予定のタブのいちばん下に置く「繰り返しの予定を直す」
+function brdBtnHtml(){ return '<button type="button" class="plan-brd" data-brd><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg>繰り返しの予定を直す<span>›</span></button>'; }
 function paintBrd(){
   const items = (board && board.items) || [];
   let h = '<div class="seg2">' + [["work", "WORK BOARD"], ["life", "LIFE BOARD"]].map(([k, l]) => '<button type="button" data-bside="' + k + '" aria-pressed="' + (brdSide === k) + '">' + l + '</button>').join("") + '</div>';
   if (brdEdit){ $("brd-body").innerHTML = h + brdFormHtml(brdEdit); return; }
   const list = items.map((x, i) => [x, i]).filter(([x]) => x.side === brdSide);
-  h += '<div class="brd-list ' + (brdSide === "work" ? "w" : "l") + '">' + list.map(([x, i]) => '<button type="button" class="brd-row" data-bedit="' + i + '"><span><b>' + esc(x.task) + '</b><small>' + esc(whenLabel(x)) + (tShow(x.time) ? "　" + tShow(x.time) + "から" : "") + '</small></span><i aria-hidden="true">›</i></button>').join("")
-    + '<button type="button" class="brd-add" data-bedit="new">＋ 追加</button></div>';
+  h += '<div class="brd-list ' + (brdSide === "work" ? "w" : "l") + '">' + list.map(([x, i]) => '<div class="brd-sw"><button type="button" class="brd-x" data-bx="' + i + '">消す</button><button type="button" class="brd-row" data-bedit="' + i + '"><span><b>' + esc(x.task) + '</b><small>' + esc(whenLabel(x)) + (tShow(x.time) ? "　" + tShow(x.time) + "から" : "") + '</small></span><i aria-hidden="true">›</i></button></div>').join("")
+    + '<button type="button" class="brd-add" data-bedit="new">＋ 追加</button></div>'
+    + (list.length ? '<p class="small brd-hint">左にスワイプすると消せます</p>' : '');
   $("brd-body").innerHTML = h;
 }
 function brdFormHtml(ed){
@@ -3197,18 +3236,54 @@ function brdFormHtml(ed){
   h += '<label>時間（なくてもよい。なければMUST DOに入ります）<input type="time" id="bf-time" class="date-input" value="' + tInput(x.time) + '"></label>';
   h += '<label>メモ<input type="text" id="bf-memo" class="date-input" value="' + esc(x.memo || "") + '"></label>';
   h += '<div class="eacts"><button type="button" class="btn" data-bsave style="flex:1">保存する</button><button type="button" class="mini" data-bcancel>やめる</button></div>';
-  if (ed.i !== "new") h += '<button type="button" class="mini" data-bdel style="align-self:flex-start;color:var(--rec)">' + (ed.sure ? "もう一度押すと消えます" : "このやることを消す") + '</button>';
+  if (ed.i !== "new") h += '<button type="button" class="mini" data-bdel style="align-self:flex-start;color:var(--rec)">' + "このやることを消す" + '</button>';
   return h + '</div>';
 }
 function brdGrab(){
   if (!brdEdit) return; const x = brdEdit.x, g = (id) => { const e2 = $(id); return e2 ? e2.value : null; };
   if (g("bf-task") !== null) x.task = g("bf-task"); if (g("bf-time") !== null) x.time = g("bf-time"); if (g("bf-memo") !== null) x.memo = g("bf-memo"); if (g("bf-day") !== null) x.when = g("bf-day");
 }
-async function brdSave(items){
+// 先に画面を変え、保存はうしろで続ける（待たずに次の操作ができる）。続けて押しても最後の状態が保存される
+let brdSaveP = Promise.resolve();
+async function brdSave(items, quiet){
   board = Object.assign({}, board || {}, {items: items, updatedAt: new Date().toISOString(), from: "app"}); ls.set("journal.board", board);
-  try { await db.doc("board/main").set(board); toast("保存しました。シートにも入ります"); } catch(e){ toast("保存できませんでした"); }
-  repaintSched();
+  if (!$("brd").hidden) paintBrd(); repaintSched();
+  const snap = board;
+  brdSaveP = brdSaveP.then(async () => {
+    if (snap !== board) return;   // もっと新しい変更があれば、そちらで保存する
+    try { await db.doc("board/main").set(snap); if (!quiet) toast("保存しました。シートにも入ります"); } catch(e){ toast("保存できませんでした"); }
+  });
 }
+function brdRemove(i){
+  const before = (board.items || []).slice(), x = before[i]; if (!x) return;
+  const items = before.slice(); items.splice(i, 1); brdSave(items, true);
+  toast("「" + x.task + "」を消しました", () => brdSave(before, true));
+}
+// 行を左にスワイプすると「消す」が出る。大きくスワイプするとそのまま消える
+let bsw = null, bswNoClick = 0;
+document.addEventListener("pointerdown", (ev) => {
+  const row = ev.target.closest(".brd-sw .brd-row");
+  document.querySelectorAll(".brd-sw.open").forEach((w) => { if (!row || w !== row.parentNode) { w.classList.remove("open"); w.querySelector(".brd-row").style.width = ""; } });
+  if (!row || !ev.isPrimary) return;
+  bsw = {row: row, x0: ev.clientX, y0: ev.clientY, open: row.parentNode.classList.contains("open"), dx: 0, on: false};
+});
+document.addEventListener("pointermove", (ev) => {
+  if (!bsw) return;
+  const dx = ev.clientX - bsw.x0, dy = ev.clientY - bsw.y0;
+  if (!bsw.on){ if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)){ bsw = null; return; } if (Math.abs(dx) < 10) return; bsw.on = true; bsw.row.style.transition = "none"; }
+  bsw.dx = Math.min(0, dx + (bsw.open ? -80 : 0)); bsw.row.style.width = "calc(100% - " + (-bsw.dx) + "px)";
+});
+const bswEnd = () => {
+  if (!bsw) return; const g = bsw; bsw = null; if (!g.on) return;
+  bswNoClick = Date.now(); g.row.style.transition = ""; const w = g.row.parentNode;
+  if (g.dx < -Math.min(220, w.offsetWidth * 0.6)){ g.row.style.width = "0px"; setTimeout(() => brdRemove(Number(g.row.dataset.bedit)), 160); return; }
+  const open = g.dx < -40; w.classList.toggle("open", open); g.row.style.width = open ? "calc(100% - 80px)" : "";
+};
+document.addEventListener("pointerup", bswEnd); document.addEventListener("pointercancel", bswEnd);
+document.addEventListener("click", (ev) => {
+  if (Date.now() - bswNoClick < 350 && ev.target.closest(".brd-sw")){ ev.stopImmediatePropagation(); ev.preventDefault(); return; }
+  const b = ev.target.closest("[data-bx]"); if (b){ ev.stopImmediatePropagation(); brdRemove(Number(b.dataset.bx)); }
+}, true);
 $("brd-close").addEventListener("click", () => { $("brd").hidden = true; brdEdit = null; repaintSched(); });
 document.addEventListener("click", async (ev) => {
   const pi = ev.target.closest("[data-pinfo]"); if (pi && !ev.target.closest("[data-scdel],[data-scdone]")){ if (Date.now() - tlNoClick > 400) pinfoOpen(pi.dataset.pinfo); return; }
@@ -3255,8 +3330,7 @@ document.addEventListener("click", async (ev) => {
   const w = ev.target.closest("[data-bdow]"); if (w){ brdGrab(); brdEdit.x.when = w.dataset.bdow; paintBrd(); return; }
   if (ev.target.closest("[data-bcancel]")){ brdEdit = null; paintBrd(); return; }
   if (ev.target.closest("[data-bdel]")){
-    if (!brdEdit.sure){ brdGrab(); brdEdit.sure = true; paintBrd(); return; }
-    const items = (board.items || []).slice(); items.splice(Number(brdEdit.i), 1); brdEdit = null; await brdSave(items); paintBrd(); return;
+    const i = Number(brdEdit.i); brdEdit = null; brdRemove(i); return;
   }
   if (ev.target.closest("[data-bsave]")){
     brdGrab(); const x = brdEdit.x; x.task = String(x.task || "").trim();
