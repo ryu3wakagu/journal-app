@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="JOURNAL">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#E9F0F7">
-<meta name="journal-ver" content="66">
+<meta name="journal-ver" content="67">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -1457,7 +1457,7 @@ async function fixSavedEntry(date, t, text){
       toast("AIが聞き間違いを直しました");
     } catch(e){}
   }
-  if (/直しています/.test($("save-status").textContent)) $("save-status").textContent = "記録しました（" + t + "）";
+  const ss = $("save-status").textContent; if (/直しています/.test(ss)) $("save-status").textContent = ss.replace(/聞き間違いをAIが直しています$/, "").replace(/。$/, "");
   if (prefs.auto && date === TODAY) runAI();
 }
 async function micStopAndSave(){
@@ -1478,16 +1478,28 @@ function recResume(){
   try { rec.start(); } catch(e){ recvPause("もう一度「続きを話す」を押してください。"); }
 }
 // 画面が消えたりアプリを切り替えたりしたら、それまでの分を残して止め、戻ったら続ける
-document.addEventListener("visibilitychange", () => {
+// 話している途中で止まったら（電話、ほかのアプリ、画面との距離の注意など）、そこまで話した分をすぐ記録する
+let voiceAutoMsg = "";
+function voiceAutoSave(why){
   if (!recOn && !recPaused) return;
+  const said = entryEl.value.slice(voiceFrom).trim();
+  if (!said){ recOn = false; recPaused = false; try { rec && rec.stop(); } catch(e){} micPaint(); recvClose(); $("mic-status").textContent = why + "止まりました。もう一度「話して書く」から話せます"; return; }
+  voiceAutoMsg = why; clickGuard = 0; micStopAndSave();
+}
+document.addEventListener("visibilitychange", () => {
   if (document.hidden){
-    if (recOn){ recOn = false; recPaused = true; try { rec.stop(); } catch(e){} }
-  } else if (recPaused && !$("recv").hidden){
-    const sf = ls.get("journal.voiceSafe") || "";
-    if (sf.length > entryEl.value.length){ entryEl.value = sf; ls.set("journal.draft", sf); recvPaint(""); }
-    recvPause("画面が消えていたので、そこで止まりました。それまでの分は残っています。");
-    recResume();
+    if (recOn || recPaused){ ls.set("journal.voicePending", "1"); voiceAutoSave("画面を離れたので、"); }
+    return;
   }
+  // 戻ってきたとき、離れたときの記録が終わっていなければ、もう一度記録する
+  if (!ls.get("journal.voicePending")) return;
+  setTimeout(() => {
+    const sf = ls.get("journal.voiceSafe") || "";
+    if ($("save").disabled) return;   // まだ記録している途中
+    ls.set("journal.voicePending", "");
+    if (!sf.trim()) return;
+    entryEl.value = sf; ls.set("journal.draft", sf); usedVoice = true; voiceAutoMsg = "画面を離れたので、"; saveThenFix = !!sample; $("save").click();
+  }, 1500);
 });
 // 止めたら、AIが聞き間違いだけを直す（言い回しは変えない）。元に戻すこともできる
 let voiceUndo = null, voiceRawFull = null;
@@ -1586,7 +1598,7 @@ function micStart(){
   rec.onerror = (ev) => {
     if (ev.error === "not-allowed" || ev.error === "service-not-allowed" || ev.error === "audio-capture"){
       if (recPaused || document.hidden) return;
-      if (usedVoice && entryEl.value.length > voiceFrom){ recOn = false; recvPause("マイクが止まりました。それまでの分は残っています。"); return; }
+      if (usedVoice && entryEl.value.length > voiceFrom){ voiceAutoSave("マイクが止まったので、"); return; }
       recOn = false; micPaint(); recvClose();
       $("mic-status").textContent = "マイクが使えませんでした。iPhoneの設定でマイクを許可するか、キーボードのマイクのボタンで話してください";
     }
@@ -1595,7 +1607,7 @@ function micStart(){
   rec.onend = () => {
     if (!recOn || document.hidden) return;
     resetBase();
-    try { rec.start(); } catch(e){ recOn = false; recvPause("聞き取りが止まりました。それまでの分は残っています。"); }
+    try { rec.start(); } catch(e){ voiceAutoSave("聞き取りが止まったので、"); }
   };
   try { rec.start(); } catch(e){ $("mic-status").textContent = "始められませんでした。もう一度押してください"; return; }
   recOn = true; recPaused = false; usedVoice = true; micPaint();
@@ -1738,7 +1750,10 @@ $("save").addEventListener("click", async () => {
     backupRows([[doc.date, entries[entries.length - 1].t, "JOURNAL", doc.mood ?? "", entries[entries.length - 1].text, new Date().toISOString()]]);
     loadMissing().catch(() => {});
     const last = entries[entries.length - 1];
-    if (saveThenFix){ saveThenFix = false; $("save-status").textContent = "記録しました（" + last.t + "）。聞き間違いをAIが直しています"; fixSavedEntry(TODAY, last.t, last.text); }
+    ls.set("journal.voicePending", "");
+    const auto = voiceAutoMsg ? voiceAutoMsg + "ここまで話した分を" : ""; voiceAutoMsg = "";
+    if (saveThenFix){ saveThenFix = false; $("save-status").textContent = auto + "記録しました（" + last.t + "）。" + (auto ? "続きは「話して書く」から話せます。" : "") + "聞き間違いをAIが直しています"; fixSavedEntry(TODAY, last.t, last.text); }
+    else if (auto) $("save-status").textContent = auto + "記録しました（" + last.t + "）。続きは「話して書く」から話せます";
     else if (prefs.auto) runAI();
   } catch (e) {
     saveThenFix = false;
