@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="JOURNAL">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#E9F0F7">
-<meta name="journal-ver" content="65">
+<meta name="journal-ver" content="66">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -1373,7 +1373,9 @@ renderMood();
 /* ---------- 下書き（この端末だけ） ---------- */
 const entryEl = $("entry");
 entryEl.value = ls.get("journal.draft") || "";
-entryEl.addEventListener("input", () => ls.set("journal.draft", entryEl.value));
+// 話している途中でアプリが閉じられた分が残っていれば戻す
+(function(){ const sf = ls.get("journal.voiceSafe") || ""; if (sf && sf.length > entryEl.value.length){ entryEl.value = sf; ls.set("journal.draft", sf); } })();
+entryEl.addEventListener("input", () => { ls.set("journal.draft", entryEl.value); ls.set("journal.voiceSafe", ""); });
 // 書いた文字数（音声で増えたときも追いかける）
 let wcLast = -1;
 setInterval(() => { const n = entryEl.value.replace(/\s/g, "").length; if (n !== wcLast){ wcLast = n; $("wcount").textContent = n ? n + "字" : ""; } }, 700);
@@ -1441,10 +1443,27 @@ function holdBtn(b, label, ready, done){
 holdBtn($("recv-stop"), "長押しで止める", "離すと止めます", () => micStop());
 holdBtn($("recv-save"), "長押しで記録する", "離すと記録します", () => micStopAndSave());
 // 止めて、聞き間違いを直してから、そのまま記録する
+let saveThenFix = false;
+// 記録したあと、その記録の聞き間違いをAIが直して差しかえる（直したら知らせる。元の文も残す）
+async function fixSavedEntry(date, t, text){
+  const fixed = await aiFixText(text, "");
+  if (fixed && fixed !== text){
+    try {
+      const ref = db.doc("days/" + date), snap = await ref.get(); const cur = snap.exists ? snap.data() : null; if (!cur) return;
+      const es = (cur.entries || []).slice(), i = es.findIndex((e) => e.t === t && e.text === text); if (i < 0) return;
+      es[i] = Object.assign({}, es[i], {text: applyDict(fixed), raw: text});
+      await ref.update({entries: es, updatedAt: new Date().toISOString()});
+      if (date === TODAY){ todayDoc = Object.assign({}, todayDoc, {entries: es}); renderToday(); }
+      toast("AIが聞き間違いを直しました");
+    } catch(e){}
+  }
+  if (/直しています/.test($("save-status").textContent)) $("save-status").textContent = "記録しました（" + t + "）";
+  if (prefs.auto && date === TODAY) runAI();
+}
 async function micStopAndSave(){
   recOn = false; recPaused = false; try { rec && rec.stop(); } catch(e){}
   micPaint(); recvClose();
-  if (usedVoice) await polishVoice();
+  saveThenFix = usedVoice && !!sample;
   await new Promise((r) => setTimeout(r, Math.max(0, clickGuard - Date.now() + 50)));
   $("save").click();
 }
@@ -1464,12 +1483,48 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden){
     if (recOn){ recOn = false; recPaused = true; try { rec.stop(); } catch(e){} }
   } else if (recPaused && !$("recv").hidden){
+    const sf = ls.get("journal.voiceSafe") || "";
+    if (sf.length > entryEl.value.length){ entryEl.value = sf; ls.set("journal.draft", sf); recvPaint(""); }
     recvPause("画面が消えていたので、そこで止まりました。それまでの分は残っています。");
     recResume();
   }
 });
 // 止めたら、AIが聞き間違いだけを直す（言い回しは変えない）。元に戻すこともできる
 let voiceUndo = null, voiceRawFull = null;
+// 聞き間違いを直した文を返す（失敗したら null）。記録したあとに、うしろで直すときに使う
+async function aiFixText(seg, head){
+  if (!sample) return null;
+  await getLearn();
+  const st = {textContent: ""};
+  const words = ["隼人"].concat(dict.map((p) => p && p.to).filter(Boolean)).slice(0, 80).join("、");
+  const prompt = "次の文章は、iPhoneの音声認識で文字にした日記です。聞き間違い（同じ音の別の漢字、人の名前や固有名詞の誤り、言葉の切れ目の誤り）を、前後の流れから直してください。句読点と改行も整えてください。\n"
+    + "話した内容と言い回しは変えないこと。要約、言い換え、内容の追加はしないこと。「えー」「あの」などのつなぎ言葉だけは取ってよい。数字は算用数字。中黒（・）は使わない。\n"
+    + "よく出てくる言葉：" + words + "\n"
+    + learnHints("voice", 40)
+    + (head.trim() ? "（参考：この前に書いてある文）\n" + head.slice(-600) + "\n" : "")
+    + "直した文章だけを返してください。\n\n文章：\n";
+  // 長いときは2000字ほどずつに分けて、同時に直す（途中で切れないように）
+  const parts = [];
+  let rest = seg;
+  while (rest.length > 2400){
+    let cut = -1;
+    for (const mk of ["\n", "。", " ", "　", "、"]){ const i = rest.lastIndexOf(mk, 2200); if (i > 1200){ cut = i + 1; break; } }
+    if (cut < 0) cut = 2200;
+    parts.push(rest.slice(0, cut)); rest = rest.slice(cut);
+  }
+  parts.push(rest);
+  if (parts.length > 1) st.textContent = "AIが聞き間違いを直しています（" + seg.length + "字）";
+  try {
+    const outs = await Promise.all(parts.map(async (p) => {
+      const r = await sample(prompt + p, {cache: false});
+      const t = String((r && r.text) || "").trim();
+      // 切れたり、大きく短くなったりしたら、その部分は元のまま
+      return !t || r.truncated || t.length < p.trim().length * 0.6 ? p : t;
+    }));
+    const fixed = outs.join(parts.length > 1 ? "\n" : "").trim();
+    return fixed || null;
+  } catch(e){ return null; }
+}
 async function polishVoice(){
   const st = $("mic-status");
   const before = entryEl.value, head = before.slice(0, voiceFrom), seg = before.slice(voiceFrom);
@@ -1522,7 +1577,9 @@ function micStart(){
   rec.onresult = (ev) => {
     let interim = "";
     for (let i = ev.resultIndex; i < ev.results.length; i++){ const r = ev.results[i]; if (r.isFinal) recFinal += r[0].transcript; else interim += r[0].transcript; }
+    const nv = recBase + recFinal + interim, safe = ls.get("journal.voiceSafe") || "";
     entryEl.value = recBase + recFinal + interim; ls.set("journal.draft", entryEl.value);
+    if (entryEl.value.length >= safe.length || !safe) ls.set("journal.voiceSafe", entryEl.value);
     entryEl.scrollTop = entryEl.scrollHeight;
     recvPaint(interim);
   };
@@ -1676,12 +1733,15 @@ $("save").addEventListener("click", async () => {
     const doc = {date: TODAY, md: MD, year: YEAR, entries: entries, mood: (mood ?? cur.mood ?? null), ai: cur.ai || null, updatedAt: new Date().toISOString()};
     await ref.set(doc);
     todayDoc = doc; renderToday();
-    entryEl.value = ""; ls.set("journal.draft", "");
+    entryEl.value = ""; ls.set("journal.draft", ""); ls.set("journal.voiceSafe", "");
     $("save-status").textContent = "保存しました（" + entries[entries.length - 1].t + "）";
     backupRows([[doc.date, entries[entries.length - 1].t, "JOURNAL", doc.mood ?? "", entries[entries.length - 1].text, new Date().toISOString()]]);
     loadMissing().catch(() => {});
-    if (prefs.auto) runAI();
+    const last = entries[entries.length - 1];
+    if (saveThenFix){ saveThenFix = false; $("save-status").textContent = "記録しました（" + last.t + "）。聞き間違いをAIが直しています"; fixSavedEntry(TODAY, last.t, last.text); }
+    else if (prefs.auto) runAI();
   } catch (e) {
+    saveThenFix = false;
     $("save-status").textContent = e && e.code === "quota_exceeded" ? "保存できる量の上限に達しました。古い記録の整理が必要です。" : "保存できませんでした。通信を確かめて、もう一度押してください。";
   } finally { btn.disabled = false; btn.textContent = label0; }
 });
@@ -2516,7 +2576,7 @@ async function saveIdea(raw){
   const id = TODAY + "-i" + Date.now().toString(36);
   const ref = db.doc("ideas/" + id);
   await ref.set({date: TODAY, at: new Date().toISOString(), title: "", core: raw, next: "", raw: raw, src: "direct"});
-  entryEl.value = ""; ls.set("journal.draft", ""); ideasCache = null;
+  entryEl.value = ""; ls.set("journal.draft", ""); ls.set("journal.voiceSafe", ""); ideasCache = null;
   backupRows([[TODAY, hm(), "IDEA", "", raw, new Date().toISOString()]]);
   st.textContent = "IDEAを残しました";
   if (!sample) return;
@@ -2533,7 +2593,7 @@ async function saveBook(raw){
   const id = TODAY + "-b" + Date.now().toString(36);
   const ref = db.doc("books/" + id);
   await ref.set({date: TODAY, at: new Date().toISOString(), title: "", author: "", note: "", takeaway: "", action: "", raw: raw, src: "direct"});
-  entryEl.value = ""; ls.set("journal.draft", ""); booksCache = null;
+  entryEl.value = ""; ls.set("journal.draft", ""); ls.set("journal.voiceSafe", ""); booksCache = null;
   backupRows([[TODAY, hm(), "BOOK", "", raw, new Date().toISOString()]]);
   st.textContent = "学びの記録を残しました";
   if (!sample) return;
