@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="JOURNAL">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#E9F0F7">
-<meta name="journal-ver" content="67">
+<meta name="journal-ver" content="68">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -332,6 +332,14 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .todo-cand{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .todo-cand span{min-width:0;flex:1}
 .todo-cand .link{flex:none;white-space:nowrap}
+.ly-years{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.ly-years::-webkit-scrollbar{display:none}
+.ly-years button{flex:none;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--sub);font:inherit;font-size:13px;padding:6px 12px;cursor:pointer;white-space:nowrap}
+.ly-years button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+.ai-head{width:100%;border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
+#ai-card.folded > :not(.ai-head):not(#ai-status){display:none!important}
+#ai-card.folded #ai-status:empty{display:none}
+.rv-none{align-items:center;margin-top:4px}
 .upd button{border:0;border-radius:10px;background:var(--onAccent);color:var(--accent);font:inherit;font-size:14px;font-weight:600;padding:8px 14px;cursor:pointer}
 .pi-grp{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
 .pi-grp:empty{display:none}
@@ -796,7 +804,8 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
   </details>
 
   <article class="card" id="ly-card">
-    <div class="row-between"><h2 class="accent" id="ly-title">1年前の今日</h2><span class="small" id="ly-date"></span></div>
+    <div class="row-between"><h2 class="accent" id="ly-title">この日の記録</h2><span class="small" id="ly-date"></span></div>
+    <div class="ly-years" id="ly-years" hidden></div>
     <div class="body" id="ly-body"><span class="empty">読み込んでいます</span></div>
     <div class="box" id="ly-insight" hidden><b>気づき</b><span></span></div>
     <details class="rawfold" id="ly-raw" hidden><summary id="ly-raw-label">原文を読む</summary><div class="entries-wrap"></div></details>
@@ -836,7 +845,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
   </article>
 
   <article class="card" id="ai-card" hidden>
-    <div class="row-between"><h2 class="accent">今日の整理</h2><span class="small">AIがまとめます</span></div>
+    <button type="button" class="row-between ai-head" id="ai-head" aria-expanded="false"><h2 class="accent">今日の整理</h2><span class="small" id="ai-head-r">開く ›</span></button>
     <p class="body" id="ai-summary"></p>
     <div class="box" id="ai-good"><b>よかったこと</b><span></span></div>
     <div class="box" id="ai-challenge"><b>課題</b><span></span></div>
@@ -1353,8 +1362,7 @@ function paintWriteDate(){
   const isToday = TODAY === REAL_TODAY;
   $("t-eyebrow").textContent = y + "年 " + WD[new Date(y, m - 1, d).getDay()] + "曜日" + (isToday ? "" : "　（この日の分を書いています）");
   $("t-date").textContent = m + "月" + d + "日";
-  $("ly-title").textContent = isToday ? "1年前の今日" : "1年前のこの日";
-  $("ly-date").textContent = jp(lastYearOf());
+  $("ly-title").textContent = "この日の記録";
   $("mood-label").textContent = isToday ? "TODAY'S CONDITION" : "CONDITION";
   $("entry-label").textContent = isToday ? "TODAY'S JOURNAL" : "JOURNAL OF THE DAY";
   $("w-change").hidden = !$("w-panel").hidden;
@@ -1460,6 +1468,14 @@ async function fixSavedEntry(date, t, text){
   const ss = $("save-status").textContent; if (/直しています/.test(ss)) $("save-status").textContent = ss.replace(/聞き間違いをAIが直しています$/, "").replace(/。$/, "");
   if (prefs.auto && date === TODAY) runAI();
 }
+// 並べかえ：今日の分（書く、記録、整理）を上に、「この日の記録」をその下に
+(function(){ const ly = $("ly-card"), ai = $("ai-card"); if (ly && ai) ai.after(ly); })();
+// 年のボタン
+$("ly-years").addEventListener("click", (ev) => { const b = ev.target.closest("[data-lyy]"); if (!b) return; lySel = Number(b.dataset.lyy); paintLY(); });
+// 今日の整理は、押すと開く（開いたかどうかは覚えておく）
+function aiFoldPaint(){ const open = ls.get("journal.aiOpen") === true; $("ai-card").classList.toggle("folded", !open); $("ai-head").setAttribute("aria-expanded", String(open)); $("ai-head-r").textContent = open ? "閉じる" : "開く ›"; }
+$("ai-head").addEventListener("click", () => { ls.set("journal.aiOpen", !(ls.get("journal.aiOpen") === true)); aiFoldPaint(); });
+aiFoldPaint();
 async function micStopAndSave(){
   recOn = false; recPaused = false; try { rec && rec.stop(); } catch(e){}
   micPaint(); recvClose();
@@ -1681,20 +1697,30 @@ function entriesHtml(d){
 let db = null, sample = null, downloads = null;
 const daysCol = () => db.collection("days");
 
+// この日の、去年より前の記録をまとめて読み、年のボタンで1年ずつ見る
+let lyRows = [], lySel = null;
 async function loadLastYear(){
-  const snap = await db.doc("days/" + lastYearOf()).get({cache: true});
+  const snap = await daysCol().where("md", "==", MD).orderBy("year", "desc").limit(50).get();
+  lyRows = snap.docs.map((x) => x.data()).filter((d) => d.year < YEAR);
+  if (!lyRows.some((d) => d.year === lySel)) lySel = (lyRows.find((d) => d.year === YEAR - 1) || lyRows[0] || {}).year || null;
+  paintLY();
+}
+function paintLY(){
   const body = $("ly-body");
   $("ly-insight").hidden = true; $("ly-raw").hidden = true;
-  if (!snap.exists){
-    body.innerHTML = '<span class="empty">去年の今日の記録はまだありません。来年の今日、ここに今日の記録が出てきます。</span>';
+  $("ly-years").hidden = lyRows.length < 2;
+  $("ly-years").innerHTML = lyRows.map((d) => '<button type="button" data-lyy="' + d.year + '" aria-pressed="' + (d.year === lySel) + '">' + (YEAR - d.year) + '年前　' + d.year + '</button>').join("");
+  const d = lyRows.find((x) => x.year === lySel);
+  if (!d){
+    $("ly-date").textContent = "";
+    body.innerHTML = '<span class="empty">この日の、去年より前の記録はまだありません。来年のこの日、ここに今年の記録が出てきます。</span>';
     return;
   }
-  const d = snap.data();
   if (usesSummary(d)) body.textContent = d.ai.summary;
   else body.innerHTML = '<div class="group">' + entriesHtml(d) + '</div>';
   // 元のページの写真がある日は、下の「この日の手書きのページを見る」を出さない（同じ写真になるため）
   $("ly-card").classList.toggle("has-photo", /data-lbsrc/.test(body.innerHTML));
-  $("ly-date").textContent = jp(lastYearOf()) + (typeof d.mood === "number" ? "　調子 " + d.mood : "");
+  $("ly-date").textContent = jp(d.date) + (typeof d.mood === "number" ? "　調子 " + d.mood : "");
   if (d.ai && d.ai.insight){ $("ly-insight").hidden = false; $("ly-insight").querySelector("span").textContent = d.ai.insight; }
   $("ly-raw").hidden = !usesSummary(d);
   $("ly-raw").open = false;
@@ -1704,7 +1730,8 @@ async function loadLastYear(){
   }
 }
 
-async function loadOlder(){
+async function loadOlder(){ $("older-group").hidden = true; }   // もっと前の年は「この日の記録」の年のボタンで見る
+async function loadOlderOld(){
   const snap = await daysCol().where("md", "==", MD).orderBy("year", "desc").limit(50).get();
   const rows = snap.docs.map((s) => s.data()).filter((d) => d.year < YEAR - 1);
   $("older-group").hidden = rows.length === 0;
@@ -2078,8 +2105,18 @@ $("vis-body").addEventListener("click", async (ev) => {
 let rvDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 const yearsCache = {}; let recentCache = null; let rvSeq = 0;
 function paintYears(md, rows){
-  $("rv-years").innerHTML = rows.length ? rows.map(itemHtml).join("") : '<div class="item"><p class="empty">この日の記録はまだありません。</p></div>';
+  const y = now.getFullYear(), date = y + "-" + md, mine = rows.some((d) => d.year === y);
+  const top = mine ? "" : '<div class="item"><div class="row-between"><span class="year">' + y + '年（今年）</span><span class="small">' + (date === REAL_TODAY ? "今日" : "") + '</span></div>'
+    + (date <= REAL_TODAY ? '<div class="row-between rv-none"><span class="empty">まだ書いていません</span><button type="button" class="mini" data-rvwrite="' + date + '">書く</button></div>' : '<p class="empty">まだこの日になっていません</p>') + '</div>';
+  $("rv-years").innerHTML = top + rows.map(itemHtml).join("");
 }
+document.addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-rvwrite]"); if (!b) return;
+  const dt = b.dataset.rvwrite;
+  document.querySelector('nav.tabs button[data-view="today"]').click();
+  if (dt !== REAL_TODAY){ $("w-panel").hidden = false; $("w-date").value = dt; setWriteDate(dt); }
+  setTimeout(() => entryEl.focus(), 200);
+});
 function paintRecent(rows){
   $("rv-recent").innerHTML = rows.length ? rows.map((d) => {
     const [y, m, dd] = d.date.split("-").map(Number);
