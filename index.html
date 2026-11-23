@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="JOURNAL">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#E9F0F7">
-<meta name="journal-ver" content="70">
+<meta name="journal-ver" content="71">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -340,6 +340,57 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 #ai-card.folded > :not(.ai-head):not(#ai-status){display:none!important}
 #ai-card.folded #ai-status:empty{display:none}
 .rv-none{align-items:center;margin-top:4px}
+/* 習慣 */
+#rv-habit-body{display:flex;flex-direction:column;gap:14px}
+.hb-card{gap:4px}
+.hb-lb{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--sub);display:flex;gap:8px;align-items:baseline}
+.hb-lb span{letter-spacing:0;font-weight:400}
+.hb-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+.hb-row:first-of-type{border-top:0}
+.hb-box{width:26px;height:26px;flex:none;border-radius:8px;border:2px solid var(--line);background:var(--card);position:relative;cursor:pointer;padding:0}
+.hb-box.on.b{background:var(--accent);border-color:var(--accent)}
+.hb-box.on.y{background:#D9A21B;border-color:#D9A21B}
+.hb-box.on.min{opacity:.55}
+.hb-box.on::after{content:"";position:absolute;left:7px;top:2px;width:7px;height:13px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.hb-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.hb-t b{font-size:15px;font-weight:600}
+.hb-t b span{font-size:11px;font-weight:400;color:var(--sub);margin-left:8px}
+.hb-n{flex:none;white-space:nowrap}
+.hb-min{flex:none;min-height:32px;padding:0 10px;font-size:12px}
+.hb-tr .mnav{justify-content:space-between}
+.hb-ml{font-size:16px}
+.hb-grid{display:grid;gap:2px;align-items:center;margin-top:6px}
+.hb-dn{font-size:9px;color:var(--sub);text-align:center;overflow:visible;white-space:nowrap}
+.hb-nm{font-size:11px;display:flex;align-items:center;gap:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:3px 0}
+.hb-nm i,.hb-li b i{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
+.hb-nm i.b,.hb-li b i.b{background:var(--accent)}
+.hb-nm i.y,.hb-li b i.y{background:#D9A21B}
+.hb-c{aspect-ratio:1/1;border-radius:2px;background:var(--soft);display:block}
+.hb-c.b.f{background:var(--accent)}.hb-c.y.f{background:#D9A21B}
+.hb-c.b.m{background:color-mix(in srgb,var(--accent) 40%,var(--card))}.hb-c.y.m{background:color-mix(in srgb,#D9A21B 45%,var(--card))}
+.hb-c.off{background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
+.hb-c.fut{opacity:.4}
+.hb-c.td{outline:2px solid var(--accentText);outline-offset:0}
+.hb-lg{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--sub);margin-top:10px}
+.hb-lg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.hb-lg i.b.f{background:var(--accent)}.hb-lg i.y.f{background:#D9A21B}.hb-lg i.b.m{background:color-mix(in srgb,var(--accent) 40%,var(--card))}
+.hb-list{gap:0}
+.hb-li{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:0;border-top:1px solid var(--line);background:none;padding:11px 0;text-align:left;font:inherit;color:var(--text);cursor:pointer}
+.hb-list .sc-lb + .hb-li{border-top:0}
+.hb-li > div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.hb-li b{font-size:15px;display:flex;align-items:center;gap:6px}
+.hb-ar{color:var(--sub);font-size:18px}
+.hb-tm{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:11px;color:var(--sub);flex:none}
+.hb-tm input,.hb-form input{border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font:inherit;font-size:16px;padding:7px 10px}
+.hb-list .btn.ghost{margin-top:10px}
+.hb-form{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px;margin-top:4px}
+.hb-form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--sub)}
+.hb-fl{font-size:12px;color:var(--sub)}
+.hb-chips{display:flex;gap:6px;flex-wrap:wrap}
+.hb-chips button{border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--text);font:inherit;font-size:13px;padding:6px 12px;cursor:pointer}
+.hb-chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+.hb-acts{display:flex;gap:8px}.hb-acts .btn{flex:1}
+.hb-del{align-self:center;color:var(--rec)}
 .upd button{border:0;border-radius:10px;background:var(--onAccent);color:var(--accent);font:inherit;font-size:14px;font-weight:600;padding:8px 14px;cursor:pointer}
 .pi-grp{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
 .pi-grp:empty{display:none}
@@ -786,6 +837,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
       <button class="link" id="w-change" type="button" style="align-self:center">別の日の分を書く</button>
     </div>
   </div>
+  <article class="card hb-card" id="hb-card" hidden></article>
   <div class="vis-open-row"><button type="button" class="compass-btn" id="vis-open"><span class="cb-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.2 5-5 2.2 2.2-5z"/><path d="M12 3v1.6M12 19.4V21M3 12h1.6M19.4 12H21"/></svg></span><span class="cb-text"><b>MY COMPASS</b><small id="vis-streak">今日の方角を確かめる</small></span><svg class="cb-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></div>
   <div id="home-sched" hidden></div>
   <div class="notice" id="w-panel" hidden>
@@ -871,7 +923,9 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
     <button type="button" data-rv="ideas" aria-pressed="false">IDEA</button>
     <button type="button" data-rv="books" aria-pressed="false">学び</button>
     <button type="button" data-rv="hayato" aria-pressed="false">隼人</button>
+    <button type="button" data-rv="habit" aria-pressed="false">習慣</button>
   </div>
+  <div id="rv-habit-pane" class="view" hidden><div id="rv-habit-body"></div></div>
   <div id="rv-years-pane" class="view">
   <details class="rawfold" id="cal-wrap"><summary>カレンダーで選ぶ</summary>
     <div class="cal">
@@ -1484,6 +1538,137 @@ $("ly-years").addEventListener("click", (ev) => { const b = ev.target.closest("[
 function aiFoldPaint(){ const open = ls.get("journal.aiOpen") === true; $("ai-card").classList.toggle("folded", !open); $("ai-head").setAttribute("aria-expanded", String(open)); $("ai-head-r").textContent = open ? "閉じる" : "開く ›"; }
 $("ai-head").addEventListener("click", () => { ls.set("journal.aiOpen", !(ls.get("journal.aiOpen") === true)); aiFoldPaint(); });
 aiFoldPaint();
+/* ---------- 習慣（毎日の✓、最低ライン、続いた日数、月の表） ---------- */
+// habits/main {items:[{id, name, kind:"goal"|"life", days:[0..6]（空なら毎日）, min, time}], morningTime}
+// hlog/YYYY-MM {d:{"23":{id:"f"|"m"}}}   f=やった、m=最低ラインだけ
+let habits = ls.get("journal.habits") || {items: [], morningTime: ""}, hlog = {}, hbYm = null, hbEdit = null;
+const hbMorn = () => ({id: "morning", name: "朝のふり返り", kind: "goal", auto: true, time: habits.morningTime || ""});
+const hbAll = () => [hbMorn()].concat(habits.items || []);
+const hbDayKey = (day) => String(Number(day.slice(8)));
+async function hbLoadMonth(ym, force){
+  if (hlog[ym] && !force) return hlog[ym];
+  try { const s = await db.doc("hlog/" + ym).get(); hlog[ym] = s.exists ? Object.assign({d: {}}, s.data()) : {d: {}}; } catch(e){ hlog[ym] = hlog[ym] || {d: {}}; }
+  return hlog[ym];
+}
+async function loadHabits(){
+  if (!db) return;
+  try { const s = await db.doc("habits/main").get(); if (s.exists){ habits = Object.assign({items: [], morningTime: ""}, s.data()); ls.set("journal.habits", habits); } } catch(e){}
+  const d = mornDay(), dd = dObj(d), prev = ymd(new Date(dd.getFullYear(), dd.getMonth(), 0)).slice(0, 7);
+  await Promise.all([hbLoadMonth(d.slice(0, 7), true), hbLoadMonth(prev)]);
+  if (!visLog) await paintStreak().catch(() => {});
+  paintHabits();
+}
+function hbScheduled(h, day){ const dw = dObj(day).getDay(); return !h.days || !h.days.length || h.days.indexOf(dw) >= 0; }
+function hbState(h, day){
+  if (h.id === "morning") return visLog && visLog.has(day) ? "f" : "";
+  const m = hlog[day.slice(0, 7)]; return ((m && m.d[hbDayKey(day)]) || {})[h.id] || "";
+}
+function hbStreak(h){
+  let n = 0, d = mornDay();
+  if (!hbState(h, d)) d = addD(d, -1);
+  for (let i = 0; i < 400; i++){
+    if (h.id !== "morning" && !hlog[d.slice(0, 7)]) break;
+    if (!hbScheduled(h, d)){ d = addD(d, -1); continue; }
+    if (!hbState(h, d)) break;
+    n++; d = addD(d, -1);
+  }
+  return n;
+}
+const hbDaysLabel = (h) => !h.days || !h.days.length || h.days.length === 7 ? "毎日" : "毎週 " + h.days.slice().sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map((i) => WD[i]).join("、");
+function paintHabits(){
+  const el = $("hb-card"), day = mornDay(), list = hbAll().filter((h) => hbScheduled(h, day));
+  const done = list.filter((h) => hbState(h, day)).length;
+  el.hidden = false;
+  el.innerHTML = '<div class="row-between"><span class="hb-lb">HABITS<span>' + done + '/' + list.length + '</span></span><button type="button" class="link" data-hbgo>足す、直す ›</button></div>'
+    + list.map((h) => {
+      const st = hbState(h, day), n = hbStreak(h), c = h.kind === "life" ? "y" : "b";
+      return '<div class="hb-row"><button type="button" class="hb-box ' + c + (st ? " on" : "") + (st === "m" ? " min" : "") + '" ' + (h.auto ? 'data-hbauto' : 'data-hbck="' + esc(h.id) + '"') + ' aria-pressed="' + !!st + '" aria-label="' + esc(h.name) + '"></button>'
+        + '<div class="hb-t"><b>' + esc(h.name) + (h.time ? '<span>' + esc(h.time) + 'に知らせ</span>' : '') + '</b>'
+        + '<span class="small">' + (h.auto ? (st ? "今朝は終わりました" : "朝の流れを終えると自動で✓") : st === "m" ? "最低ラインで✓" : h.min ? "最低ライン　" + esc(h.min) : "") + '</span></div>'
+        + (!st && h.min && !h.auto ? '<button type="button" class="mini hb-min" data-hbmin="' + esc(h.id) + '">最低ラインで✓</button>' : '<span class="small hb-n">' + (n ? n + '日続いています' : '') + '</span>') + '</div>';
+    }).join("");
+}
+async function hbSet(day, id, v){
+  const ym = day.slice(0, 7), m = await hbLoadMonth(ym), k = hbDayKey(day);
+  m.d[k] = Object.assign({}, m.d[k] || {}); if (v) m.d[k][id] = v; else delete m.d[k][id];
+  paintHabits(); if (!$("rv-habit-pane").hidden) paintHabitPane();
+  try { await db.doc("hlog/" + ym).set(m); } catch(e){ toast("保存できませんでした"); }
+}
+async function hbSave(){
+  habits = Object.assign({}, habits, {updatedAt: new Date().toISOString()}); ls.set("journal.habits", habits);
+  paintHabits(); paintHabitPane();
+  try { await db.doc("habits/main").set(habits); } catch(e){ toast("保存できませんでした"); }
+}
+// 振り返りの「習慣」：月の表と、習慣を足す、直す
+async function renderHabitPane(){
+  hbYm = hbYm || mornDay().slice(0, 7); paintHabitPane();
+  await hbLoadMonth(hbYm, true); if (!visLog) await paintStreak().catch(() => {}); paintHabitPane();
+}
+function paintHabitPane(){
+  if (!hbYm) return;
+  const [y, mo] = hbYm.split("-").map(Number), last = new Date(y, mo, 0).getDate(), today = mornDay(), all = hbAll();
+  let h = '<div class="card hb-tr"><div class="mnav"><button class="icon-btn" type="button" data-hbm="-1" aria-label="前の月">‹</button><b class="hb-ml">' + y + '年' + mo + '月</b><button class="icon-btn" type="button" data-hbm="1" aria-label="次の月">›</button></div>'
+    + '<div class="hb-grid" style="grid-template-columns:72px repeat(' + last + ',minmax(0,1fr))"><span></span>'
+    + Array.from({length: last}, (_, i) => '<span class="hb-dn">' + (i === 0 || (i + 1) % 5 === 0 ? i + 1 : '') + '</span>').join("");
+  all.forEach((x) => {
+    const c = x.kind === "life" ? "y" : "b";
+    h += '<span class="hb-nm"><i class="' + c + '"></i>' + esc(x.name) + '</span>';
+    for (let d = 1; d <= last; d++){
+      const day = hbYm + "-" + String(d).padStart(2, "0"), s0 = hbState(x, day);
+      const st = day > today ? "fut" : !hbScheduled(x, day) ? "off" : s0 === "f" ? "f" : s0 === "m" ? "m" : "";
+      h += '<i class="hb-c ' + c + ' ' + st + (day === today ? ' td' : '') + '"></i>';
+    }
+  });
+  h += '</div><div class="hb-lg"><span><i class="b f"></i>目標に直結</span><span><i class="y f"></i>人生を豊かに</span><span><i class="b m"></i>最低ラインだけ</span></div></div>';
+  // 習慣の一覧
+  h += '<div class="card hb-list"><div class="sc-lb">習慣</div>'
+    + '<div class="hb-li"><div><b>朝のふり返り</b><span class="small">毎日　朝の流れを終えると自動で✓</span></div><label class="hb-tm">知らせる時刻<input type="time" id="hb-mt" value="' + esc(habits.morningTime || "") + '"></label></div>'
+    + (habits.items || []).map((x) => '<button type="button" class="hb-li" data-hbe="' + esc(x.id) + '"><div><b><i class="' + (x.kind === "life" ? "y" : "b") + '"></i>' + esc(x.name) + '</b><span class="small">' + hbDaysLabel(x) + (x.min ? '　最低ライン ' + esc(x.min) : '') + (x.time ? '　' + esc(x.time) + 'に知らせ' : '') + '</span></div><span class="hb-ar">›</span></button>').join("")
+    + (hbEdit ? hbFormHtml() : '<button type="button" class="btn ghost" data-hbe="new">＋ 習慣を足す</button>') + '</div>';
+  $("rv-habit-body").innerHTML = h;
+}
+function hbFormHtml(){
+  const x = hbEdit, dsel = x.days || [];
+  return '<div class="hb-form"><b>' + (x.id ? "習慣を直す" : "習慣を足す") + '</b>'
+    + '<label>名前<input type="text" id="hb-name" value="' + esc(x.name || "") + '" placeholder="例：読書"></label>'
+    + '<div class="hb-fl">種類</div><div class="hb-chips">' + [["goal", "目標に直結"], ["life", "人生を豊かに"]].map(([k, l]) => '<button type="button" data-hbkind="' + k + '" aria-pressed="' + ((x.kind || "goal") === k) + '">' + l + '</button>').join("") + '</div>'
+    + '<div class="hb-fl">やる日</div><div class="hb-chips"><button type="button" data-hbday="all" aria-pressed="' + (!dsel.length) + '">毎日</button>' + [1, 2, 3, 4, 5, 6, 0].map((i) => '<button type="button" data-hbday="' + i + '" aria-pressed="' + (dsel.indexOf(i) >= 0) + '">' + WD[i] + '</button>').join("") + '</div>'
+    + '<label>最低ライン（できない日でもこれだけはやる）<input type="text" id="hb-min" value="' + esc(x.min || "") + '" placeholder="例：1ページだけ"></label>'
+    + '<label>知らせる時刻（空なら知らせない）<input type="time" id="hb-time" value="' + esc(x.time || "") + '"></label>'
+    + '<div class="hb-acts"><button type="button" class="btn" data-hbsave>保存</button><button type="button" class="btn ghost" data-hbcancel>やめる</button></div>'
+    + (x.id ? '<button type="button" class="mini hb-del" data-hbdel>この習慣を消す</button>' : '') + '</div>';
+}
+function hbGrab(){ if (!hbEdit) return; const g = (id) => { const e = $(id); return e ? e.value : ""; }; hbEdit.name = g("hb-name"); hbEdit.min = g("hb-min"); hbEdit.time = g("hb-time"); }
+document.addEventListener("click", async (ev) => {
+  if (ev.target.closest("[data-hbauto]")){ if (!(visLog && visLog.has(mornDay()))) $("vis-open").click(); return; }
+  const c = ev.target.closest("[data-hbck],[data-hbmin]");
+  if (c){
+    const id = c.dataset.hbck || c.dataset.hbmin, day = mornDay(), cur = hbState({id: id}, day);
+    if (c.dataset.hbmin){ hbSet(day, id, "m"); return; }
+    if (cur){ const nm = ((habits.items || []).find((h) => h.id === id) || {}).name; if (!(await askConfirm("チェックを外しますか？", nm, "外す"))) return; }
+    hbSet(day, id, cur ? "" : "f"); return;
+  }
+  if (ev.target.closest("[data-hbgo]")){ document.querySelector('nav.tabs button[data-view="review"]').click(); document.querySelector('[data-rv="habit"]').click(); return; }
+  const mv = ev.target.closest("[data-hbm]");
+  if (mv){ const [y, m] = hbYm.split("-").map(Number); hbYm = ymd(new Date(y, m - 1 + Number(mv.dataset.hbm), 1)).slice(0, 7); paintHabitPane(); await hbLoadMonth(hbYm); paintHabitPane(); return; }
+  const e = ev.target.closest("[data-hbe]");
+  if (e){ const id = e.dataset.hbe; hbEdit = id === "new" ? {name: "", kind: "goal", days: [], min: "", time: ""} : Object.assign({}, (habits.items || []).find((x) => x.id === id)); paintHabitPane(); const f = document.querySelector(".hb-form"); if (f) f.scrollIntoView({block: "center", behavior: "smooth"}); return; }
+  const k = ev.target.closest("[data-hbkind]"); if (k){ hbGrab(); hbEdit.kind = k.dataset.hbkind; paintHabitPane(); return; }
+  const dy = ev.target.closest("[data-hbday]");
+  if (dy){ hbGrab(); const v = dy.dataset.hbday; if (v === "all") hbEdit.days = []; else { const i = Number(v), ds = (hbEdit.days || []).slice(), p = ds.indexOf(i); if (p >= 0) ds.splice(p, 1); else ds.push(i); hbEdit.days = ds.length === 7 ? [] : ds; } paintHabitPane(); return; }
+  if (ev.target.closest("[data-hbcancel]")){ hbEdit = null; paintHabitPane(); return; }
+  if (ev.target.closest("[data-hbsave]")){
+    hbGrab(); const x = hbEdit; x.name = String(x.name || "").trim(); if (!x.name){ toast("名前を入れてください"); return; }
+    const items = (habits.items || []).slice();
+    if (x.id){ const i = items.findIndex((y) => y.id === x.id); if (i >= 0) items[i] = x; } else { x.id = "h" + Date.now().toString(36); items.push(x); }
+    habits = Object.assign({}, habits, {items: items}); hbEdit = null; hbSave(); toast("保存しました"); return;
+  }
+  if (ev.target.closest("[data-hbdel]")){
+    const x = hbEdit; if (!(await askConfirm("この習慣を消しますか？", x.name, "消す"))) return;
+    habits = Object.assign({}, habits, {items: (habits.items || []).filter((y) => y.id !== x.id)}); hbEdit = null; hbSave(); return;
+  }
+});
+document.addEventListener("change", (ev) => { if (ev.target.id === "hb-mt"){ habits = Object.assign({}, habits, {morningTime: ev.target.value || ""}); hbSave(); toast(ev.target.value ? ev.target.value + "にまだなら知らせます" : "知らせないようにしました"); } });
 async function micStopAndSave(){
   recOn = false; recPaused = false; try { rec && rec.stop(); } catch(e){}
   micPaint(); recvClose();
@@ -2034,6 +2219,7 @@ async function paintStreak(){
   if (!visLog.has(ymd(d))) d.setDate(d.getDate() - 1);
   while (visLog.has(ymd(d))){ n++; d.setDate(d.getDate() - 1); }
   $("vis-streak").textContent = visLog.has(mornDay()) ? "今日は読みました" + (n > 1 ? "（" + n + "日続いています）" : "") : n ? n + "日続いています。今日の方角を確かめる" : "今日の方角を確かめる";
+  if (typeof paintHabits === "function" && !$("hb-card").hidden) paintHabits();
 }
 // その日初めて開いたとき（置いたままのアプリに戻ったときも）に出す
 async function mornCheck(){
@@ -2680,13 +2866,13 @@ $("rv-mode").addEventListener("click", (ev) => {
   const b = ev.target.closest("[data-rv]"); if (!b || b.dataset.rv === rvPane) return;
   rvPane = b.dataset.rv;
   $("rv-mode").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-  ["years","sum","ideas","books","hayato"].forEach((k) => { $("rv-" + k + "-pane").hidden = rvPane !== k; });
+  ["years","sum","ideas","books","hayato","habit"].forEach((k) => { $("rv-" + k + "-pane").hidden = rvPane !== k; });
   renderPane();
 });
 const md2 = (date) => { const [y, m, d] = date.split("-").map(Number); return y + "年" + m + "月" + d + "日"; };
 function renderPane(){
   if (rvPane === "years") renderReview(); else if (rvPane === "ideas") renderIdeas(); else if (rvPane === "books") renderBooks();
-  else if (rvPane === "sum") renderSums(); else renderHayato();
+  else if (rvPane === "sum") renderSums(); else if (rvPane === "habit") renderHabitPane(); else renderHayato();
 }
 const todoBtn = (text, from) => text ? '<button type="button" class="link" data-todo-add="' + esc(text) + '" data-from="' + from + '">TODOに入れる</button>' : '';
 const qMatch = (q, ...xs) => { q = (q || "").trim().toLowerCase(); if (!q) return true; const t = xs.join(" ").toLowerCase(); return q.split(/\s+/).every((w) => t.indexOf(w) >= 0); };
@@ -3034,6 +3220,8 @@ function ntcWhere(x){
   if (/まとめ/.test(t)) return "#sum";
   if (/TODO|期限/.test(t)) return "#todo";
   if (/年前の今日/.test(t)) return "#ly";
+  if (/^習慣/.test(t)) return "#habit";
+  if (/朝のふり返り/.test(t)) return "#compass";
   if (/書いていません/.test(t)) return "#write";
   return "";
 }
@@ -3055,6 +3243,7 @@ function ntcGo(go, x){
   if (go === "#sched"){ tab("sched"); if (x) ntcOpenItem(x); }
   else if (go === "#mail"){ tab("sched"); setTimeout(() => { if ((mailCand || []).length) sheetOpen("mc"); }, 300); }
   else if (go === "#todo") tab("todo");
+  else if (go === "#habit"){ tab("today"); setTimeout(() => { $("hb-card").scrollIntoView({behavior: "smooth", block: "start"}); }, 150); }
   else if (go === "#sum"){ tab("review"); const b = document.querySelector('[data-rv="sum"]'); if (b) b.click(); }
   else if (go === "#compass"){ tab("today"); setTimeout(() => $("vis-open").click(), 150); }
   else if (go === "#ly"){ tab("today"); setTimeout(() => { const c = $("ly-title").closest(".card") || $("ly-title"); c.scrollIntoView({behavior: "smooth", block: "start"}); }, 150); }
@@ -4123,6 +4312,7 @@ renderToday();
   } catch(e){}
   watchDay();
   loadVision().then(mornCheck).catch(() => {});
+  loadHabits().catch(() => {});
   Promise.all([loadBoard(), loadSched(mornDay(), true), loadCal(weekStart(mornDay()))]).then(paintHomeSched).catch(() => {});
   loadLastYear().catch(() => { $("ly-body").innerHTML = '<span class="empty">読み込めませんでした。</span>'; });
   loadOlder().catch(() => {});
