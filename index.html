@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="JOURNAL">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#E9F0F7">
-<meta name="journal-ver" content="69">
+<meta name="journal-ver" content="70">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -2921,11 +2921,17 @@ function boardHits(day){
     const m = /^第(\d)週$/.exec(f || ""); return m ? Math.ceil(dd / 7) === Number(m[1]) : false;
   });
 }
+// 読んできた中身を使ってよいか（こちらで直した直後や保存の途中は、古い中身で上書きしない）
+let brdLocalAt = 0;
+function brdTake(d){
+  if (Date.now() - brdLocalAt < 60000) return false;
+  return !(board && board.updatedAt && d && d.updatedAt && d.updatedAt < board.updatedAt);
+}
 async function loadBoard(){
   if (!db) return board;
   // シートが書き換えられていたら取り込む（MY COMPASSと同じ）
-  if (!loadBoard.syncing){ loadBoard.syncing = true; window.JOURNAL_CALL("board_sync", {}).then(async (r) => { if (r && r.changed){ try { const s3 = await db.doc("board/main").get(); if (s3.exists){ board = s3.data(); ls.set("journal.board", board); repaintSched(); } } catch(e){} } }).catch(() => {}).finally(() => { setTimeout(() => { loadBoard.syncing = false; }, 30000); }); }
-  try { const s2 = await db.doc("board/main").get(); if (s2.exists){ board = s2.data(); ls.set("journal.board", board); } else if (!board) board = {items: []}; } catch(e){ if (!board) board = {items: []}; }
+  if (!loadBoard.syncing){ loadBoard.syncing = true; window.JOURNAL_CALL("board_sync", {}).then(async (r) => { if (r && r.changed){ try { const s3 = await db.doc("board/main").get(); if (s3.exists && brdTake(s3.data())){ board = s3.data(); ls.set("journal.board", board); repaintSched(); if (!$("brd").hidden) paintBrd(); } } catch(e){} } }).catch(() => {}).finally(() => { setTimeout(() => { loadBoard.syncing = false; }, 30000); }); }
+  try { const s2 = await db.doc("board/main").get(); if (s2.exists){ if (brdTake(s2.data())){ board = s2.data(); ls.set("journal.board", board); } } else if (!board) board = {items: []}; } catch(e){ if (!board) board = {items: []}; }
   return board;
 }
 async function loadSched(day, force){
@@ -3388,7 +3394,7 @@ function brdGrab(){
 // 先に画面を変え、保存はうしろで続ける（待たずに次の操作ができる）。続けて押しても最後の状態が保存される
 let brdSaveP = Promise.resolve();
 async function brdSave(items, quiet){
-  board = Object.assign({}, board || {}, {items: items, updatedAt: new Date().toISOString(), from: "app"}); ls.set("journal.board", board);
+  board = Object.assign({}, board || {}, {items: items, updatedAt: new Date().toISOString(), from: "app"}); ls.set("journal.board", board); brdLocalAt = Date.now();
   if (!$("brd").hidden) paintBrd(); repaintSched();
   const snap = board;
   brdSaveP = brdSaveP.then(async () => {
