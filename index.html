@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="JOURNAL">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#E9F0F7">
-<meta name="journal-ver" content="73">
+<meta name="journal-ver" content="74">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -1722,10 +1722,10 @@ document.addEventListener("change", (ev) => {
   gciSave(TODAY, {[t.dataset.gci]: t.value.trim()}).then(() => toast("保存しました"));
 });
 // MY COMPASSの最初に「昨日をふり返る」を出す（まだ書いていない朝だけ）
-let mornRefl = false;
+let mornRefl = false, mornReflNeed = false, mornReflDone = false;
 function reflHtml(){
   const g = mornDay() === TODAY ? gciOf(todayDoc) : {good: "", challenge: "", insight: ""};
-  return '<div class="refl"><p class="eyebrow">はじめに</p><h2>昨日をふり返る</h2><p class="small">1行ずつで大丈夫です。書かずに「次へ」でも進めます。</p>' + gciFields(g, "rf-") + '</div>';
+  return '<div class="refl"><p class="eyebrow">YESTERDAY</p><h2>昨日をふり返る</h2><p class="small">1行ずつで大丈夫です。書かずに「次へ」でも進めます。</p>' + gciFields(g, "rf-") + '</div>';
 }
 async function reflSave(){
   const v = (k) => { const e = $("rf-" + k); return e ? e.value.trim() : ""; };
@@ -2261,14 +2261,14 @@ function paintMorn(){
   $("morn-dots").innerHTML = Array.from({length: mornLast() + 1}, (_, i) => '<i class="' + (i <= mornStep ? "on" : "") + '"></i>').join("");
   $("morn-foot").hidden = !!visEditing;
   if (visEditing){ el.innerHTML = editHtml(visEditing); $("morn").scrollTop = 0; return; }
-  if (mornRefl){ el.innerHTML = reflHtml(); el.querySelectorAll("textarea").forEach(gciGrow); $("morn-back").style.visibility = "hidden"; $("morn-next").textContent = "次へ"; return; }
+  if (mornRefl){ el.innerHTML = reflHtml(); el.querySelectorAll("textarea").forEach(gciGrow); $("morn-back").style.visibility = "visible"; $("morn-next").textContent = "次へ"; return; }
   el.innerHTML = mornStep === 0 ? cloverHtml(vision) : mornStep === 1 ? fmHtml(vision) : mornStep === 2 ? actionHtml(vision) : mornStep === 3 ? schedHtml(mornDay()) : suggHtml(suggs, true) || '<p class="lead">候補はすべて決めました。</p>';
   $("morn-back").style.visibility = mornStep === 0 ? "hidden" : "visible";
   $("morn-next").textContent = mornStep === mornLast() ? "今日はこれでよし" : "次へ";
 }
 function mornOpen(auto){
   mornStep = 0; visCell = todaysArea(); mornArea = todaysArea(); visEditing = null; mornAction = "";
-  { const g0 = mornDay() === TODAY ? gciOf(todayDoc) : {}; mornRefl = !(g0.good || g0.challenge); }
+  { const g0 = mornDay() === TODAY ? gciOf(todayDoc) : {}; mornRefl = false; mornReflDone = false; mornReflNeed = !(g0.good || g0.challenge); }
   $("morn").hidden = false; paintMorn();
   ls.set("journal.mornShown", mornDay());
   mornSugg = !!(suggs && suggs.length);
@@ -2301,9 +2301,11 @@ async function mornCheck(){
   const day = mornDay();
   if (ls.get("journal.mornShown") === day) return;
   ls.set("journal.mornShown", day);
-  try { const s2 = await db.doc("vision_log/" + day).get(); if (s2.exists) return; } catch(e){}
+  if (ls.get("journal.mornDone") === day) return;
   if (!vision) await loadVision();
   mornOpen(true);
+  // ほかの端末ですでに終えていたら、まだ触っていなければ閉じる
+  try { const s2 = await db.doc("vision_log/" + day).get(); if (s2.exists){ ls.set("journal.mornDone", day); if (!$("morn").hidden && mornStep === 0 && !mornRefl && !visEditing) mornClose(); } } catch(e){}
 }
 document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(mornCheck, 400); });
 // 新しい版が出ていたら、上に「読み直す」を出す（書きかけが消えないよう、勝手には読み直さない）
@@ -2325,14 +2327,16 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) setT
 setInterval(() => { if (!document.hidden) mornCheck(); }, 60000);
 $("vis-open").addEventListener("click", () => { if (!vision) vision = {mission: "", affirm: "", fm: {}, clover: {}}; mornOpen(false); loadVision(); });
 $("morn-close").addEventListener("click", mornClose);
-$("morn-back").addEventListener("click", () => { mornSaveText(); if (mornStep > 0){ mornStep--; paintMorn(); } });
+$("morn-back").addEventListener("click", () => { if (mornRefl){ mornRefl = false; paintMorn(); return; } mornSaveText(); if (mornStep > 0){ mornStep--; paintMorn(); } });
 function mornSaveText(){ const t = $("morn-action"); if (t) mornAction = t.value; }
 $("morn-next").addEventListener("click", async () => {
-  if (mornRefl){ await reflSave(); mornRefl = false; paintMorn(); $("morn").scrollTop = 0; return; }
+  if (mornRefl){ await reflSave(); mornRefl = false; mornReflDone = true; mornStep = 2; paintMorn(); $("morn").scrollTop = 0; return; }
+  if (mornStep === 1 && mornReflNeed && !mornReflDone){ mornSaveText(); mornRefl = true; paintMorn(); $("morn").scrollTop = 0; return; }
   mornSaveText();
   if (mornStep < mornLast()){ mornStep++; paintMorn(); $("morn").scrollTop = 0; return; }
   const day = mornDay(), text = mornAction.trim(), area = mornArea;
   mornClose(); mornAction = "";
+  ls.set("journal.mornDone", day);
   try { await db.doc("vision_log/" + day).set({date: day, at: new Date().toISOString(), action: text, area: area || ""}); } catch(e){}
   if (text){ const lab = ((fmAreasL().find((c) => c[0] === area) || [])[1] || "").replace(/^[①-⑨]\s*/, ""); await addTodo(text, "MY COMPASS" + (lab ? "（" + lab + "）" : ""), null, REAL_TODAY, REAL_TODAY); toast("今日の一歩をTODOに入れました"); }
   else toast("今日もいってらっしゃい");
@@ -4381,6 +4385,7 @@ renderToday();
     if (mcp && s === "granted"){ syncSheet(true); flushBackup(); }
   } catch(e){}
   if (!db){ showBanner(); return; }
+  mornCheck();   // 朝の画面は、設定を読み終わるのを待たずにすぐ出す
   try {
     const s = await db.doc("settings/main").get();
     if (s.exists){ const v = s.data(); if (v.prefs) prefs = fixPrefs(v.prefs); if (Array.isArray(v.dict)) dict = v.dict; ls.set("journal.prefs", prefs); ls.set("journal.dict", dict); applyTheme(); }
