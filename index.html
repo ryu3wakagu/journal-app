@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="JOURNAL">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#E9F0F7">
-<meta name="journal-ver" content="71">
+<meta name="journal-ver" content="72">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -1579,7 +1579,7 @@ function paintHabits(){
   const el = $("hb-card"), day = mornDay(), list = hbAll().filter((h) => hbScheduled(h, day));
   const done = list.filter((h) => hbState(h, day)).length;
   el.hidden = false;
-  el.innerHTML = '<div class="row-between"><span class="hb-lb">HABITS<span>' + done + '/' + list.length + '</span></span><button type="button" class="link" data-hbgo>足す、直す ›</button></div>'
+  el.innerHTML = '<div class="row-between"><span class="hb-lb">HABITS<span>' + done + '/' + list.length + '</span></span><button type="button" class="link" data-hbgo>習慣の設定 ›</button></div>'
     + list.map((h) => {
       const st = hbState(h, day), n = hbStreak(h), c = h.kind === "life" ? "y" : "b";
       return '<div class="hb-row"><button type="button" class="hb-box ' + c + (st ? " on" : "") + (st === "m" ? " min" : "") + '" ' + (h.auto ? 'data-hbauto' : 'data-hbck="' + esc(h.id) + '"') + ' aria-pressed="' + !!st + '" aria-label="' + esc(h.name) + '"></button>'
