@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="JOURNAL">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#E9F0F7">
-<meta name="journal-ver" content="72">
+<meta name="journal-ver" content="73">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -391,6 +391,18 @@ button.tapped,.chip.tapped{filter:brightness(.85)}
 .hb-chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
 .hb-acts{display:flex;gap:8px}.hb-acts .btn{flex:1}
 .hb-del{align-self:center;color:var(--rec)}
+/* 朝の3行と、今日の調子 */
+.gci-card{gap:6px}
+.gci-f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--sub);font-weight:600}
+.gci-f textarea{border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font:inherit;font-size:16px;font-weight:400;line-height:1.5;padding:8px 10px;resize:none;min-height:40px;box-sizing:border-box;width:100%}
+.refl{display:flex;flex-direction:column;gap:10px}
+.refl h2{margin:0}
+.hb-mood{display:flex;gap:6px;flex:none}
+.hb-mood button{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);font:inherit;font-weight:700;cursor:pointer}
+.ask-mood{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px}
+.ask-mood button{min-height:48px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);font:inherit;font-size:18px;font-weight:700;cursor:pointer}
+#ai-good,#ai-challenge,#ai-insight,#ai-hayato{display:none!important}
+.pref:has(#p-import),.pref:has(#migrate-go),div:has(> #migrate-go){display:none!important}
 .upd button{border:0;border-radius:10px;background:var(--onAccent);color:var(--accent);font:inherit;font-size:14px;font-weight:600;padding:8px 14px;cursor:pointer}
 .pi-grp{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
 .pi-grp:empty{display:none}
@@ -838,6 +850,7 @@ nav.tabs button[aria-current="page"]{color:var(--accentText);font-weight:700}
     </div>
   </div>
   <article class="card hb-card" id="hb-card" hidden></article>
+  <article class="card gci-card" id="gci-card" hidden></article>
   <div class="vis-open-row"><button type="button" class="compass-btn" id="vis-open"><span class="cb-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.6 8.4l-2.2 5-5 2.2 2.2-5z"/><path d="M12 3v1.6M12 19.4V21M3 12h1.6M19.4 12H21"/></svg></span><span class="cb-text"><b>MY COMPASS</b><small id="vis-streak">今日の方角を確かめる</small></span><svg class="cb-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></div>
   <div id="home-sched" hidden></div>
   <div class="notice" id="w-panel" hidden>
@@ -1580,6 +1593,8 @@ function paintHabits(){
   const done = list.filter((h) => hbState(h, day)).length;
   el.hidden = false;
   el.innerHTML = '<div class="row-between"><span class="hb-lb">HABITS<span>' + done + '/' + list.length + '</span></span><button type="button" class="link" data-hbgo>習慣の設定 ›</button></div>'
+    + (TODAY === day ? '<div class="hb-row"><span class="hb-box b' + (typeof mood === "number" ? " on" : "") + '" aria-hidden="true"></span><div class="hb-t"><b>今日の調子</b><span class="small">' + (typeof mood === "number" ? "調子 " + mood + "　（下のTODAY'S CONDITIONで変えられます）" : "1〜5を押してください") + '</span></div>'
+      + (typeof mood === "number" ? '' : '<div class="hb-mood">' + [1, 2, 3, 4, 5].map((n) => '<button type="button" data-hbmood="' + n + '">' + n + '</button>').join("") + '</div>') + '</div>' : '')
     + list.map((h) => {
       const st = hbState(h, day), n = hbStreak(h), c = h.kind === "life" ? "y" : "b";
       return '<div class="hb-row"><button type="button" class="hb-box ' + c + (st ? " on" : "") + (st === "m" ? " min" : "") + '" ' + (h.auto ? 'data-hbauto' : 'data-hbck="' + esc(h.id) + '"') + ' aria-pressed="' + !!st + '" aria-label="' + esc(h.name) + '"></button>'
@@ -1640,6 +1655,7 @@ function hbFormHtml(){
 }
 function hbGrab(){ if (!hbEdit) return; const g = (id) => { const e = $(id); return e ? e.value : ""; }; hbEdit.name = g("hb-name"); hbEdit.min = g("hb-min"); hbEdit.time = g("hb-time"); }
 document.addEventListener("click", async (ev) => {
+  const hm = ev.target.closest("[data-hbmood]"); if (hm){ const mb = document.querySelector('#mood button[data-m="' + hm.dataset.hbmood + '"]'); if (mb) mb.click(); setTimeout(paintHabits, 50); return; }
   if (ev.target.closest("[data-hbauto]")){ if (!(visLog && visLog.has(mornDay()))) $("vis-open").click(); return; }
   const c = ev.target.closest("[data-hbck],[data-hbmin]");
   if (c){
@@ -1669,6 +1685,65 @@ document.addEventListener("click", async (ev) => {
   }
 });
 document.addEventListener("change", (ev) => { if (ev.target.id === "hb-mt"){ habits = Object.assign({}, habits, {morningTime: ev.target.value || ""}); hbSave(); toast(ev.target.value ? ev.target.value + "にまだなら知らせます" : "知らせないようにしました"); } });
+/* ---------- 朝の3行（昨日のGOOD、今日のCHALLENGE、気づき）は自分で書く ---------- */
+// days/<日付>.gci = {good, challenge, insight}。前の仕組みから取り込んだ日は ai.good などに入っている
+function gciOf(d){
+  if (!d) return {good: "", challenge: "", insight: ""};
+  if (d.gci) return Object.assign({good: "", challenge: "", insight: ""}, d.gci);
+  if (d.ai && d.ai.at === "imported") return {good: d.ai.good || "", challenge: d.ai.challenge || "", insight: d.ai.insight || ""};
+  return {good: "", challenge: "", insight: ""};
+}
+const GCI_F = [["good", "昨日のGOOD", "昨日よかったことを1行で"], ["challenge", "今日のCHALLENGE", "今日やってみることを1行で"], ["insight", "気づき", "あれば1行で（なくても大丈夫）"]];
+function gciFields(g, pre){
+  return GCI_F.map(([k, l, ph]) => '<label class="gci-f"><span>' + l + '</span><textarea rows="1" id="' + pre + k + '" data-gci="' + k + '" placeholder="' + ph + '">' + esc(g[k] || "") + '</textarea></label>').join("");
+}
+function paintGci(){
+  const el = $("gci-card"); if (!el) return;
+  const g = gciOf(todayDoc);
+  el.hidden = false;
+  el.innerHTML = '<div class="row-between"><span class="hb-lb">GOOD と CHALLENGE</span><span class="small">' + (TODAY === mornDay() ? "今朝" : jp(TODAY)) + '</span></div>' + gciFields(g, "gc-");
+  el.querySelectorAll("textarea").forEach(gciGrow);
+}
+function gciGrow(t){ t.style.height = "auto"; t.style.height = Math.max(40, t.scrollHeight) + "px"; }
+async function gciSave(day, patch){
+  if (!db) return;
+  const ref = db.doc("days/" + day);
+  try {
+    const s = await ref.get(), cur = s.exists ? s.data() : null;
+    const gci = Object.assign(gciOf(cur), patch);
+    if (cur) await ref.update({gci: gci, updatedAt: new Date().toISOString()});
+    else await ref.set({date: day, md: day.slice(5), year: Number(day.slice(0, 4)), entries: [], mood: null, ai: null, gci: gci, updatedAt: new Date().toISOString()});
+    if (day === TODAY) todayDoc = Object.assign({}, todayDoc || {date: day, entries: []}, {gci: gci});
+  } catch(e){ toast("保存できませんでした"); }
+}
+document.addEventListener("input", (ev) => { if (ev.target.matches && ev.target.matches("[data-gci]")) gciGrow(ev.target); });
+document.addEventListener("change", (ev) => {
+  const t = ev.target.closest && ev.target.closest("#gci-card [data-gci]"); if (!t) return;
+  gciSave(TODAY, {[t.dataset.gci]: t.value.trim()}).then(() => toast("保存しました"));
+});
+// MY COMPASSの最初に「昨日をふり返る」を出す（まだ書いていない朝だけ）
+let mornRefl = false;
+function reflHtml(){
+  const g = mornDay() === TODAY ? gciOf(todayDoc) : {good: "", challenge: "", insight: ""};
+  return '<div class="refl"><p class="eyebrow">はじめに</p><h2>昨日をふり返る</h2><p class="small">1行ずつで大丈夫です。書かずに「次へ」でも進めます。</p>' + gciFields(g, "rf-") + '</div>';
+}
+async function reflSave(){
+  const v = (k) => { const e = $("rf-" + k); return e ? e.value.trim() : ""; };
+  const patch = {good: v("good"), challenge: v("challenge"), insight: v("insight")};
+  if (patch.good || patch.challenge || patch.insight){ await gciSave(mornDay(), patch); if (mornDay() === TODAY) paintGci(); }
+}
+// コンディションの入れ忘れを防ぐ：記録したあと、まだなら聞く
+function askMood(){
+  if (typeof mood === "number" || document.querySelector(".ask-bg")) return;
+  const bg = document.createElement("div"); bg.className = "ask-bg";
+  bg.innerHTML = '<div class="ask" role="dialog" aria-modal="true"><b>今日の調子は？</b><p>コンディションがまだ入っていません</p><div class="ask-mood">' + [1, 2, 3, 4, 5].map((n) => '<button type="button" data-askm="' + n + '">' + n + '</button>').join("") + '</div><div class="ask-btns" style="grid-template-columns:1fr"><button type="button" data-ask="0">あとで</button></div></div>';
+  bg.addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-askm]");
+    if (b){ bg.remove(); const mb = document.querySelector('#mood button[data-m="' + b.dataset.askm + '"]'); if (mb) mb.click(); return; }
+    if (ev.target.closest("[data-ask]") || ev.target === bg) bg.remove();
+  });
+  document.body.appendChild(bg);
+}
 async function micStopAndSave(){
   recOn = false; recPaused = false; try { rec && rec.stop(); } catch(e){}
   micPaint(); recvClose();
@@ -1835,6 +1910,7 @@ function applyDict(s){
 /* ---------- 表示 ---------- */
 let todayDoc = null;
 function renderToday(){
+  setTimeout(() => { paintGci(); if (typeof paintHabits === "function" && !$("hb-card").hidden) paintHabits(); }, 0);
   const d = todayDoc;
   const entries = (d && d.entries) || [];
   $("today-card").hidden = entries.length === 0;
@@ -1932,10 +2008,8 @@ async function loadOlderOld(){
 }
 function itemHtml(d){
   const ago = YEAR - d.year;
-  const extra = [];
-  if (d.ai && d.ai.good) extra.push('<div class="box"><b>よかったこと</b><span>' + esc(d.ai.good) + '</span></div>');
-  if (d.ai && d.ai.challenge) extra.push('<div class="box"><b>課題</b><span>' + esc(d.ai.challenge) + '</span></div>');
-  const insight = d.ai && d.ai.insight ? '<div class="box"><b>気づき</b><span>' + esc(d.ai.insight) + '</span></div>' : '';
+  const extra = [], g = gciOf(d);
+  const insight = [["good", "GOOD"], ["challenge", "CHALLENGE"], ["insight", "気づき"]].filter(([k]) => g[k]).map(([k, l]) => '<div class="box"><b>' + l + '</b><span>' + esc(g[k]) + '</span></div>').join("");
   const head = '<div class="item"><div class="row-between"><span class="year">' + d.year + '年' + (ago === 0 ? '（今年）' : '') + '</span><span class="small">' + (ago > 0 ? ago + '年前　' : '') + (typeof d.mood === "number" ? '調子 ' + d.mood : '') + '</span></div>';
   // 音声の日は、まとめを見せて原文は押すと広がる。打ち込みや手書きは本文をそのまま
   if (usesSummary(d)) return head + '<p class="body">' + esc(d.ai.summary) + '</p>' + insight + rawFold(d, extra.join("")) + '</div>';
@@ -1969,6 +2043,7 @@ $("save").addEventListener("click", async () => {
     $("save-status").textContent = "保存しました（" + entries[entries.length - 1].t + "）";
     backupRows([[doc.date, entries[entries.length - 1].t, "JOURNAL", doc.mood ?? "", entries[entries.length - 1].text, new Date().toISOString()]]);
     loadMissing().catch(() => {});
+    if (typeof mood !== "number") setTimeout(askMood, 1200);
     const last = entries[entries.length - 1];
     ls.set("journal.voicePending", "");
     const auto = voiceAutoMsg ? voiceAutoMsg + "ここまで話した分を" : ""; voiceAutoMsg = "";
@@ -1983,7 +2058,7 @@ $("save").addEventListener("click", async () => {
 
 $("mood").addEventListener("click", async (ev) => {
   const b = ev.target.closest("button[data-m]"); if (!b) return;
-  mood = Number(b.dataset.m); renderMood();
+  mood = Number(b.dataset.m); renderMood(); if (typeof paintHabits === "function") paintHabits();
   if (db && todayDoc){ try { await db.doc("days/" + TODAY).update({mood: mood}); todayDoc = Object.assign({}, todayDoc, {mood: mood}); } catch(e){} }
 });
 
@@ -1998,20 +2073,17 @@ async function runAI(){
   const prompt = "あなたは日記の整理を手伝う役です。以下は" + jp(d.date) + "の日記です。音声入力を文字にしたものを含むため、言い間違いや話し言葉が混ざっています。\n"
     + "書いた本人が1年後の同じ日に読み返すことを想定して、次の項目を日本語で作ってください。\n"
     + (hasVoice(d)
-      ? "summary: その日の出来事、感じていたこと、考えていたことが流れで分かる文章。" + len + "。本人が話した言葉と口調（言い回し、語尾）をできるだけそのまま使い、書き言葉に直しすぎない。「えー」「なんか」などのつなぎ言葉、言い直し、同じことの繰り返しは省くが、本人らしさが消えるほど削らない。\n"
+      ? "summary: 1年後に見返したとき「この日はこういうことを考えていた、こういうことをやっていた、こういう気持ちだった」と思い出せる文章。" + len + "。出来事、感情、気づき、迷いの温度感を残す。本人の言葉や言い回しをできるだけそのまま使う。分析やアドバイスは入れない。無理にポジティブに言いかえない。日記として自然に読める文章にし、日付は入れない。「えー」「なんか」などのつなぎ言葉と言い直しは省く。\n"
       : "summary: 空文字にする（本文をそのまま読み返すため要約は不要）。\n")
-    + "good: よかったこと。1〜3文。\n"
-    + "challenge: うまくいかなかったことや課題。1〜3文。\n"
-    + "insight: 本人の気づき。できるだけ本人の言葉をそのまま使う。1〜2文。\n"
     + "ideas: 日記の中に出てきた新しいアイデアや、やってみたいこと（仕事、事業、仕組み、企画など）。それぞれ title（短い名前）、core（中身を1〜2文）、next（次の一歩を1文）。なければ空の配列。\n"
     + "hayato: 息子の隼人に関する出来事や気持ち。本人の言葉をなるべく残して1〜3文。なければ空文字。\n"
     + "todos: 本人が「やる」「やりたい」「〜しないと」と書いている、これから行う具体的な行動。短い1文で3つまで。気持ちや目標だけのものは入れない。なければ空の配列。\n"
     + "書かれていない内容は足さないこと。該当がなければ空文字にすること。数字は算用数字で書くこと。\n"
-    + '返答はJSONのみ: {"summary":"","good":"","challenge":"","insight":"","ideas":[{"title":"","core":"","next":""}],"hayato":"","todos":[""]}\n\n'
+    + '返答はJSONのみ: {"summary":"","ideas":[{"title":"","core":"","next":""}],"hayato":"","todos":[""]}\n\n'
     + "日記:\n" + rawOf(d).slice(0, 20000);
   try {
     const r = await sample.json(prompt, {cache: false, modelTier: "quick"});   // 毎日の整理は軽いAI（Haiku）で十分（2026年11月に比べて決めた）
-    const ai = {summary: String(r.summary || ""), good: String(r.good || ""), challenge: String(r.challenge || ""), insight: String(r.insight || ""), hayato: String(r.hayato || ""),
+    const ai = {summary: String(r.summary || ""), hayato: String(r.hayato || ""),
       todos: Array.isArray(r.todos) ? r.todos.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 3) : [], at: new Date().toISOString()};
     await db.doc("days/" + d.date).update({ai: ai, hasHayato: !!ai.hayato});
     const ideas = Array.isArray(r.ideas) ? r.ideas.filter((x) => x && (x.title || x.core)).slice(0, 5) : [];
@@ -2189,12 +2261,14 @@ function paintMorn(){
   $("morn-dots").innerHTML = Array.from({length: mornLast() + 1}, (_, i) => '<i class="' + (i <= mornStep ? "on" : "") + '"></i>').join("");
   $("morn-foot").hidden = !!visEditing;
   if (visEditing){ el.innerHTML = editHtml(visEditing); $("morn").scrollTop = 0; return; }
+  if (mornRefl){ el.innerHTML = reflHtml(); el.querySelectorAll("textarea").forEach(gciGrow); $("morn-back").style.visibility = "hidden"; $("morn-next").textContent = "次へ"; return; }
   el.innerHTML = mornStep === 0 ? cloverHtml(vision) : mornStep === 1 ? fmHtml(vision) : mornStep === 2 ? actionHtml(vision) : mornStep === 3 ? schedHtml(mornDay()) : suggHtml(suggs, true) || '<p class="lead">候補はすべて決めました。</p>';
   $("morn-back").style.visibility = mornStep === 0 ? "hidden" : "visible";
   $("morn-next").textContent = mornStep === mornLast() ? "今日はこれでよし" : "次へ";
 }
 function mornOpen(auto){
   mornStep = 0; visCell = todaysArea(); mornArea = todaysArea(); visEditing = null; mornAction = "";
+  { const g0 = mornDay() === TODAY ? gciOf(todayDoc) : {}; mornRefl = !(g0.good || g0.challenge); }
   $("morn").hidden = false; paintMorn();
   ls.set("journal.mornShown", mornDay());
   mornSugg = !!(suggs && suggs.length);
@@ -2254,6 +2328,7 @@ $("morn-close").addEventListener("click", mornClose);
 $("morn-back").addEventListener("click", () => { mornSaveText(); if (mornStep > 0){ mornStep--; paintMorn(); } });
 function mornSaveText(){ const t = $("morn-action"); if (t) mornAction = t.value; }
 $("morn-next").addEventListener("click", async () => {
+  if (mornRefl){ await reflSave(); mornRefl = false; paintMorn(); $("morn").scrollTop = 0; return; }
   mornSaveText();
   if (mornStep < mornLast()){ mornStep++; paintMorn(); $("morn").scrollTop = 0; return; }
   const day = mornDay(), text = mornAction.trim(), area = mornArea;
@@ -2459,7 +2534,7 @@ function toDate(s){
 // 音声ジャーナル（ショートカット）のLOGシートとつなぐ。変わった日だけ書き込む
 const fp = (r) => { let h = 0; const t = JSON.stringify(r); for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return String(h); };
 let syncing = false;
-async function syncSheet(quiet){
+async function syncSheet(quiet){ return;   // 前の仕組み（LOGシートからの取り込み）は終わったので使わない
   const st = $("p-import-status"), btn = $("p-import");
   if (syncing) return; 
   if (!db || !mcp){ if (!quiet) st.textContent = "この画面ではスプレッドシートを読めません。claude.aiで開いてください。"; return; }
@@ -2778,7 +2853,7 @@ function learnHints(kind, max){
   const L = learnCache; if (!L || !L.pairs.length) return "";
   const ps = L.pairs.filter((p) => !p.ignored && (p.kinds.indexOf(kind) >= 0 || p.n >= 2)).slice(0, max || 40);
   if (!ps.length) return "";
-  return "\n参考：この人がこれまでに直した言葉です（左が読み取った言葉、右が正しい言葉）。同じ間違いをしないよう、手がかりにしてください。\n" + ps.map((p) => "- " + p.from + " → " + p.to + (p.n > 1 ? "（" + p.n + "回）" : "")).join("\n") + "\n";
+  return "\n参考：この人がこれまでに直した言葉です（左が読み取った言葉、右が正しい言葉）。前後の意味に合うときだけ手がかりにしてください（同じ読みで意味によって字が変わる言葉は、文脈で選ぶこと）。\n" + ps.map((p) => "- " + p.from + " → " + p.to + (p.n > 1 ? "（" + p.n + "回）" : "")).join("\n") + "\n";
 }
 async function renderLearn(){
   if (!db) return;
@@ -3915,7 +3990,7 @@ async function makeSummary(k, start, end, partial){
 }
 // スプレッドシートの「まとめ」に1行足す。そこからLINEに届く
 async function sendSummaryToSheet(id, doc){
-  if (!mcp || doc.partial) return;
+  return;   // 前の仕組み（LINEへ送る「まとめ」シート）は終わったので使わない
   try {
     await mcp.callTool("Google Sheets", "append_values", {spreadsheetId: SHEET_ID, range: "まとめ!A1", values: [[doc.kind === "w" ? "週" : "月", periodLabel(doc.kind, doc.start, doc.end), doc.start, doc.end, sumText(doc), new Date().toISOString(), ""]]});
     await db.doc("summaries/" + id).update({line: true});
